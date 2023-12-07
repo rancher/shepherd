@@ -5,11 +5,11 @@ import (
 	"time"
 
 	provv1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
-	projectv3 "github.com/rancher/rancher/pkg/client/generated/project/v3"
 	"github.com/rancher/shepherd/clients/rancher"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	appv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -30,7 +30,7 @@ func VerifyReadyDaemonsetPods(t *testing.T, client *rancher.Client, cluster *v1.
 		daemonsets, err := client.Steve.SteveType(DaemonsetSteveType).ByID(status.ClusterName)
 		require.NoError(t, err)
 
-		daemonsetsStatusType := &projectv3.DaemonSetStatus{}
+		daemonsetsStatusType := &appv1.DaemonSetStatus{}
 		err = v1.ConvertToK8sType(daemonsets.Status, daemonsetsStatusType)
 		require.NoError(t, err)
 
@@ -44,7 +44,7 @@ func VerifyReadyDaemonsetPods(t *testing.T, client *rancher.Client, cluster *v1.
 	daemonsets, err := client.Steve.SteveType(DaemonsetSteveType).ByID(status.ClusterName)
 	require.NoError(t, err)
 
-	daemonsetsStatusType := &projectv3.DaemonSetStatus{}
+	daemonsetsStatusType := &appv1.DaemonSetStatus{}
 	err = v1.ConvertToK8sType(daemonsets.Status, daemonsetsStatusType)
 	require.NoError(t, err)
 
