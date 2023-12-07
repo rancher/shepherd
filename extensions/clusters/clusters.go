@@ -32,6 +32,7 @@ import (
 const (
 	active                               = "active"
 	baseline                             = "baseline"
+	externalAws                          = "external-aws"
 	FleetSteveResourceType               = "fleet.cattle.io.cluster"
 	PodSecurityAdmissionSteveResoureType = "management.cattle.io.podsecurityadmissionconfigurationtemplate"
 	ProvisioningSteveResourceType        = "provisioning.cattle.io.cluster"
@@ -40,13 +41,19 @@ const (
 	controlPlaneRole = "control-plane-role"
 	workerRole       = "worker-role"
 
-	externalCloudProviderString = "cloud-provider=external"
-	kubeletArgKey               = "kubelet-arg"
-	kubeletAPIServerArgKey      = "kubeapi-server-arg"
-	kubeControllerManagerArgKey = "kube-controller-manager-arg"
-	cloudProviderAnnotationName = "cloud-provider-name"
-	disableCloudController      = "disable-cloud-controller"
-	protectKernelDefaults       = "protect-kernel-defaults"
+	externalCloudProviderString  = "cloud-provider=external"
+	kubeletArgKey                = "kubelet-arg"
+	kubeletAPIServerArgKey       = "kubeapi-server-arg"
+	kubeControllerManagerArgKey  = "kube-controller-manager-arg"
+	cloudProviderAnnotationName  = "cloud-provider-name"
+	disableCloudController       = "disable-cloud-controller"
+	protectKernelDefaults        = "protect-kernel-defaults"
+	localcluster                 = "fleet-local/local"
+	ErrMsgListDownstreamClusters = "Couldn't list downstream clusters"
+
+	clusterStateUpgrading    = "upgrading" // For imported RKE2 and K3s clusters
+	clusterStateUpdating     = "updating"  // For all clusters except imported K3s and RKE2
+	clusterErrorStateMessage = "cluster is in error state"
 )
 
 // GetV1ProvisioningClusterByName is a helper function that returns the cluster ID by name
@@ -213,6 +220,10 @@ func CreateRancherBaselinePSACT(client *rancher.Client, psact string) error {
 // NewRKE1lusterConfig is a constructor for a v3.Cluster object, to be used by the rancher.Client.Provisioning client.
 func NewRKE1ClusterConfig(clusterName string, client *rancher.Client, clustersConfig *ClusterConfig) *management.Cluster {
 	backupConfigEnabled := true
+	criDockerBool := false
+	if clustersConfig.CRIDockerd {
+		criDockerBool = true
+	}
 	newConfig := &management.Cluster{
 		DockerRootDir:           "/var/lib/docker",
 		EnableClusterAlerting:   false,
@@ -228,6 +239,7 @@ func NewRKE1ClusterConfig(clusterName string, client *rancher.Client, clustersCo
 					"stubDomains": "cluster.local",
 				},
 			},
+			EnableCRIDockerd: &criDockerBool,
 			Ingress: &management.IngressConfig{
 				Provider: "nginx",
 			},
@@ -272,6 +284,16 @@ func NewRKE1ClusterConfig(clusterName string, client *rancher.Client, clustersCo
 					break
 				}
 			}
+		}
+	}
+
+	if clustersConfig.CloudProvider != "" {
+		newConfig.RancherKubernetesEngineConfig.CloudProvider = &management.CloudProvider{
+			Name: clustersConfig.CloudProvider,
+		}
+		if clustersConfig.CloudProvider == externalAws {
+			trueBoolean := true
+			newConfig.RancherKubernetesEngineConfig.CloudProvider.UseInstanceMetadataHostname = &trueBoolean
 		}
 	}
 
@@ -1081,16 +1103,11 @@ func UpdateK3SRKE2Cluster(client *rancher.Client, cluster *v1.SteveAPIObject, up
 	return cluster, nil
 }
 
-// WaitForClusterToBeUpgraded is a "helper" functions that takes a rancher client, and the cluster id as parameters. This function
-// contains two stages. First stage is to wait to be cluster in upgrade state. And the other is to wait until cluster is ready.
+// WaitClusterToBeInUpgrade is a helper function that takes a rancher client, and the cluster id as parameters.
+// Waits cluster to be in upgrade state.
 // Cluster error states that declare control plane is inaccessible and cluster object modified are ignored.
 // Same cluster summary information logging is ignored.
-func WaitClusterToBeUpgraded(client *rancher.Client, clusterID string) (err error) {
-	clusterStateUpgrading := "upgrading" // For imported RKE2 and K3s clusters
-	clusterStateUpdating := "updating"   // For all clusters except imported K3s and RKE2
-
-	clusterErrorStateMessage := "cluster is in error state"
-
+func WaitClusterToBeInUpgrade(client *rancher.Client, clusterID string) (err error) {
 	var clusterInfo string
 	opts := metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + clusterID,
@@ -1103,15 +1120,15 @@ func WaitClusterToBeUpgraded(client *rancher.Client, clusterID string) (err erro
 	}
 	checkFuncWaitToBeInUpgrade := func(event watch.Event) (bool, error) {
 		clusterUnstructured := event.Object.(*unstructured.Unstructured)
-		summerizedCluster := summary.Summarize(clusterUnstructured)
+		summarizedCluster := summary.Summarize(clusterUnstructured)
 
-		clusterInfo = logClusterInfoWithChanges(clusterID, clusterInfo, summerizedCluster)
+		clusterInfo = logClusterInfoWithChanges(clusterID, clusterInfo, summarizedCluster)
 
-		if summerizedCluster.Transitioning && !summerizedCluster.Error && (summerizedCluster.State == clusterStateUpdating || summerizedCluster.State == clusterStateUpgrading) {
+		if summarizedCluster.Transitioning && !summarizedCluster.Error && (summarizedCluster.State == clusterStateUpdating || summarizedCluster.State == clusterStateUpgrading) {
 			return true, nil
-		} else if summerizedCluster.Error && isClusterInaccessible(summerizedCluster.Message) {
+		} else if summarizedCluster.Error && isClusterInaccessible(summarizedCluster.Message) {
 			return false, nil
-		} else if summerizedCluster.Error && !isClusterInaccessible(summerizedCluster.Message) {
+		} else if summarizedCluster.Error && !isClusterInaccessible(summarizedCluster.Message) {
 			return false, errors.Wrap(err, clusterErrorStateMessage)
 		}
 
@@ -1122,18 +1139,35 @@ func WaitClusterToBeUpgraded(client *rancher.Client, clusterID string) (err erro
 		return
 	}
 
+	return
+}
+
+// WaitClusterUntilUpgrade is a helper function that takes a rancher client, and the cluster id as parameters.
+// Waits until cluster is ready.
+// Cluster error states that declare control plane is inaccessible and cluster object modified are ignored.
+// Same cluster summary information logging is ignored.
+func WaitClusterUntilUpgrade(client *rancher.Client, clusterID string) (err error) {
+	var clusterInfo string
+	opts := metav1.ListOptions{
+		FieldSelector:  "metadata.name=" + clusterID,
+		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+	}
+
 	watchInterfaceWaitUpgrade, err := client.GetManagementWatchInterface(management.ClusterType, opts)
+	if err != nil {
+		return
+	}
 	checkFuncWaitUpgrade := func(event watch.Event) (bool, error) {
 		clusterUnstructured := event.Object.(*unstructured.Unstructured)
-		summerizedCluster := summary.Summarize(clusterUnstructured)
+		summarizedCluster := summary.Summarize(clusterUnstructured)
 
-		clusterInfo = logClusterInfoWithChanges(clusterID, clusterInfo, summerizedCluster)
+		clusterInfo = logClusterInfoWithChanges(clusterID, clusterInfo, summarizedCluster)
 
-		if summerizedCluster.IsReady() {
+		if summarizedCluster.IsReady() {
 			return true, nil
-		} else if summerizedCluster.Error && isClusterInaccessible(summerizedCluster.Message) {
+		} else if summarizedCluster.Error && isClusterInaccessible(summarizedCluster.Message) {
 			return false, nil
-		} else if summerizedCluster.Error && !isClusterInaccessible(summerizedCluster.Message) {
+		} else if summarizedCluster.Error && !isClusterInaccessible(summarizedCluster.Message) {
 			return false, errors.Wrap(err, clusterErrorStateMessage)
 
 		}
@@ -1142,6 +1176,24 @@ func WaitClusterToBeUpgraded(client *rancher.Client, clusterID string) (err erro
 	}
 
 	err = wait.WatchWait(watchInterfaceWaitUpgrade, checkFuncWaitUpgrade)
+	if err != nil {
+		return err
+	}
+
+	return
+}
+
+// WaitForClusterToBeUpgraded is a "helper" functions that takes a rancher client, and the cluster id as parameters. This function
+// contains two stages. First stage is to wait to be cluster in upgrade state. And the other is to wait until cluster is ready.
+// Cluster error states that declare control plane is inaccessible and cluster object modified are ignored.
+// Same cluster summary information logging is ignored.
+func WaitClusterToBeUpgraded(client *rancher.Client, clusterID string) (err error) {
+	err = WaitClusterToBeInUpgrade(client, clusterID)
+	if err != nil {
+		return err
+	}
+
+	err = WaitClusterUntilUpgrade(client, clusterID)
 	if err != nil {
 		return err
 	}
@@ -1248,4 +1300,19 @@ func WaitForActiveRKE1Cluster(client *rancher.Client, clusterID string) error {
 		return err
 	}
 	return nil
+}
+
+// ListDownstreamClusters is a helper function to get the name of the downstream clusters
+func ListDownstreamClusters(client *rancher.Client) (clusterNames []string, err error) {
+	clusterList, err := client.Steve.SteveType(ProvisioningSteveResourceType).ListAll(nil)
+	if err != nil {
+		return nil, errors.Wrap(err, ErrMsgListDownstreamClusters)
+	}
+	for i, c := range clusterList.Data {
+		isLocalCluster := c.ID == localcluster
+		if !isLocalCluster {
+			clusterNames = append(clusterNames, clusterList.Data[i].Name)
+		}
+	}
+	return
 }
