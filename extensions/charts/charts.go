@@ -2,9 +2,11 @@ package charts
 
 import (
 	"context"
+	"time"
 
 	catalogv1 "github.com/rancher/rancher/pkg/apis/catalog.cattle.io/v1"
 	"github.com/rancher/shepherd/clients/rancher"
+	steveV1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/defaults"
 	"github.com/rancher/shepherd/extensions/kubeapi/workloads/daemonsets"
 	"github.com/rancher/shepherd/extensions/kubeapi/workloads/deployments"
@@ -13,6 +15,7 @@ import (
 	appv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	kwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 )
 
@@ -21,6 +24,8 @@ const (
 	defaultRegistrySettingID = "system-default-registry"
 	// serverURLSettingID is a private constant string that contains the ID of server URL setting.
 	serverURLSettingID = "server-url"
+	rancherChartsName  = "rancher-charts"
+	active             = "active"
 )
 
 // InstallOptions is a struct of the required options to install a chart.
@@ -326,4 +331,40 @@ func WatchAndWaitStatefulSets(client *rancher.Client, clusterID, namespace strin
 	}
 
 	return nil
+}
+
+// CreateChartRepoFromGithub creates a ClusterRepo in a given client via github instead of helm
+func CreateChartRepoFromGithub(client *steveV1.Client, githubURL, githubBranch, repoName string) error {
+	repoObject := catalogv1.ClusterRepo{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: repoName,
+		},
+		Spec: catalogv1.RepoSpec{
+			GitRepo:               githubURL,
+			GitBranch:             githubBranch,
+			InsecureSkipTLSverify: true,
+		},
+	}
+	_, err := client.SteveType(repoType).Create(repoObject)
+	if err != nil {
+		return err
+	}
+
+	err = kwait.Poll(1*time.Second, 2*time.Minute, func() (done bool, err error) {
+		res, err := client.SteveType(repoType).List(nil)
+		if err != nil {
+			return false, err
+		}
+
+		for _, repo := range res.Data {
+			if repo.Name == repoName {
+				if repo.State.Name == active {
+					return true, nil
+				}
+			}
+		}
+
+		return false, nil
+	})
+	return err
 }
