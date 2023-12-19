@@ -18,6 +18,7 @@ import (
 
 const (
 	active = "active"
+	pool   = "pool"
 )
 
 // MatchNodeRolesToMachinePool matches the role of machinePools to the nodeRoles.
@@ -87,7 +88,7 @@ func updateMachinePoolQuantity(client *rancher.Client, cluster *v1.SteveAPIObjec
 }
 
 // NewRKEMachinePool is a constructor that sets up a apisV1.RKEMachinePool object to be used to provision a cluster.
-func NewRKEMachinePool(controlPlaneRole, etcdRole, workerRole bool, poolName string, quantity int32, machineConfig *v1.SteveAPIObject, hostnameLengthLimit int, drainBeforeDelete bool) apisV1.RKEMachinePool {
+func NewRKEMachinePool(controlPlaneRole, etcdRole, workerRole, windowsRole bool, poolName string, quantity int32, machineConfig *v1.SteveAPIObject, hostnameLengthLimit int, drainBeforeDelete bool) apisV1.RKEMachinePool {
 	machineConfigRef := &corev1.ObjectReference{
 		Kind: machineConfig.Kind,
 		Name: machineConfig.Name,
@@ -101,6 +102,12 @@ func NewRKEMachinePool(controlPlaneRole, etcdRole, workerRole bool, poolName str
 		Name:              poolName,
 		Quantity:          &quantity,
 		DrainBeforeDelete: drainBeforeDelete,
+	}
+
+	if windowsRole {
+		machinePool.Labels = map[string]string{
+			"cattle.io/os": "windows",
+		}
 	}
 
 	if hostnameLengthLimit > 0 {
@@ -117,6 +124,10 @@ type NodeRoles struct {
 	Windows           bool  `json:"windows,omitempty" yaml:"windows,omitempty"`
 	Quantity          int32 `json:"quantity" yaml:"quantity"`
 	DrainBeforeDelete bool  `json:"drainBeforeDelete" yaml:"drainBeforeDelete"`
+}
+
+type Roles struct {
+	Roles []string `json:"roles,omitempty" yaml:"roles,omitempty"`
 }
 
 // HostnameTruncation is a struct that is used to set the hostname length limit for a cluster or its pools during provisioning
@@ -143,40 +154,26 @@ func (n NodeRoles) String() string {
 	return fmt.Sprintf("%d %s", n.Quantity, strings.Join(result, "+"))
 }
 
-// CreateAllMachinePools is a helper method that will loop and setup multiple node pools with the defined node roles from the `nodeRoles` parameter
-// `machineConfig` is the *unstructured.Unstructured created by CreateMachineConfig
-// `nodeRoles` would be in this format
-//
-//	 []NodeRoles{
-//	 {
-//	      ControlPlane: true,
-//	      Etcd:         false,
-//	      Worker:       false,
-//	      Quantity:     1,
-//	 },
-//	 {
-//	      ControlPlane: false,
-//	      Etcd:         true,
-//	      Worker:       false,
-//	      Quantity:     1,
-//	 },
-//	}
-func CreateAllMachinePools(nodeRoles []NodeRoles, machineConfig *v1.SteveAPIObject, hostnameLengthLimits []HostnameTruncation) []apisV1.RKEMachinePool {
-	machinePools := make([]apisV1.RKEMachinePool, 0, len(nodeRoles))
+// CreateAllMachinePools is a helper method that will loop and setup multiple node pools with the defined machinePoolConfigs
+func CreateAllMachinePools(nodeRoles []NodeRoles, rolesPerPool []string, machineConfigs []v1.SteveAPIObject, machinePoolConfigs []Roles, hostnameLengthLimits []HostnameTruncation) []apisV1.RKEMachinePool {
+	machinePools := make([]apisV1.RKEMachinePool, 0, len(rolesPerPool))
 	hostnameLengthLimit := 0
 
-	for index, roles := range nodeRoles {
-		poolName := "pool" + strconv.Itoa(index)
-		if hostnameLengthLimits != nil && len(hostnameLengthLimits) >= index {
-			hostnameLengthLimit = hostnameLengthLimits[index].PoolNameLengthLimit
-			poolName = hostnameLengthLimits[index].Name
+	for poolIndex, poolConfig := range nodeRoles {
+		nodeRoleIndex := MatchRoleToPool(rolesPerPool[poolIndex], machinePoolConfigs)
+		machineConfig := machineConfigs[nodeRoleIndex]
+
+		poolName := pool + strconv.Itoa(poolIndex)
+		if hostnameLengthLimits != nil && len(hostnameLengthLimits) >= poolIndex {
+			hostnameLengthLimit = hostnameLengthLimits[poolIndex].PoolNameLengthLimit
+			poolName = hostnameLengthLimits[poolIndex].Name
 		}
 
-		if !roles.Windows {
-			machinePool := NewRKEMachinePool(roles.ControlPlane, roles.Etcd, roles.Worker, poolName, roles.Quantity, machineConfig, hostnameLengthLimit, roles.DrainBeforeDelete)
+		if !poolConfig.Windows {
+			machinePool := NewRKEMachinePool(poolConfig.ControlPlane, poolConfig.Etcd, poolConfig.Worker, false, poolName, poolConfig.Quantity, &machineConfig, hostnameLengthLimit, poolConfig.DrainBeforeDelete)
 			machinePools = append(machinePools, machinePool)
 		} else {
-			machinePool := NewRKEMachinePool(false, false, roles.Windows, poolName, roles.Quantity, machineConfig, hostnameLengthLimit, roles.DrainBeforeDelete)
+			machinePool := NewRKEMachinePool(false, false, poolConfig.Windows, poolConfig.Windows, poolName, poolConfig.Quantity, &machineConfig, hostnameLengthLimit, poolConfig.DrainBeforeDelete)
 			machinePools = append(machinePools, machinePool)
 		}
 	}
@@ -193,4 +190,21 @@ func ScaleMachinePoolNodes(client *rancher.Client, cluster *v1.SteveAPIObject, n
 	logrus.Infof("Machine pool has been scaled!")
 
 	return scaledClusterResp, nil
+}
+
+// MatchRoleToPool matches the role of a pool to the Roles of a machine. Returns the index of the matching Roles.
+func MatchRoleToPool(poolRole string, allRoles []Roles) int {
+	hasMatch := false
+	for poolIndex, machineRole := range allRoles {
+		for _, configRole := range machineRole.Roles {
+			if strings.Contains(poolRole, configRole) {
+				hasMatch = true
+			}
+		}
+		if hasMatch {
+			return poolIndex
+		}
+	}
+	logrus.Warn("unable to match pool to role, likely missing [roles] in machineConfig")
+	return -1
 }
