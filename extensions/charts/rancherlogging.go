@@ -6,6 +6,7 @@ import (
 
 	catalogv1 "github.com/rancher/rancher/pkg/apis/catalog.cattle.io/v1"
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/clients/rancher/catalog"
 	"github.com/rancher/shepherd/extensions/defaults"
 	kubenamespaces "github.com/rancher/shepherd/extensions/kubeapi/namespaces"
 	"github.com/rancher/shepherd/extensions/namespaces"
@@ -153,7 +154,7 @@ func InstallRancherLoggingChart(client *rancher.Client, installOptions *InstallO
 		})
 	})
 
-	err = catalogClient.InstallChart(chartInstallAction)
+	err = catalogClient.InstallChart(chartInstallAction, catalog.RancherChartRepo)
 	if err != nil {
 		return err
 	}
@@ -190,8 +191,8 @@ func newLoggingChartInstallAction(p *payloadOpts, rancherLoggingOpts *RancherLog
 		},
 	}
 
-	chartInstall := newChartInstall(p.Name, p.InstallOptions.Version, p.InstallOptions.ClusterID, p.InstallOptions.ClusterName, p.Host, p.DefaultRegistry, loggingValues)
-	chartInstallCRD := newChartInstall(p.Name+"-crd", p.Version, p.InstallOptions.ClusterID, p.InstallOptions.ClusterName, p.Host, p.DefaultRegistry, nil)
+	chartInstall := newChartInstall(p.Name, p.InstallOptions.Version, p.InstallOptions.ClusterID, p.InstallOptions.ClusterName, p.Host, rancherChartsName, p.ProjectID, p.DefaultRegistry, loggingValues)
+	chartInstallCRD := newChartInstall(p.Name+"-crd", p.Version, p.InstallOptions.ClusterID, p.InstallOptions.ClusterName, p.Host, rancherChartsName, p.ProjectID, p.DefaultRegistry, nil)
 	chartInstalls := []types.ChartInstall{*chartInstallCRD, *chartInstall}
 
 	chartInstallAction := newChartInstallAction(p.Namespace, p.ProjectID, chartInstalls)
