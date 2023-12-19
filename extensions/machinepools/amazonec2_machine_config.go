@@ -9,12 +9,17 @@ const (
 	AWSKind                              = "Amazonec2Config"
 	AWSPoolType                          = "rke-machine-config.cattle.io.amazonec2config"
 	AWSResourceConfig                    = "amazonec2configs"
-	AWSMachineConfigConfigurationFileKey = "awsMachineConfig"
+	AWSMachineConfigConfigurationFileKey = "awsMachineConfigs"
 )
+
+type AWSMachineConfigs struct {
+	AWSMachineConfig []AWSMachineConfig `json:"awsMachineConfig" yaml:"awsMachineConfig"`
+	Region           string             `json:"region" yaml:"region"`
+}
 
 // AWSMachineConfig is configuration needed to create an rke-machine-config.cattle.io.amazonec2config
 type AWSMachineConfig struct {
-	Region             string   `json:"region" yaml:"region"`
+	Roles
 	AMI                string   `json:"ami" yaml:"ami"`
 	IAMInstanceProfile string   `json:"iamInstanceProfile" yaml:"iamInstanceProfile"`
 	InstanceType       string   `json:"instanceType" yaml:"instanceType"`
@@ -30,28 +35,47 @@ type AWSMachineConfig struct {
 
 // NewAWSMachineConfig is a constructor to set up rke-machine-config.cattle.io.amazonec2config. It returns an *unstructured.Unstructured
 // that CreateMachineConfig uses to created the rke-machine-config
-func NewAWSMachineConfig(generatedPoolName, namespace string) *unstructured.Unstructured {
-	var awsMachineConfig AWSMachineConfig
-	config.LoadConfig(AWSMachineConfigConfigurationFileKey, &awsMachineConfig)
+func NewAWSMachineConfig(generatedPoolName, namespace string) []unstructured.Unstructured {
+	var awsMachineConfigs AWSMachineConfigs
+	config.LoadConfig(AWSMachineConfigConfigurationFileKey, &awsMachineConfigs)
+	var multiConfig []unstructured.Unstructured
 
-	machineConfig := &unstructured.Unstructured{}
-	machineConfig.SetAPIVersion("rke-machine-config.cattle.io/v1")
-	machineConfig.SetKind(AWSKind)
-	machineConfig.SetGenerateName(generatedPoolName)
-	machineConfig.SetNamespace(namespace)
-	machineConfig.Object["region"] = awsMachineConfig.Region
-	machineConfig.Object["ami"] = awsMachineConfig.AMI
-	machineConfig.Object["iamInstanceProfile"] = awsMachineConfig.IAMInstanceProfile
-	machineConfig.Object["instanceType"] = awsMachineConfig.InstanceType
-	machineConfig.Object["sshUser"] = awsMachineConfig.SSHUser
-	machineConfig.Object["type"] = AWSPoolType
-	machineConfig.Object["vpcId"] = awsMachineConfig.VPCID
-	machineConfig.Object["subnetId"] = awsMachineConfig.SubnetID
-	machineConfig.Object["volumeType"] = awsMachineConfig.VolumeType
-	machineConfig.Object["zone"] = awsMachineConfig.Zone
-	machineConfig.Object["retries"] = awsMachineConfig.Retries
-	machineConfig.Object["rootSize"] = awsMachineConfig.RootSize
-	machineConfig.Object["securityGroup"] = awsMachineConfig.SecurityGroup
+	for _, awsMachineConfig := range awsMachineConfigs.AWSMachineConfig {
+		machineConfig := unstructured.Unstructured{}
+		machineConfig.SetAPIVersion("rke-machine-config.cattle.io/v1")
+		machineConfig.SetKind(AWSKind)
+		machineConfig.SetGenerateName(generatedPoolName)
+		machineConfig.SetNamespace(namespace)
 
-	return machineConfig
+		machineConfig.Object["region"] = awsMachineConfigs.Region
+		machineConfig.Object["ami"] = awsMachineConfig.AMI
+		machineConfig.Object["iamInstanceProfile"] = awsMachineConfig.IAMInstanceProfile
+		machineConfig.Object["instanceType"] = awsMachineConfig.InstanceType
+		machineConfig.Object["sshUser"] = awsMachineConfig.SSHUser
+		machineConfig.Object["type"] = AWSPoolType
+		machineConfig.Object["vpcId"] = awsMachineConfig.VPCID
+		machineConfig.Object["subnetId"] = awsMachineConfig.SubnetID
+		machineConfig.Object["volumeType"] = awsMachineConfig.VolumeType
+		machineConfig.Object["zone"] = awsMachineConfig.Zone
+		machineConfig.Object["retries"] = awsMachineConfig.Retries
+		machineConfig.Object["rootSize"] = awsMachineConfig.RootSize
+		machineConfig.Object["securityGroup"] = awsMachineConfig.SecurityGroup
+
+		multiConfig = append(multiConfig, machineConfig)
+	}
+
+	return multiConfig
+}
+
+// GetAWSMachineRoles returns a list of roles from the given machineConfigs
+func GetAWSMachineRoles() []Roles {
+	var awsMachineConfigs AWSMachineConfigs
+	config.LoadConfig(AWSMachineConfigConfigurationFileKey, &awsMachineConfigs)
+	var allRoles []Roles
+
+	for _, awsMachineConfig := range awsMachineConfigs.AWSMachineConfig {
+		allRoles = append(allRoles, awsMachineConfig.Roles)
+	}
+
+	return allRoles
 }
