@@ -68,16 +68,17 @@ const ClustersConfigKey = "clusters"
 
 // Clusters is a struct that contains cluster types.
 type Clusters struct {
-	RKE1Clusters   RancherClusters `yaml:"rke1" json:"rke1"`
-	RKE2Clusters   RancherClusters `yaml:"rke2" json:"rke2"`
-	K3sClusters    RancherClusters `yaml:"k3s" json:"k3s"`
-	HostedClusters []HostedCluster `yaml:"hosted" json:"hosted"`
+	Local  *RancherCluster `yaml:"local" json:"local"`
+	RKE1   RancherClusters `yaml:"rke1" json:"rke1"`
+	RKE2   RancherClusters `yaml:"rke2" json:"rke2"`
+	K3s    RancherClusters `yaml:"k3s" json:"k3s"`
+	Hosted []HostedCluster `yaml:"hosted" json:"hosted"`
 }
 
 // RancherClusters is a struct that contains slice of custom and node providers as ProviderCluster type.
 type RancherClusters struct {
-	CustomClusters       []RancherCluster `yaml:"custom" json:"custom"`
-	NodeProviderClusters []RancherCluster `yaml:"nodeProvider" json:"nodeProvider"`
+	Custom       []RancherCluster `yaml:"custom" json:"custom"`
+	NodeProvider []RancherCluster `yaml:"nodeProvider" json:"nodeProvider"`
 }
 
 // RancherCluster is a struct that contains related information about the downstream cluster that's going to be created and upgraded.
