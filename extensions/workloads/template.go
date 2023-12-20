@@ -118,3 +118,19 @@ func NewJobTemplate(jobName string, namespace string) *batchv1.Job {
 	}
 
 }
+
+// NewPodTemplateWithSecretEnvironmentVariable is a constructor that returns pod template spec with envFrom option for workload creations
+func NewPodTemplateWithSecretEnvironmentVariable(containerName string, containerImage string, secretName string) corev1.PodTemplateSpec {
+	pullPolicy := corev1.PullAlways
+	envFrom := []corev1.EnvFromSource{
+		{
+			SecretRef: &corev1.SecretEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
+			},
+		},
+	}
+	container := NewContainer(containerName, containerImage, pullPolicy, nil, envFrom, nil, nil, nil)
+	containers := []corev1.Container{container}
+
+	return NewPodTemplate(containers, nil, nil, nil)
+}
