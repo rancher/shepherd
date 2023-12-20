@@ -7,6 +7,7 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	v3 "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
+	"github.com/rancher/shepherd/clients/rkecli"
 	"github.com/rancher/shepherd/extensions/clusters"
 )
 
