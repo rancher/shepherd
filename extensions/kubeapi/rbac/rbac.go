@@ -8,7 +8,7 @@ import (
 const (
 	GroupName    = "management.cattle.io"
 	Version      = "v3"
-	localcluster = "local"
+	LocalCluster = "local"
 )
 
 // RoleGroupVersionResource is the required Group Version Resource for accessing roles in a cluster, using the dynamic client.
@@ -65,4 +65,11 @@ var RoleTemplateGroupVersionResource = schema.GroupVersionResource{
 	Group:    GroupName,
 	Version:  Version,
 	Resource: "roletemplates",
+}
+
+// ProjectRoleTemplateBindingGroupVersionResource is the required Group Version Resource for accessing project role template bindings in a cluster, using the dynamic client.
+var ProjectRoleTemplateBindingGroupVersionResource = schema.GroupVersionResource{
+	Group:    GroupName,
+	Version:  Version,
+	Resource: "projectroletemplatebindings",
 }
