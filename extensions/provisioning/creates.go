@@ -73,10 +73,11 @@ func CreateProvisioningCluster(client *rancher.Client, provider Provider, cluste
 	generatedPoolName := fmt.Sprintf("nc-%s-pool1-", clusterName)
 	machinePoolConfig := provider.MachinePoolFunc(generatedPoolName, namespace)
 
-	machineConfigResp, err := client.Steve.SteveType(provider.MachineConfigPoolResourceSteveType).Create(machinePoolConfig)
+	MachinePoolConfigResp, err := client.Steve.SteveType(provider.MachineConfigPoolResourceSteveType).Create(machinePoolConfig)
 	if err != nil {
 		return nil, err
 	}
+
 	if clustersConfig.Registries != nil {
 		if clustersConfig.Registries.RKE2Registries != nil {
 			if clustersConfig.Registries.RKE2Username != "" && clustersConfig.Registries.RKE2Password != "" {
@@ -103,11 +104,13 @@ func CreateProvisioningCluster(client *rancher.Client, provider Provider, cluste
 			}
 		}
 	}
-	var nodeRoles []machinepools.NodeRoles
+
+	var nodeRoles []machinepools.MachinePoolConfig
 	for _, pools := range clustersConfig.MachinePools {
-		nodeRoles = append(nodeRoles, pools.NodeRoles)
+		nodeRoles = append(nodeRoles, pools.MachinePoolConfig)
 	}
-	machinePools := machinepools.CreateAllMachinePools(nodeRoles, machineConfigResp, hostnameTruncation)
+
+	machinePools := machinepools.CreateAllMachinePools(nodeRoles, MachinePoolConfigResp, hostnameTruncation)
 	cluster := clusters.NewK3SRKE2ClusterConfig(clusterName, namespace, clustersConfig, machinePools, cloudCredential.ID)
 
 	for _, truncatedPool := range hostnameTruncation {
@@ -146,21 +149,25 @@ func CreateProvisioningCustomCluster(client *rancher.Client, externalNodeProvide
 	rolesPerPool := []string{}
 	for _, pool := range clustersConfig.MachinePools {
 		var finalRoleCommand string
-		if pool.NodeRoles.ControlPlane {
+		if pool.MachinePoolConfig.ControlPlane {
 			finalRoleCommand += " --controlplane"
 		}
-		if pool.NodeRoles.Etcd {
+
+		if pool.MachinePoolConfig.Etcd {
 			finalRoleCommand += " --etcd"
 		}
-		if pool.NodeRoles.Worker {
+
+		if pool.MachinePoolConfig.Worker {
 			finalRoleCommand += " --worker"
 		}
-		if pool.NodeRoles.Windows {
+
+		if pool.MachinePoolConfig.Windows {
 			finalRoleCommand += " --windows"
 		}
-		quantityPerPool = append(quantityPerPool, pool.NodeRoles.Quantity)
+
+		quantityPerPool = append(quantityPerPool, pool.MachinePoolConfig.Quantity)
 		rolesPerPool = append(rolesPerPool, finalRoleCommand)
-		for i := int32(0); i < pool.NodeRoles.Quantity; i++ {
+		for i := int32(0); i < pool.MachinePoolConfig.Quantity; i++ {
 			rolesPerNode = append(rolesPerNode, finalRoleCommand)
 		}
 	}
@@ -439,20 +446,20 @@ func CreateProvisioningAirgapCustomCluster(client *rancher.Client, clustersConfi
 	rolesPerNode := map[int32]string{}
 	for _, pool := range clustersConfig.MachinePools {
 		var finalRoleCommand string
-		if pool.NodeRoles.ControlPlane {
+		if pool.MachinePoolConfig.ControlPlane {
 			finalRoleCommand += " --controlplane"
 		}
-		if pool.NodeRoles.Etcd {
+		if pool.MachinePoolConfig.Etcd {
 			finalRoleCommand += " --etcd"
 		}
-		if pool.NodeRoles.Worker {
+		if pool.MachinePoolConfig.Worker {
 			finalRoleCommand += " --worker"
 		}
-		if pool.NodeRoles.Windows {
+		if pool.MachinePoolConfig.Windows {
 			finalRoleCommand += " --windows"
 		}
 
-		rolesPerNode[pool.NodeRoles.Quantity] = finalRoleCommand
+		rolesPerNode[pool.MachinePoolConfig.Quantity] = finalRoleCommand
 	}
 
 	if clustersConfig.PSACT == string(provisioninginput.RancherBaseline) {
