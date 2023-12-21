@@ -7,18 +7,22 @@ import (
 	"time"
 
 	apisV1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
+	rkev1 "github.com/rancher/rancher/pkg/apis/rke.cattle.io/v1"
 	"github.com/rancher/shepherd/clients/rancher"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/defaults"
 	nodestat "github.com/rancher/shepherd/extensions/nodes"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
 	active = "active"
 	pool   = "pool"
+
+	nodeRoleListLength = 4
 )
 
 // MatchNodeRolesToMachinePool matches the role of machinePools to the nodeRoles.
@@ -74,7 +78,8 @@ func updateMachinePoolQuantity(client *rancher.Client, cluster *v1.SteveAPIObjec
 			return false, err
 		}
 
-		if clusterResp.ObjectMeta.State.Name == active && nodestat.AllManagementNodeReady(client, cluster.ID, defaults.ThirtyMinuteTimeout) == nil {
+		if clusterResp.ObjectMeta.State.Name == active &&
+			nodestat.AllManagementNodeReady(client, cluster.ID, defaults.ThirtyMinuteTimeout) == nil {
 			return true, nil
 		}
 
@@ -87,50 +92,125 @@ func updateMachinePoolQuantity(client *rancher.Client, cluster *v1.SteveAPIObjec
 	return cluster, nil
 }
 
-// NewRKEMachinePool is a constructor that sets up a apisV1.RKEMachinePool object to be used to provision a cluster.
-func NewRKEMachinePool(controlPlaneRole, etcdRole, workerRole, windowsRole bool, poolName string, quantity int32, machineConfig *v1.SteveAPIObject, hostnameLengthLimit int, drainBeforeDelete bool) apisV1.RKEMachinePool {
-	machineConfigRef := &corev1.ObjectReference{
-		Kind: machineConfig.Kind,
-		Name: machineConfig.Name,
-	}
+// MatchMachineConfigToRolesIndex will return the index of the matching role for a given machineConfig.
+func MatchMachineConfigToRolesIndex(machineConfig *MachinePoolConfig, objectRoles []Roles) int {
+	for index, roles := range objectRoles {
+		etcdMatch := false
+		controlplaneMatch := false
+		workerMatch := false
+		windowsMatch := false
 
-	machinePool := apisV1.RKEMachinePool{
-		ControlPlaneRole:  controlPlaneRole,
-		EtcdRole:          etcdRole,
-		WorkerRole:        workerRole,
-		NodeConfig:        machineConfigRef,
-		Name:              poolName,
-		Quantity:          &quantity,
-		DrainBeforeDelete: drainBeforeDelete,
-	}
+		for _, role := range roles.Roles {
 
-	if windowsRole {
-		machinePool.Labels = map[string]string{
-			"cattle.io/os": "windows",
+			if machineConfig.Etcd && role == "etcd" {
+				etcdMatch = true
+			}
+
+			if machineConfig.ControlPlane && role == "controlplane" {
+				controlplaneMatch = true
+			}
+
+			if machineConfig.Worker && role == "worker" {
+				workerMatch = true
+			}
+
+			if machineConfig.Windows && role == "windows" {
+				windowsMatch = true
+			}
+		}
+
+		if etcdMatch == machineConfig.Etcd &&
+			controlplaneMatch == machineConfig.ControlPlane &&
+			workerMatch == machineConfig.Worker &&
+			windowsMatch == machineConfig.Windows {
+			return index
 		}
 	}
 
-	if hostnameLengthLimit > 0 {
-		machinePool.HostnameLengthLimit = hostnameLengthLimit
+	return -1
+}
+
+// NewRKEMachinePool is a constructor that sets up a apisV1.RKEMachinePool object to be used to provision a cluster.
+func NewRKEMachinePool(machineObject v1.SteveAPIObject, pool Pools, machineConfig *MachinePoolConfig) apisV1.RKEMachinePool {
+	machineConfigRef := &corev1.ObjectReference{
+		Kind: machineObject.Kind,
+		Name: machineObject.Name,
+	}
+
+	// windows pools are just worker pools exclusive to windows nodes.
+	machineWorkerRole := machineConfig.Worker
+	if machineConfig.Windows {
+		machineWorkerRole = machineConfig.Windows
+	}
+
+	machinePoolQuantity := machineConfig.Quantity
+	machinePool := apisV1.RKEMachinePool{
+		ControlPlaneRole:     machineConfig.ControlPlane,
+		EtcdRole:             machineConfig.Etcd,
+		WorkerRole:           machineWorkerRole,
+		NodeConfig:           machineConfigRef,
+		Name:                 machineConfig.Name,
+		Quantity:             &machinePoolQuantity,
+		DrainBeforeDelete:    machineConfig.DrainBeforeDelete,
+		NodeStartupTimeout:   machineConfig.NodeStartupTimeout,
+		UnhealthyNodeTimeout: machineConfig.UnhealthyNodeTimeout,
+		MaxUnhealthy:         machineConfig.MaxUnhealthy,
+		UnhealthyRange:       machineConfig.UnhealthyRange,
+		RKECommonNodeConfig: rkev1.RKECommonNodeConfig{
+			Labels: pool.NodeLabels,
+			Taints: pool.NodeTaints,
+		},
+	}
+
+	if machineConfig.Windows {
+		if machinePool.Labels != nil {
+			machinePool.Labels["cattle.io/os"] = "windows"
+		} else {
+			machinePool.Labels = map[string]string{
+				"cattle.io/os": "windows",
+			}
+		}
+	}
+
+	if machineConfig.HostnameLengthLimit > 0 {
+		machinePool.HostnameLengthLimit = machineConfig.HostnameLengthLimit
 	}
 
 	return machinePool
 }
 
+type Pools struct {
+	NodeLabels             map[string]string `json:"nodeLabels,omitempty" yaml:"nodeLabels,omitempty"`
+	NodeTaints             []corev1.Taint    `json:"nodeTaints,omitempty" yaml:"nodeTaints,omitempty"`
+	SpecifyCustomPrivateIP bool              `json:"specifyPrivateIP,omitempty" yaml:"specifyPrivateIP,omitempty"`
+	SpecifyCustomPublicIP  bool              `json:"specifyPublicIP,omitempty" yaml:"specifyPublicIP,omitempty" default:"true"`
+	CustomNodeNameSuffix   string            `json:"nodeNameSuffix,omitempty" yaml:"nodeNameSuffix,omitempty"`
+}
+
 type NodeRoles struct {
-	ControlPlane      bool  `json:"controlplane,omitempty" yaml:"controlplane,omitempty"`
-	Etcd              bool  `json:"etcd,omitempty" yaml:"etcd,omitempty"`
-	Worker            bool  `json:"worker,omitempty" yaml:"worker,omitempty"`
-	Windows           bool  `json:"windows,omitempty" yaml:"windows,omitempty"`
-	Quantity          int32 `json:"quantity" yaml:"quantity"`
-	DrainBeforeDelete bool  `json:"drainBeforeDelete" yaml:"drainBeforeDelete"`
+	ControlPlane bool  `json:"controlplane,omitempty" yaml:"controlplane,omitempty"`
+	Etcd         bool  `json:"etcd,omitempty" yaml:"etcd,omitempty"`
+	Worker       bool  `json:"worker,omitempty" yaml:"worker,omitempty"`
+	Windows      bool  `json:"windows,omitempty" yaml:"windows,omitempty"`
+	Quantity     int32 `json:"quantity" yaml:"quantity"`
+}
+
+type MachinePoolConfig struct {
+	NodeRoles
+	Name                 string           `json:"name,omitempty" yaml:"name,omitempty"`
+	DrainBeforeDelete    bool             `json:"drainBeforeDelete,omitempty" yaml:"drainBeforeDelete,omitempty"`
+	HostnameLengthLimit  int              `json:"hostnameLengthLimit" yaml:"hostnameLengthLimit" default:"0"`
+	NodeStartupTimeout   *metav1.Duration `json:"nodeStartupTimeout,omitempty" yaml:"nodeStartupTimeout,omitempty"`
+	UnhealthyNodeTimeout *metav1.Duration `json:"unhealthyNodeTimeout,omitempty" yaml:"unhealthyNodeTimeout,omitempty"`
+	MaxUnhealthy         *string          `json:"maxUnhealthy,omitempty" yaml:"maxUnhealthy,omitempty"`
+	UnhealthyRange       *string          `json:"unhealthyRange,omitempty" yaml:"unhealthyRange,omitempty"`
 }
 
 type Roles struct {
 	Roles []string `json:"roles,omitempty" yaml:"roles,omitempty"`
 }
 
-// HostnameTruncation is a struct that is used to set the hostname length limit for a cluster or its pools during provisioning
+// HostnameTruncation is a struct that is used to set the hostname length limit for a cluster or pool
 type HostnameTruncation struct {
 	PoolNameLengthLimit    int
 	ClusterNameLengthLimit int
@@ -138,7 +218,7 @@ type HostnameTruncation struct {
 }
 
 func (n NodeRoles) String() string {
-	result := make([]string, 0, 3)
+	result := make([]string, 0, nodeRoleListLength)
 	if n.Quantity < 1 {
 		return ""
 	}
@@ -151,32 +231,28 @@ func (n NodeRoles) String() string {
 	if n.Worker {
 		result = append(result, "worker")
 	}
+	if n.Windows {
+		result = append(result, "windows")
+	}
+
 	return fmt.Sprintf("%d %s", n.Quantity, strings.Join(result, "+"))
 }
 
-// CreateAllMachinePools is a helper method that will loop and setup multiple node pools with the defined machinePoolConfigs
-func CreateAllMachinePools(nodeRoles []NodeRoles, rolesPerPool []string, machineConfigs []v1.SteveAPIObject, machinePoolConfigs []Roles, hostnameLengthLimits []HostnameTruncation) []apisV1.RKEMachinePool {
-	machinePools := make([]apisV1.RKEMachinePool, 0, len(rolesPerPool))
-	hostnameLengthLimit := 0
+// CreateAllMachinePools will setup multiple node pools from a given config.
+func CreateAllMachinePools(machineConfigs []MachinePoolConfig, pools []Pools, machineObjects []v1.SteveAPIObject, objectRoles []Roles, hostnameLengthLimits []HostnameTruncation) []apisV1.RKEMachinePool {
+	machinePools := make([]apisV1.RKEMachinePool, 0, len(machineConfigs))
 
-	for poolIndex, poolConfig := range nodeRoles {
-		nodeRoleIndex := MatchRoleToPool(rolesPerPool[poolIndex], machinePoolConfigs)
-		machineConfig := machineConfigs[nodeRoleIndex]
-
-		poolName := pool + strconv.Itoa(poolIndex)
-		if hostnameLengthLimits != nil && len(hostnameLengthLimits) >= poolIndex {
-			hostnameLengthLimit = hostnameLengthLimits[poolIndex].PoolNameLengthLimit
-			poolName = hostnameLengthLimits[poolIndex].Name
+	for index, machineConfig := range machineConfigs {
+		machineConfig.Name = pool + strconv.Itoa(index)
+		if hostnameLengthLimits != nil && len(hostnameLengthLimits) >= index {
+			machineConfig.HostnameLengthLimit = hostnameLengthLimits[index].PoolNameLengthLimit
+			machineConfig.Name = hostnameLengthLimits[index].Name
 		}
-
-		if !poolConfig.Windows {
-			machinePool := NewRKEMachinePool(poolConfig.ControlPlane, poolConfig.Etcd, poolConfig.Worker, false, poolName, poolConfig.Quantity, &machineConfig, hostnameLengthLimit, poolConfig.DrainBeforeDelete)
-			machinePools = append(machinePools, machinePool)
-		} else {
-			machinePool := NewRKEMachinePool(false, false, poolConfig.Windows, poolConfig.Windows, poolName, poolConfig.Quantity, &machineConfig, hostnameLengthLimit, poolConfig.DrainBeforeDelete)
-			machinePools = append(machinePools, machinePool)
-		}
+		objectIndex := MatchMachineConfigToRolesIndex(&machineConfig, objectRoles)
+		machinePool := NewRKEMachinePool(machineObjects[objectIndex], pools[objectIndex], &machineConfig)
+		machinePools = append(machinePools, machinePool)
 	}
+
 	return machinePools
 }
 
