@@ -1,10 +1,13 @@
 package nodes
 
 import (
+	"strings"
 	"time"
 
 	"github.com/rancher/norman/types"
+	rkev1 "github.com/rancher/rancher/pkg/apis/rke.cattle.io/v1"
 	"github.com/rancher/shepherd/clients/rancher"
+	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
@@ -20,6 +23,7 @@ const (
 	clusterLabel             = "cluster.x-k8s.io/cluster-name"
 	PollInterval             = time.Duration(5 * time.Second)
 	PollTimeout              = time.Duration(15 * time.Minute)
+	httpNotFound             = "404 Not Found"
 )
 
 // AllManagementNodeReady is a helper method that will loop and check if the node is ready in the RKE1 cluster.
@@ -126,7 +130,7 @@ func IsNodeReplaced(client *rancher.Client, oldMachineID string, clusterID strin
 		numOfNodesAfterDeletion = 0
 		for _, machine := range machines.Data {
 			if machine.Etcd == isEtcd && machine.ControlPlane == isControlPlane && machine.Worker == isWorker {
-				if machine.ID == oldMachineID {
+				if machine.ID == oldMachineID || machine.NodeName == oldMachineID {
 					return false, nil
 				}
 				logrus.Info("new node : ", machine.NodeName)
@@ -136,4 +140,42 @@ func IsNodeReplaced(client *rancher.Client, oldMachineID string, clusterID strin
 		return true, nil
 	})
 	return numOfNodesBeforeDeletion == numOfNodesAfterDeletion, err
+}
+
+// Isv1NodeConditionMet checks the condition reasons of a given machine in a cluster and waits for the condition to be true.
+// Otherwise, an error is returned.
+func Isv1NodeConditionMet(client *rancher.Client, machineID, clusterID, conditionReason string) error {
+	steveclient, err := client.Steve.ProxyDownstream(clusterID)
+	if err != nil {
+		return err
+	}
+
+	v1NodeStatus := &rkev1.RKEMachineStatus{}
+
+	err = wait.Poll(PollInterval, PollTimeout, func() (done bool, err error) {
+		refreshedMachine, err := steveclient.SteveType("node").ByID(machineID)
+		if err != nil {
+			if strings.Contains(err.Error(), httpNotFound) {
+				return true, nil
+			}
+
+			return false, err
+		}
+
+		err = v1.ConvertToK8sType(refreshedMachine.Status, v1NodeStatus)
+		if err != nil {
+			return false, err
+		}
+
+		for _, condition := range v1NodeStatus.Conditions {
+			if condition.Reason == conditionReason {
+				logrus.Infof("Node is in condition: %s", conditionReason)
+				return true, nil
+			}
+		}
+
+		return false, nil
+	})
+
+	return err
 }

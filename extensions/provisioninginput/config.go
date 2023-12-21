@@ -37,47 +37,59 @@ const (
 )
 
 var AllRolesMachinePool = MachinePools{
-	NodeRoles: machinepools.NodeRoles{
-		Etcd:         true,
-		ControlPlane: true,
-		Worker:       true,
-		Quantity:     1,
+	MachinePoolConfig: machinepools.MachinePoolConfig{
+		NodeRoles: machinepools.NodeRoles{
+			Etcd:         true,
+			ControlPlane: true,
+			Worker:       true,
+			Quantity:     1,
+		},
 	},
 }
 
 var EtcdControlPlaneMachinePool = MachinePools{
-	NodeRoles: machinepools.NodeRoles{
-		Etcd:         true,
-		ControlPlane: true,
-		Quantity:     1,
+	MachinePoolConfig: machinepools.MachinePoolConfig{
+		NodeRoles: machinepools.NodeRoles{
+			Etcd:         true,
+			ControlPlane: true,
+			Quantity:     1,
+		},
 	},
 }
 
 var EtcdMachinePool = MachinePools{
-	NodeRoles: machinepools.NodeRoles{
-		Etcd:     true,
-		Quantity: 1,
+	MachinePoolConfig: machinepools.MachinePoolConfig{
+		NodeRoles: machinepools.NodeRoles{
+			Etcd:     true,
+			Quantity: 1,
+		},
 	},
 }
 
 var ControlPlaneMachinePool = MachinePools{
-	NodeRoles: machinepools.NodeRoles{
-		ControlPlane: true,
-		Quantity:     1,
+	MachinePoolConfig: machinepools.MachinePoolConfig{
+		NodeRoles: machinepools.NodeRoles{
+			ControlPlane: true,
+			Quantity:     1,
+		},
 	},
 }
 
 var WorkerMachinePool = MachinePools{
-	NodeRoles: machinepools.NodeRoles{
-		Worker:   true,
-		Quantity: 1,
+	MachinePoolConfig: machinepools.MachinePoolConfig{
+		NodeRoles: machinepools.NodeRoles{
+			Worker:   true,
+			Quantity: 1,
+		},
 	},
 }
 
 var WindowsMachinePool = MachinePools{
-	NodeRoles: machinepools.NodeRoles{
-		Windows:  true,
-		Quantity: 1,
+	MachinePoolConfig: machinepools.MachinePoolConfig{
+		NodeRoles: machinepools.NodeRoles{
+			Windows:  true,
+			Quantity: 1,
+		},
 	},
 }
 
@@ -183,8 +195,8 @@ type Pools struct {
 
 type MachinePools struct {
 	Pools
-	NodeRoles machinepools.NodeRoles `json:"nodeRoles,omitempty" yaml:"nodeRoles,omitempty" default:"[]"`
-	IsSecure  bool                   `json:"isSecure,omitempty" yaml:"isSecure,omitempty" default:"false"`
+	MachinePoolConfig machinepools.MachinePoolConfig `json:"machinePoolConfig,omitempty" yaml:"machinePoolConfig,omitempty" default:"[]"`
+	IsSecure          bool                           `json:"isSecure,omitempty" yaml:"isSecure,omitempty" default:"false"`
 }
 
 type NodePools struct {
