@@ -9,15 +9,20 @@ const (
 	AzureKind                              = "AzureConfig"
 	AzurePoolType                          = "rke-machine-config.cattle.io.azureconfig"
 	AzureResourceConfig                    = "azureconfigs"
-	AzureMachineConfigConfigurationFileKey = "azureMachineConfig"
+	AzureMachineConfigConfigurationFileKey = "azureMachineConfigs"
 )
+
+type AzureMachineConfigs struct {
+	AzureMachineConfig []AzureMachineConfig `json:"azureMachineConfig" yaml:"azureMachineConfig"`
+	Environment        string               `json:"environment" yaml:"environment"`
+}
 
 // AzureMachineConfig is configuration needed to create an rke-machine-config.cattle.io.azureconfig
 type AzureMachineConfig struct {
+	Roles
 	AvailabilitySet   string   `json:"availabilitySet" yaml:"availabilitySet"`
 	DiskSize          string   `json:"diskSize" yaml:"diskSize"`
 	DNS               string   `json:"dns,omitempty" yaml:"dns,omitempty"`
-	Environment       string   `json:"environment" yaml:"environment"`
 	FaultDomainCount  string   `json:"faultDomainCount" yaml:"faultDomainCount"`
 	Image             string   `json:"image" yaml:"image"`
 	ManagedDisks      bool     `json:"managedDisks" yaml:"managedDisks"`
@@ -39,36 +44,56 @@ type AzureMachineConfig struct {
 
 // NewAzureMachineConfig is a constructor to set up rke-machine-config.cattle.io.azureconfig. It returns an *unstructured.Unstructured
 // that CreateMachineConfig uses to created the rke-machine-config
-func NewAzureMachineConfig(generatedPoolName, namespace string) *unstructured.Unstructured {
-	var azureMachineConfig AzureMachineConfig
-	config.LoadConfig(AzureMachineConfigConfigurationFileKey, &azureMachineConfig)
+func NewAzureMachineConfig(generatedPoolName, namespace string) []unstructured.Unstructured {
+	var azureMachineConfigs AzureMachineConfigs
+	config.LoadConfig(AzureMachineConfigConfigurationFileKey, &azureMachineConfigs)
+	var multiConfig []unstructured.Unstructured
 
-	machineConfig := &unstructured.Unstructured{}
-	machineConfig.SetAPIVersion("rke-machine-config.cattle.io/v1")
-	machineConfig.SetKind(DOKind)
-	machineConfig.SetGenerateName(generatedPoolName)
-	machineConfig.SetNamespace(namespace)
-	machineConfig.Object["availabilitySet"] = azureMachineConfig.AvailabilitySet
-	machineConfig.Object["diskSize"] = azureMachineConfig.DiskSize
-	machineConfig.Object["dns"] = azureMachineConfig.DNS
-	machineConfig.Object["environment"] = azureMachineConfig.Environment
-	machineConfig.Object["faultDomainCount"] = azureMachineConfig.FaultDomainCount
-	machineConfig.Object["image"] = azureMachineConfig.Image
-	machineConfig.Object["managedDisks"] = azureMachineConfig.ManagedDisks
-	machineConfig.Object["noPublicIp"] = azureMachineConfig.NoPublicIP
-	machineConfig.Object["nsg"] = azureMachineConfig.NSG
-	machineConfig.Object["openPort"] = azureMachineConfig.OpenPort
-	machineConfig.Object["privateIpAddress"] = azureMachineConfig.PrivateIPAddress
-	machineConfig.Object["resourceGroup"] = azureMachineConfig.ResourceGroup
-	machineConfig.Object["size"] = azureMachineConfig.Size
-	machineConfig.Object["sshUser"] = azureMachineConfig.SSHUser
-	machineConfig.Object["staticPublicIP"] = azureMachineConfig.StaticPublicIP
-	machineConfig.Object["storageType"] = azureMachineConfig.StorageType
-	machineConfig.Object["subnet"] = azureMachineConfig.Subnet
-	machineConfig.Object["subnetPrefix"] = azureMachineConfig.SubnetPrefix
-	machineConfig.Object["updateDomainCount"] = azureMachineConfig.UpdateDomainCount
-	machineConfig.Object["usePrivateIp"] = azureMachineConfig.UsePrivateIP
-	machineConfig.Object["vnet"] = azureMachineConfig.Vnet
-	machineConfig.Object["type"] = AzurePoolType
-	return machineConfig
+	for _, azureMachineConfig := range azureMachineConfigs.AzureMachineConfig {
+		machineConfig := unstructured.Unstructured{}
+		machineConfig.SetAPIVersion("rke-machine-config.cattle.io/v1")
+		machineConfig.SetKind(AzureKind)
+		machineConfig.SetGenerateName(generatedPoolName)
+		machineConfig.SetNamespace(namespace)
+
+		machineConfig.Object["availabilitySet"] = azureMachineConfig.AvailabilitySet
+		machineConfig.Object["diskSize"] = azureMachineConfig.DiskSize
+		machineConfig.Object["dns"] = azureMachineConfig.DNS
+		machineConfig.Object["environment"] = azureMachineConfigs.Environment
+		machineConfig.Object["faultDomainCount"] = azureMachineConfig.FaultDomainCount
+		machineConfig.Object["image"] = azureMachineConfig.Image
+		machineConfig.Object["managedDisks"] = azureMachineConfig.ManagedDisks
+		machineConfig.Object["noPublicIp"] = azureMachineConfig.NoPublicIP
+		machineConfig.Object["nsg"] = azureMachineConfig.NSG
+		machineConfig.Object["openPort"] = azureMachineConfig.OpenPort
+		machineConfig.Object["privateIpAddress"] = azureMachineConfig.PrivateIPAddress
+		machineConfig.Object["resourceGroup"] = azureMachineConfig.ResourceGroup
+		machineConfig.Object["size"] = azureMachineConfig.Size
+		machineConfig.Object["sshUser"] = azureMachineConfig.SSHUser
+		machineConfig.Object["staticPublicIP"] = azureMachineConfig.StaticPublicIP
+		machineConfig.Object["storageType"] = azureMachineConfig.StorageType
+		machineConfig.Object["subnet"] = azureMachineConfig.Subnet
+		machineConfig.Object["subnetPrefix"] = azureMachineConfig.SubnetPrefix
+		machineConfig.Object["updateDomainCount"] = azureMachineConfig.UpdateDomainCount
+		machineConfig.Object["usePrivateIp"] = azureMachineConfig.UsePrivateIP
+		machineConfig.Object["vnet"] = azureMachineConfig.Vnet
+		machineConfig.Object["type"] = AzurePoolType
+
+		multiConfig = append(multiConfig, machineConfig)
+	}
+
+	return multiConfig
+}
+
+// GetAzureMachineRoles returns a list of roles from the given machineConfigs
+func GetAzureMachineRoles() []Roles {
+	var azureMachineConfigs AzureMachineConfigs
+	config.LoadConfig(AzureMachineConfigConfigurationFileKey, &azureMachineConfigs)
+	var allRoles []Roles
+
+	for _, azureMachineConfig := range azureMachineConfigs.AzureMachineConfig {
+		allRoles = append(allRoles, azureMachineConfig.Roles)
+	}
+
+	return allRoles
 }
