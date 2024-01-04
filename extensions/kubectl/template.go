@@ -2,6 +2,7 @@ package kubectl
 
 import (
 	"context"
+	namegen "github.com/rancher/rancher/tests/framework/pkg/namegenerator"
 
 	"github.com/rancher/shepherd/clients/rancher"
 	"github.com/rancher/shepherd/extensions/kubeconfig"
@@ -63,7 +64,7 @@ func CreateJobAndRunKubectlCommands(clusterID, jobname string, job *batchv1.Job,
 
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "rancher-installer2",
+			Name: namegen.AppendRandomString("kubectl-command"),
 		},
 	}
 	_, err = downClient.Resource(corev1.SchemeGroupVersion.WithResource("serviceaccounts")).Namespace(Namespace).Create(context.TODO(), unstructured.MustToUnstructured(sa), metav1.CreateOptions{})
