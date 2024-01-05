@@ -73,6 +73,64 @@ func GetPodLogs(client *rancher.Client, clusterID string, podName string, namesp
 	return logs, nil
 }
 
+func GetPodLogsWithOpts(client *rancher.Client, clusterID string, podName string, namespace string, bufferSizeStr string, opts *corev1.PodLogOptions) (string, error) {
+	var restConfig *restclient.Config
+
+	kubeConfig, err := GetKubeconfig(client, clusterID)
+	if err != nil {
+		return "", err
+	}
+
+	restConfig, err = (*kubeConfig).ClientConfig()
+	if err != nil {
+		return "", err
+	}
+	restConfig.ContentConfig.NegotiatedSerializer = serializer.NewCodecFactory(k8Scheme.Scheme)
+	restConfig.ContentConfig.GroupVersion = &podGroupVersion
+	restConfig.APIPath = apiPath
+
+	restClient, err := restclient.RESTClientFor(restConfig)
+	if err != nil {
+		return "", err
+	}
+
+	req := restClient.Get().Resource("pods").Name(podName).Namespace(namespace).SubResource("log")
+	req.VersionedParams(
+		opts,
+		k8Scheme.ParameterCodec,
+	)
+
+	stream, err := req.Stream(context.TODO())
+	if err != nil {
+		return "", fmt.Errorf("error streaming pod logs for pod %s/%s: %v", namespace, podName, err)
+	}
+
+	defer stream.Close()
+
+	reader := bufio.NewScanner(stream)
+
+	if bufferSizeStr != "" {
+		bufferSize, err := parseBufferSize(bufferSizeStr)
+		if err != nil {
+			return "", fmt.Errorf("error in parseBufferSize: %v", err)
+		}
+
+		buf := make([]byte, bufferSize)
+		reader.Buffer(buf, bufferSize)
+	}
+
+	var logs string
+	for reader.Scan() {
+		logs = logs + fmt.Sprintf("%s\n", reader.Text())
+		fmt.Println(reader.Text())
+	}
+
+	if err := reader.Err(); err != nil {
+		return "", fmt.Errorf("error reading pod logs for pod %s/%s: %v", namespace, podName, err)
+	}
+	return logs, nil
+}
+
 // parseBufferSize is a helper function that parses a size string and returns
 // the equivalent size in bytes. The provided size string should end with a
 // suffix of 'KB', 'MB', or 'GB'. If no suffix is provided, the function will
