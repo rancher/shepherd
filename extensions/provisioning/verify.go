@@ -462,7 +462,7 @@ func VerifyDeleteRKE1Cluster(t *testing.T, client *rancher.Client, clusterID str
 	require.NoError(t, err)
 }
 
-// VerifyDeleteRKE1Cluster validates that a rke1 cluster and its resources are deleted.
+// VerifyDeleteRKE1ClusterWithTimeout validates that a rke1 cluster and its resources are deleted within the custom timeout.
 func VerifyDeleteRKE1ClusterWithTimeout(t *testing.T, client *rancher.Client, clusterID string, timeout *int64) {
 	cluster, err := client.Management.Cluster.ByID(clusterID)
 	require.NoError(t, err)
@@ -764,7 +764,7 @@ func VerifySnapshots(client *rancher.Client, localclusterID string, clusterName 
 	return snapshotToBeRestored, err
 }
 
-// getSnapshots is a helper function to get the snapshots for a cluster
+// GetSnapshots is a helper function to get the snapshots for a cluster
 func GetSnapshots(client *rancher.Client, localclusterID string, clusterName string) ([]string, error) {
 	steveclient, err := client.Steve.ProxyDownstream(localclusterID)
 	if err != nil {
