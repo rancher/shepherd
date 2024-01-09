@@ -3,6 +3,7 @@ package pipeline
 import (
 	"os"
 
+	"github.com/rancher/shepherd/extensions/upgradeinput"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -45,12 +46,6 @@ type TestCases struct {
 	RunFlag string `yaml:"runFlag" json:"runFlag"`
 }
 
-// Features is a struct that dictates what features to run a cluster pre/post upgrade
-type Features struct {
-	Chart   *bool `json:"chart" yaml:"chart" default:"false"`
-	Ingress *bool `json:"ingress" yaml:"ingress" default:"false"`
-}
-
 // HAConfigKey is the key name of HAConfig values in the cattle config
 const HAConfigKey = "ha"
 
@@ -87,24 +82,24 @@ type RancherClusters struct {
 
 // RancherCluster is a struct that contains related information about the downstream cluster that's going to be created and upgraded.
 type RancherCluster struct {
-	Provider                   string   `yaml:"provider" json:"provider"`
-	KubernetesVersion          string   `yaml:"kubernetesVersion" json:"kubernetesVersion"`
-	KubernetesVersionToUpgrade string   `yaml:"kubernetesVersionToUpgrade" json:"kubernetesVersionToUpgrade"`
-	Image                      string   `yaml:"image" json:"image"`
-	CNIs                       []string `yaml:"cni" json:"cni"`
-	FeaturesToTest             Features `yaml:"enabledFeatures" json:"enabledFeatures" default:""`
-	Tags                       string   `yaml:"tags" json:"tags" default:""`
-	RunFlag                    string   `yaml:"runFlag" json:"runFlag" default:""`
-	SSHUser                    string   `yaml:"sshUser" json:"sshUser" default:""`
-	VolumeType                 string   `yaml:"volumeType" json:"volumeType" default:""`
+	Provider                   string                `yaml:"provider" json:"provider"`
+	KubernetesVersion          string                `yaml:"kubernetesVersion" json:"kubernetesVersion"`
+	KubernetesVersionToUpgrade string                `yaml:"kubernetesVersionToUpgrade" json:"kubernetesVersionToUpgrade"`
+	Image                      string                `yaml:"image" json:"image"`
+	CNIs                       []string              `yaml:"cni" json:"cni"`
+	FeaturesToTest             upgradeinput.Features `yaml:"enabledFeatures" json:"enabledFeatures" default:""`
+	Tags                       string                `yaml:"tags" json:"tags" default:""`
+	RunFlag                    string                `yaml:"runFlag" json:"runFlag" default:""`
+	SSHUser                    string                `yaml:"sshUser" json:"sshUser" default:""`
+	VolumeType                 string                `yaml:"volumeType" json:"volumeType" default:""`
 }
 
 // HostedCluster is a struct that contains related information about the downstream cluster that's going to be created and upgraded.
 type HostedCluster struct {
-	Provider                   string   `yaml:"provider" json:"provider"`
-	KubernetesVersion          string   `yaml:"kubernetesVersion" json:"kubernetesVersion"`
-	KubernetesVersionToUpgrade string   `yaml:"kubernetesVersionToUpgrade" json:"kubernetesVersionToUpgrade"`
-	FeaturesToTest             Features `yaml:"enabledFeatures" json:"enabledFeatures" default:""`
+	Provider                   string                `yaml:"provider" json:"provider"`
+	KubernetesVersion          string                `yaml:"kubernetesVersion" json:"kubernetesVersion"`
+	KubernetesVersionToUpgrade string                `yaml:"kubernetesVersionToUpgrade" json:"kubernetesVersionToUpgrade"`
+	FeaturesToTest             upgradeinput.Features `yaml:"enabledFeatures" json:"enabledFeatures" default:""`
 }
 
 // GenerateDefaultReleaseUpgradeConfig is a function that creates the ReleaseUpgradeConfig with its default values.
