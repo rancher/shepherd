@@ -27,7 +27,7 @@ require (
 	github.com/rancher/gke-operator v1.2.0
 	github.com/rancher/lasso v0.0.0-20230830164424-d684fdeb6f29
 	github.com/rancher/norman v0.0.0-20230831160711-5de27f66385d
-	github.com/rancher/rancher/pkg/apis v0.0.0-20231214165302-b2b815c7402d
+	github.com/rancher/rancher/pkg/apis v0.0.0-20230915232223-a9ea4ce4a5ba
 	github.com/rancher/rke v1.5.0
 	github.com/rancher/system-upgrade-controller/pkg/apis v0.0.0-20210727200656-10b094e30007
 	github.com/rancher/types v0.0.0-20220328215343-4370ff10ecd5
