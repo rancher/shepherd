@@ -8,6 +8,7 @@ import (
 	"github.com/rancher/shepherd/extensions/defaults"
 	"github.com/rancher/shepherd/pkg/wait"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/apimachinery/pkg/watch"
 )
 
