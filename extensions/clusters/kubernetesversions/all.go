@@ -14,8 +14,6 @@ import (
 )
 
 const (
-	rancherVersionSetting = "server-version"
-
 	rke1VersionsSetting = "k8s-versions-current"
 	rke2ReleasePath     = "v1-rke2-release/releases"
 	k3sReleasePath      = "v1-k3s-release/releases"
@@ -42,15 +40,6 @@ func ListRKE1AllVersions(client *rancher.Client) (allAvailableVersions []string,
 
 // ListRKE2AllVersions is a function that uses the management client and releases endpoint to list and return all RKE2 versions.
 func ListRKE2AllVersions(client *rancher.Client) (allAvailableVersions []string, err error) {
-	setting, err := client.Management.Setting.ByID(rancherVersionSetting)
-	if err != nil {
-		return
-	}
-	rancherVersion, err := semver.NewVersion(setting.Value)
-	if err != nil {
-		return
-	}
-
 	url := fmt.Sprintf("%s://%s/%s", "http", client.RancherConfig.Host, rke2ReleasePath)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -71,7 +60,7 @@ func ListRKE2AllVersions(client *rancher.Client) (allAvailableVersions []string,
 
 	releases := mapResponse["data"].([]interface{})
 
-	allAvailableVersions = sortReleases(rancherVersion, releases)
+	allAvailableVersions = sortReleases(releases)
 
 	sort.Strings(allAvailableVersions)
 
@@ -80,15 +69,6 @@ func ListRKE2AllVersions(client *rancher.Client) (allAvailableVersions []string,
 
 // ListK3SAllVersions is a function that uses the management client and releases endpoint to list and return all K3s versions.
 func ListK3SAllVersions(client *rancher.Client) (allAvailableVersions []string, err error) {
-	setting, err := client.Management.Setting.ByID(rancherVersionSetting)
-	if err != nil {
-		return
-	}
-	rancherVersion, err := semver.NewVersion(setting.Value)
-	if err != nil {
-		return
-	}
-
 	url := fmt.Sprintf("%s://%s/%s", "http", client.RancherConfig.Host, k3sReleasePath)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -109,7 +89,7 @@ func ListK3SAllVersions(client *rancher.Client) (allAvailableVersions []string, 
 
 	releases := mapResponse["data"].([]interface{})
 
-	allAvailableVersions = sortReleases(rancherVersion, releases)
+	allAvailableVersions = sortReleases(releases)
 
 	sort.Strings(allAvailableVersions)
 
@@ -222,10 +202,9 @@ func ListEKSAllVersions(client *rancher.Client) (allAvailableVersions []string, 
 
 // sortReleases is a private function that sorts release structs that are used for K3S and RKE2.
 // Sorted versions determined by these conditions:
-//  1. Current rancher version is between min and max channel versions
-//  2. Release struct has serverArgs and agentArgs not empty fields
-//  3. Possible newest version of the minimum channel version
-func sortReleases(rancherVersion *semver.Version, releases []interface{}) (allAvailableVersions []string) {
+//  1. Release struct has serverArgs and agentArgs not empty fields
+//  2. Possible newest version of the minimum channel version
+func sortReleases(releases []interface{}) (allAvailableVersions []string) {
 	availableVersionsMap := map[string]semver.Version{}
 
 	for _, release := range releases {
@@ -236,14 +215,9 @@ func sortReleases(rancherVersion *semver.Version, releases []interface{}) (allAv
 			continue
 		}
 
-		maxVersion := release.(map[string]interface{})["maxChannelServerVersion"].(string)
 		minVersion := release.(map[string]interface{})["minChannelServerVersion"].(string)
 		kubernetesVersion := release.(map[string]interface{})["version"].(string)
 
-		maxRancherVersion, err := semver.NewVersion(strings.TrimPrefix(maxVersion, "v"))
-		if err != nil {
-			continue
-		}
 		minRancherVersion, err := semver.NewVersion(strings.TrimPrefix(minVersion, "v"))
 		if err != nil {
 			continue
@@ -251,10 +225,6 @@ func sortReleases(rancherVersion *semver.Version, releases []interface{}) (allAv
 
 		releaseKubernetesVersion, err := semver.NewVersion(strings.TrimPrefix(kubernetesVersion, "v"))
 		if err != nil {
-			continue
-		}
-
-		if !rancherVersion.GreaterThan(minRancherVersion) && !rancherVersion.LessThan(maxRancherVersion) {
 			continue
 		}
 
