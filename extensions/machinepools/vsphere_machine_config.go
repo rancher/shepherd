@@ -9,86 +9,106 @@ const (
 	VmwaresphereKind                               = "VmwarevsphereConfig"
 	VmwarevsphereType                              = "rke-machine-config.cattle.io.vmwarevsphereconfig"
 	VmwarevsphereConfig                            = "vmwarevsphereconfigs"
-	VmwarevsphereMachineConfigConfigurationFileKey = "vmwarevsphereMachineConfig"
+	VmwarevsphereMachineConfigConfigurationFileKey = "vmwarevsphereMachineConfigs"
 )
+
+type VmwarevsphereMachineConfigs struct {
+	VmwarevsphereMachineConfig []VmwarevsphereMachineConfig `json:"vmwarevsphereMachineConfig" yaml:"vmwarevsphereMachineConfig"`
+
+	Hostsystem string `json:"hostsystem" yaml:"hostsystem"`
+	Datacenter string `json:"datacenter" yaml:"datacenter"`
+	Datastore  string `json:"datastore" yaml:"datastore"`
+	Folder     string `json:"folder" yaml:"folder"`
+	Pool       string `json:"pool" yaml:"pool"`
+}
 
 // VsphereMachineConfig is configuration needed to create an rke-machine-config.cattle.io.vmwarevsphereconfig
 type VmwarevsphereMachineConfig struct {
-	Cfgparam              []string `json:"cfgparam" yaml:"cfgparam"`
-	CloneFrom             string   `json:"cloneFrom" yaml:"cloneFrom"`
-	CloudConfig           string   `json:"cloudConfig" yaml:"cloudConfig"`
-	Cloundinit            string   `json:"cloundinit" yaml:"cloundinit"`
-	ContentLibrary        string   `json:"contentLibrary" yaml:"contentLibrary"`
-	CPUCount              string   `json:"cpuCount" yaml:"cpuCount"`
-	CreationType          string   `json:"creationType" yaml:"creationType"`
-	CustomAttribute       []string `json:"customAttribute" yaml:"customAttribute"`
-	DataCenter            string   `json:"dataCenter" yaml:"dataCenter"`
-	DataStore             string   `json:"dataStore" yaml:"dataStore"`
-	DatastoreCluster      string   `json:"datastoreCluster" yaml:"datastoreCluster"`
-	DiskSize              string   `json:"diskSize" yaml:"diskSize"`
-	Folder                string   `json:"folder" yaml:"folder"`
-	HostSystem            string   `json:"hostSystem" yaml:"hostSystem"`
-	MemorySize            string   `json:"memorySize" yaml:"memorySize"`
-	Network               []string `json:"network" yaml:"network"`
-	OS                    string   `json:"os" yaml:"os"`
-	Password              string   `json:"password" yaml:"password"`
-	Pool                  string   `json:"pool" yaml:"pool"`
-	SSHPassword           string   `json:"sshPassword" yaml:"sshPassword"`
-	SSHPort               string   `json:"sshPort" yaml:"sshPort"`
-	SSHUser               string   `json:"sshUser" yaml:"sshUser"`
-	SSHUserGroup          string   `json:"sshUserGroup" yaml:"sshUserGroup"`
-	Tag                   []string `json:"tag" yaml:"tag"`
-	Username              string   `json:"username" yaml:"username"`
-	VappIpallocationplicy string   `json:"vappIpallocationplicy" yaml:"vappIpallocationplicy"`
-	VappIpprotocol        string   `json:"vappIpprotocol" yaml:"vappIpprotocol"`
-	VappProperty          []string `json:"vappProperty" yaml:"vappProperty"`
-	VappTransport         string   `json:"vappTransport" yaml:"vappTransport"`
-	Vcenter               string   `json:"vcenter" yaml:"vcenter"`
-	VcenterPort           string   `json:"vcenterPort" yaml:"vcenterPort"`
+	Roles
+	Boot2dockerURL          string   `json:"boot2dockerURL" yaml:"boot2dockerURL"`
+	Cfgparam                []string `json:"cfgparam" yaml:"cfgparam"`
+	CloneFrom               string   `json:"cloneFrom" yaml:"cloneFrom"`
+	CloudConfig             string   `json:"cloudConfig" yaml:"cloudConfig"`
+	Cloundinit              string   `json:"cloundinit" yaml:"cloundinit"`
+	ContentLibrary          string   `json:"contentLibrary" yaml:"contentLibrary"`
+	CPUCount                string   `json:"cpuCount" yaml:"cpuCount"`
+	CreationType            string   `json:"creationType" yaml:"creationType"`
+	CustomAttribute         []string `json:"customAttribute" yaml:"customAttribute"`
+	DatastoreCluster        string   `json:"datastoreCluster" yaml:"datastoreCluster"`
+	DiskSize                string   `json:"diskSize" yaml:"diskSize"`
+	MemorySize              string   `json:"memorySize" yaml:"memorySize"`
+	Network                 []string `json:"network" yaml:"network"`
+	GracefulShutdownTimeout string   `json:"gracefulShutdownTimeout" yaml:"gracefulShutdownTimeout"`
+	OS                      string   `json:"os" yaml:"os"`
+	SSHPassword             string   `json:"sshPassword" yaml:"sshPassword"`
+	SSHPort                 string   `json:"sshPort" yaml:"sshPort"`
+	SSHUser                 string   `json:"sshUser" yaml:"sshUser"`
+	SSHUserGroup            string   `json:"sshUserGroup" yaml:"sshUserGroup"`
+	Tag                     []string `json:"tag" yaml:"tag"`
+	VappIpallocationplicy   string   `json:"vappIpallocationplicy" yaml:"vappIpallocationplicy"`
+	VappIpprotocol          string   `json:"vappIpprotocol" yaml:"vappIpprotocol"`
+	VappProperty            []string `json:"vappProperty" yaml:"vappProperty"`
+	VappTransport           string   `json:"vappTransport" yaml:"vappTransport"`
 }
 
 // NewVSphereMachineConfig is a constructor to set up rke-machine-config.cattle.io.vmwarevsphereconfig. It returns an *unstructured.Unstructured
 // that CreateMachineConfig uses to created the rke-machine-config
-func NewVSphereMachineConfig(generatedPoolName, namespace string) *unstructured.Unstructured {
-	var vmwarevsphereMachineConfig VmwarevsphereMachineConfig
-	config.LoadConfig(VmwarevsphereMachineConfigConfigurationFileKey, &vmwarevsphereMachineConfig)
+func NewVSphereMachineConfig(generatedPoolName, namespace string) []unstructured.Unstructured {
+	var vmwarevsphereMachineConfigs VmwarevsphereMachineConfigs
+	config.LoadConfig(VmwarevsphereMachineConfigConfigurationFileKey, &vmwarevsphereMachineConfigs)
+	var multiConfig []unstructured.Unstructured
 
-	machineConfig := &unstructured.Unstructured{}
-	machineConfig.SetAPIVersion("rke-machine-config.cattle.io/v1")
-	machineConfig.SetKind(AWSKind)
-	machineConfig.SetGenerateName(generatedPoolName)
-	machineConfig.SetNamespace(namespace)
-	machineConfig.Object["cfgParam"] = vmwarevsphereMachineConfig.Cfgparam
-	machineConfig.Object["cloneFrom"] = vmwarevsphereMachineConfig.CloneFrom
-	machineConfig.Object["cloudConfig"] = vmwarevsphereMachineConfig.CloudConfig
-	machineConfig.Object["cloundInit"] = vmwarevsphereMachineConfig.Cloundinit
-	machineConfig.Object["contentLibrary"] = vmwarevsphereMachineConfig.ContentLibrary
-	machineConfig.Object["cpuCount"] = vmwarevsphereMachineConfig.CPUCount
-	machineConfig.Object["creationType"] = vmwarevsphereMachineConfig.CreationType
-	machineConfig.Object["customAttribute"] = vmwarevsphereMachineConfig.CustomAttribute
-	machineConfig.Object["dataCenter"] = vmwarevsphereMachineConfig.DataCenter
-	machineConfig.Object["dataStore"] = vmwarevsphereMachineConfig.DataStore
-	machineConfig.Object["datastoreCluster"] = vmwarevsphereMachineConfig.DatastoreCluster
-	machineConfig.Object["diskSize"] = vmwarevsphereMachineConfig.DiskSize
-	machineConfig.Object["folder"] = vmwarevsphereMachineConfig.Folder
-	machineConfig.Object["hostSystem"] = vmwarevsphereMachineConfig.HostSystem
-	machineConfig.Object["memorySize"] = vmwarevsphereMachineConfig.MemorySize
-	machineConfig.Object["network"] = vmwarevsphereMachineConfig.Network
-	machineConfig.Object["os"] = vmwarevsphereMachineConfig.OS
-	machineConfig.Object["password"] = vmwarevsphereMachineConfig.Password
-	machineConfig.Object["pool"] = vmwarevsphereMachineConfig.Pool
-	machineConfig.Object["sshPassword"] = vmwarevsphereMachineConfig.SSHPassword
-	machineConfig.Object["sshPort"] = vmwarevsphereMachineConfig.SSHPort
-	machineConfig.Object["sshUser"] = vmwarevsphereMachineConfig.SSHUser
-	machineConfig.Object["sshUserGroup"] = vmwarevsphereMachineConfig.SSHUserGroup
-	machineConfig.Object["tag"] = vmwarevsphereMachineConfig.Tag
-	machineConfig.Object["username"] = vmwarevsphereMachineConfig.Username
-	machineConfig.Object["vappIpallocationplicy"] = vmwarevsphereMachineConfig.VappIpallocationplicy
-	machineConfig.Object["vappIpprotocol"] = vmwarevsphereMachineConfig.VappIpprotocol
-	machineConfig.Object["vappProperty"] = vmwarevsphereMachineConfig.VappProperty
-	machineConfig.Object["vappTransport"] = vmwarevsphereMachineConfig.VappTransport
-	machineConfig.Object["vcenter"] = vmwarevsphereMachineConfig.Vcenter
-	machineConfig.Object["vcenterPort"] = vmwarevsphereMachineConfig.VcenterPort
+	for _, vsphereMachineConfig := range vmwarevsphereMachineConfigs.VmwarevsphereMachineConfig {
+		machineConfig := unstructured.Unstructured{}
+		machineConfig.SetAPIVersion("rke-machine-config.cattle.io/v1")
+		machineConfig.SetKind(VmwaresphereKind)
+		machineConfig.SetGenerateName(generatedPoolName)
+		machineConfig.SetNamespace(namespace)
 
-	return machineConfig
+		machineConfig.Object["boot2dockerURL"] = vsphereMachineConfig.Boot2dockerURL
+		machineConfig.Object["cfgparam"] = vsphereMachineConfig.Cfgparam
+		machineConfig.Object["cloneFrom"] = vsphereMachineConfig.CloneFrom
+		machineConfig.Object["cloudConfig"] = vsphereMachineConfig.CloudConfig
+		machineConfig.Object["cloundinit"] = vsphereMachineConfig.Cloundinit
+		machineConfig.Object["contentLibrary"] = vsphereMachineConfig.ContentLibrary
+		machineConfig.Object["cpuCount"] = vsphereMachineConfig.CPUCount
+		machineConfig.Object["creationType"] = vsphereMachineConfig.CreationType
+		machineConfig.Object["customAttribute"] = vsphereMachineConfig.CustomAttribute
+		machineConfig.Object["datacenter"] = vmwarevsphereMachineConfigs.Datacenter
+		machineConfig.Object["datastore"] = vmwarevsphereMachineConfigs.Datastore
+		machineConfig.Object["datastoreCluster"] = vsphereMachineConfig.DatastoreCluster
+		machineConfig.Object["diskSize"] = vsphereMachineConfig.DiskSize
+		machineConfig.Object["folder"] = vmwarevsphereMachineConfigs.Folder
+		machineConfig.Object["hostsystem"] = vmwarevsphereMachineConfigs.Hostsystem
+		machineConfig.Object["memorySize"] = vsphereMachineConfig.MemorySize
+		machineConfig.Object["network"] = vsphereMachineConfig.Network
+		machineConfig.Object["os"] = vsphereMachineConfig.OS
+		machineConfig.Object["pool"] = vmwarevsphereMachineConfigs.Pool
+		machineConfig.Object["sshPassword"] = vsphereMachineConfig.SSHPassword
+		machineConfig.Object["sshPort"] = vsphereMachineConfig.SSHPort
+		machineConfig.Object["sshUser"] = vsphereMachineConfig.SSHUser
+		machineConfig.Object["sshUserGroup"] = vsphereMachineConfig.SSHUserGroup
+		machineConfig.Object["tag"] = vsphereMachineConfig.Tag
+		machineConfig.Object["vappIpallocationpolicy"] = vsphereMachineConfig.VappIpallocationplicy
+		machineConfig.Object["vappIpprotocol"] = vsphereMachineConfig.VappIpprotocol
+		machineConfig.Object["vappProperty"] = vsphereMachineConfig.VappProperty
+		machineConfig.Object["vappTransport"] = vsphereMachineConfig.VappTransport
+		machineConfig.Object["gracefulShutdownTimeout"] = vsphereMachineConfig.GracefulShutdownTimeout
+
+		multiConfig = append(multiConfig, machineConfig)
+	}
+
+	return multiConfig
+}
+
+func GetVsphereMachineRoles() []Roles {
+	var vmwarevsphereMachineConfigs VmwarevsphereMachineConfigs
+	config.LoadConfig(VmwarevsphereMachineConfigConfigurationFileKey, &vmwarevsphereMachineConfigs)
+	var allRoles []Roles
+
+	for _, vsphereMachineConfig := range vmwarevsphereMachineConfigs.VmwarevsphereMachineConfig {
+		allRoles = append(allRoles, vsphereMachineConfig.Roles)
+	}
+
+	return allRoles
 }

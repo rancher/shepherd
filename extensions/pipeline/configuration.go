@@ -111,11 +111,13 @@ func UpdateRKE2ImageFields(provider, image, sshUser, volumeType string, isCustom
 	switch provider {
 	case provisioninginput.AWSProviderName.String():
 		if !isCustom {
-			machineConfig := new(machinepools.AWSMachineConfig)
+			machineConfig := new(machinepools.AWSMachineConfigs)
 			config.LoadAndUpdateConfig(machinepools.AWSMachineConfigConfigurationFileKey, machineConfig, func() {
-				machineConfig.AMI = image
-				machineConfig.SSHUser = sshUser
-				machineConfig.VolumeType = volumeType
+				for i := range machineConfig.AWSMachineConfig {
+					machineConfig.AWSMachineConfig[i].AMI = image
+					machineConfig.AWSMachineConfig[i].SSHUser = sshUser
+					machineConfig.AWSMachineConfig[i].VolumeType = volumeType
+				}
 			})
 		} else {
 			ec2Configs := new(ec2.AWSEC2Configs)
@@ -127,28 +129,36 @@ func UpdateRKE2ImageFields(provider, image, sshUser, volumeType string, isCustom
 			})
 		}
 	case provisioninginput.AzureProviderName.String():
-		machineConfig := new(machinepools.AzureMachineConfig)
+		machineConfig := new(machinepools.AzureMachineConfigs)
 		config.LoadAndUpdateConfig(machinepools.AzureMachineConfigConfigurationFileKey, machineConfig, func() {
-			machineConfig.Image = image
-			machineConfig.SSHUser = sshUser
+			for i := range machineConfig.AzureMachineConfig {
+				machineConfig.AzureMachineConfig[i].Image = image
+				machineConfig.AzureMachineConfig[i].SSHUser = sshUser
+			}
 		})
 	case provisioninginput.DOProviderName.String():
-		machineConfig := new(machinepools.DOMachineConfig)
+		machineConfig := new(machinepools.DOMachineConfigs)
 		config.LoadAndUpdateConfig(machinepools.DOMachineConfigConfigurationFileKey, machineConfig, func() {
-			machineConfig.Image = image
-			machineConfig.SSHUser = sshUser
+			for i := range machineConfig.DOMachineConfig {
+				machineConfig.DOMachineConfig[i].Image = image
+				machineConfig.DOMachineConfig[i].SSHUser = sshUser
+			}
 		})
 	case provisioninginput.HarvesterProviderName.String():
-		machineConfig := new(machinepools.HarvesterMachineConfig)
+		machineConfig := new(machinepools.HarvesterMachineConfigs)
 		config.LoadAndUpdateConfig(machinepools.HarvesterMachineConfigConfigurationFileKey, machineConfig, func() {
-			machineConfig.ImageName = image
-			machineConfig.SSHUser = sshUser
+			for i := range machineConfig.HarvesterMachineConfig {
+				machineConfig.HarvesterMachineConfig[i].ImageName = image
+				machineConfig.HarvesterMachineConfig[i].SSHUser = sshUser
+			}
 		})
 	case provisioninginput.LinodeProviderName.String():
-		machineConfig := new(machinepools.LinodeMachineConfig)
+		machineConfig := new(machinepools.LinodeMachineConfigs)
 		config.LoadAndUpdateConfig(machinepools.LinodeMachineConfigConfigurationFileKey, machineConfig, func() {
-			machineConfig.Image = image
-			machineConfig.SSHUser = sshUser
+			for i := range machineConfig.LinodeMachineConfig {
+				machineConfig.LinodeMachineConfig[i].Image = image
+				machineConfig.LinodeMachineConfig[i].SSHUser = sshUser
+			}
 		})
 	default:
 		logrus.Error("Couldn't match RKE2 image fields")

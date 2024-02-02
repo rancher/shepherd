@@ -57,6 +57,29 @@ const (
 
 // CreateProvisioningCluster provisions a non-rke1 cluster, then runs verify checks
 func CreateProvisioningCluster(client *rancher.Client, provider Provider, clustersConfig *clusters.ClusterConfig, hostnameTruncation []machinepools.HostnameTruncation) (*v1.SteveAPIObject, error) {
+	rolesPerPool := []string{}
+	for _, pool := range clustersConfig.MachinePools {
+		var finalRoleCommand string
+		if pool.NodeRoles.ControlPlane {
+			finalRoleCommand += " --controlplane"
+		}
+
+		if pool.NodeRoles.Etcd {
+			finalRoleCommand += " --etcd"
+		}
+
+		if pool.NodeRoles.Worker {
+			finalRoleCommand += " --worker"
+		}
+
+		if pool.NodeRoles.Windows {
+			finalRoleCommand += " --windows"
+		}
+
+		rolesPerPool = append(rolesPerPool, finalRoleCommand)
+
+	}
+
 	cloudCredential, err := provider.CloudCredFunc(client)
 	if err != nil {
 		return nil, err
@@ -71,11 +94,16 @@ func CreateProvisioningCluster(client *rancher.Client, provider Provider, cluste
 
 	clusterName := namegen.AppendRandomString(provider.Name.String())
 	generatedPoolName := fmt.Sprintf("nc-%s-pool1-", clusterName)
-	machinePoolConfig := provider.MachinePoolFunc(generatedPoolName, namespace)
+	machinePoolConfigs := provider.MachinePoolFunc(generatedPoolName, namespace)
+	var machinePoolResponses []v1.SteveAPIObject
 
-	machineConfigResp, err := client.Steve.SteveType(provider.MachineConfigPoolResourceSteveType).Create(machinePoolConfig)
-	if err != nil {
-		return nil, err
+	for _, machinePoolConfig := range machinePoolConfigs {
+		machineConfigResp, err := client.Steve.SteveType(provider.MachineConfigPoolResourceSteveType).Create(&machinePoolConfig)
+		if err != nil {
+			return nil, err
+		}
+
+		machinePoolResponses = append(machinePoolResponses, *machineConfigResp)
 	}
 	if clustersConfig.Registries != nil {
 		if clustersConfig.Registries.RKE2Registries != nil {
@@ -107,7 +135,7 @@ func CreateProvisioningCluster(client *rancher.Client, provider Provider, cluste
 	for _, pools := range clustersConfig.MachinePools {
 		nodeRoles = append(nodeRoles, pools.NodeRoles)
 	}
-	machinePools := machinepools.CreateAllMachinePools(nodeRoles, machineConfigResp, hostnameTruncation)
+	machinePools := machinepools.CreateAllMachinePools(nodeRoles, rolesPerPool, machinePoolResponses, provider.Roles, hostnameTruncation)
 	cluster := clusters.NewK3SRKE2ClusterConfig(clusterName, namespace, clustersConfig, machinePools, cloudCredential.ID)
 
 	for _, truncatedPool := range hostnameTruncation {
