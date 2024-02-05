@@ -113,27 +113,32 @@ func AllNodeDeleted(client *rancher.Client, ClusterID string) error {
 
 // IsNodeReplaced is a helper method that will loop and check if the node matching its type is replaced in a cluster.
 // It will return an error if the node is not replaced after set amount of time.
-func IsNodeReplaced(client *rancher.Client, oldMachineID string, clusterID string, numOfNodesBeforeDeletion int, isEtcd bool, isControlPlane bool, isWorker bool) (bool, error) {
+func IsNodeReplaced(client *rancher.Client, oldMachineID string, clusterID string, numOfNodesBeforeDeletion int) (bool, error) {
 	numOfNodesAfterDeletion := 0
+	isOldMachineDeleted := true
 
 	err := wait.Poll(PollInterval, PollTimeout, func() (done bool, err error) {
-		machines, err := client.Management.Node.List(&types.ListOpts{Filters: map[string]interface{}{
+		machines, err := client.Management.Node.ListAll(&types.ListOpts{Filters: map[string]interface{}{
 			"clusterId": clusterID,
 		}})
 		if err != nil {
 			return false, err
 		}
+
 		numOfNodesAfterDeletion = 0
 		for _, machine := range machines.Data {
-			if machine.Etcd == isEtcd && machine.ControlPlane == isControlPlane && machine.Worker == isWorker {
-				if machine.ID == oldMachineID {
-					return false, nil
-				}
-				logrus.Info("new node : ", machine.NodeName)
-				numOfNodesAfterDeletion++
+			if machine.ID == oldMachineID {
+				isOldMachineDeleted = false
+				return false, nil
 			}
+
+			numOfNodesAfterDeletion++
 		}
-		return true, nil
+
+		return isOldMachineDeleted, nil
 	})
-	return numOfNodesBeforeDeletion == numOfNodesAfterDeletion, err
+
+	logrus.Infof("Node has been successfully replaced!")
+
+	return numOfNodesAfterDeletion == numOfNodesBeforeDeletion, err
 }
