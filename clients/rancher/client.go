@@ -11,13 +11,12 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rancher/norman/httperror"
-	frameworkDynamic "github.com/rancher/shepherd/clients/dynamic"
+	shepherdDynamic "github.com/rancher/shepherd/clients/dynamic"
 	"github.com/rancher/shepherd/clients/ec2"
 	"github.com/rancher/shepherd/clients/rancher/catalog"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 
-	rancherDynamic "github.com/rancher/shepherd/clients/dynamic"
 	kubeProvisioning "github.com/rancher/shepherd/clients/provisioning"
 	"github.com/rancher/shepherd/clients/ranchercli"
 	kubeRKE "github.com/rancher/shepherd/clients/rke"
@@ -254,8 +253,8 @@ func (c *Client) GetClusterCatalogClient(clusterID string) (*catalog.Client, err
 }
 
 // GetRancherDynamicClient is a helper function that instantiates a dynamic client to communicate with the rancher host.
-func (c *Client) GetRancherDynamicClient() (*rancherDynamic.Client, error) {
-	dynamic, err := frameworkDynamic.NewForConfig(c.Session, c.restConfig)
+func (c *Client) GetRancherDynamicClient() (*shepherdDynamic.Client, error) {
+	dynamic, err := shepherdDynamic.NewForConfig(c.Session, c.restConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -283,11 +282,11 @@ func (c *Client) GetKubeAPIRKEClient() (*kubeRKE.Client, error) {
 }
 
 // GetDownStreamClusterClient is a helper function that instantiates a dynamic client to communicate with a specific cluster.
-func (c *Client) GetDownStreamClusterClient(clusterID string) (*rancherDynamic.Client, error) {
+func (c *Client) GetDownStreamClusterClient(clusterID string) (*shepherdDynamic.Client, error) {
 	restConfig := *c.restConfig
 	restConfig.Host = fmt.Sprintf("https://%s/k8s/clusters/%s", c.restConfig.Host, clusterID)
 
-	dynamic, err := frameworkDynamic.NewForConfig(c.Session, &restConfig)
+	dynamic, err := shepherdDynamic.NewForConfig(c.Session, &restConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -295,7 +294,7 @@ func (c *Client) GetDownStreamClusterClient(clusterID string) (*rancherDynamic.C
 }
 
 // SwitchContext is a helper function that changes the current context to `context` and instantiates a dynamic client
-func (c *Client) SwitchContext(context string, clientConfig *clientcmd.ClientConfig) (*rancherDynamic.Client, error) {
+func (c *Client) SwitchContext(context string, clientConfig *clientcmd.ClientConfig) (*shepherdDynamic.Client, error) {
 	overrides := clientcmd.ConfigOverrides{CurrentContext: context}
 
 	rawConfig, err := (*clientConfig).RawConfig()
@@ -310,7 +309,7 @@ func (c *Client) SwitchContext(context string, clientConfig *clientcmd.ClientCon
 		return nil, err
 	}
 
-	dynamic, err := frameworkDynamic.NewForConfig(c.Session, restConfig)
+	dynamic, err := shepherdDynamic.NewForConfig(c.Session, restConfig)
 	if err != nil {
 		return nil, err
 	}
