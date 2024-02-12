@@ -203,19 +203,45 @@ func CreateRKE2K3SSnapshot(client *rancher.Client, clusterName string) error {
 }
 
 // RestoreRKE1Snapshot is a helper function to restore a snapshot on an RKE1 cluster. Returns error if any.
-func RestoreRKE1Snapshot(client *rancher.Client, clusterName string, snapshotRestore *management.RestoreFromEtcdBackupInput) error {
+func RestoreRKE1Snapshot(client *rancher.Client, clusterName string, snapshotRestore *management.RestoreFromEtcdBackupInput, initialControlPlaneValue, initialWorkerValue string) error {
 	clusterID, err := clusters.GetClusterIDByName(client, clusterName)
 	if err != nil {
 		return err
 	}
 
-	clusterResp, err := client.Management.Cluster.ByID(clusterID)
+	cluster, err := client.Management.Cluster.ByID(clusterID)
+	if err != nil {
+		return err
+	}
+
+	updatedCluster := cluster
+
+	updatedCluster.RancherKubernetesEngineConfig.UpgradeStrategy.MaxUnavailableControlplane = initialControlPlaneValue
+	updatedCluster.RancherKubernetesEngineConfig.UpgradeStrategy.MaxUnavailableWorker = initialWorkerValue
+
+	_, err = client.Management.Cluster.Update(cluster, updatedCluster)
 	if err != nil {
 		return err
 	}
 
 	logrus.Infof("Restoring snapshot: %v", snapshotRestore.EtcdBackupID)
-	err = client.Management.Cluster.ActionRestoreFromEtcdBackup(clusterResp, snapshotRestore)
+	err = client.Management.Cluster.ActionRestoreFromEtcdBackup(cluster, snapshotRestore)
+	if err != nil {
+		return err
+	}
+
+	err = wait.Poll(1*time.Second, defaults.ThirtyMinuteTimeout, func() (bool, error) {
+		clusterResp, err := client.Management.Cluster.ByID(clusterID)
+		if err != nil {
+			return false, nil
+		}
+
+		if clusterResp.State == active {
+			return true, nil
+		}
+
+		return false, nil
+	})
 	if err != nil {
 		return err
 	}
@@ -223,14 +249,16 @@ func RestoreRKE1Snapshot(client *rancher.Client, clusterName string, snapshotRes
 	return nil
 }
 
-// CreateRKE2K3SSnapshot is a helper function to restore a snapshot on an RKE2 or k3s cluster. Returns error if any.
-func RestoreRKE2K3SSnapshot(client *rancher.Client, clusterName string, snapshotRestore *rkev1.ETCDSnapshotRestore) error {
+// RestoreRKE2K3SSnapshot is a helper function to restore a snapshot on an RKE2 or k3s cluster. Returns error if any.
+func RestoreRKE2K3SSnapshot(client *rancher.Client, clusterName string, snapshotRestore *rkev1.ETCDSnapshotRestore, initialControlPlaneValue, initialWorkerValue string) error {
 	clusterObject, existingSteveAPIObject, err := clusters.GetProvisioningClusterByName(client, clusterName, fleetNamespace)
 	if err != nil {
 		return err
 	}
 
 	clusterObject.Spec.RKEConfig.ETCDSnapshotRestore = snapshotRestore
+	clusterObject.Spec.RKEConfig.UpgradeStrategy.ControlPlaneConcurrency = initialControlPlaneValue
+	clusterObject.Spec.RKEConfig.UpgradeStrategy.WorkerConcurrency = initialWorkerValue
 
 	logrus.Infof("Restoring snapshot: %v", snapshotRestore.Name)
 	_, err = client.Steve.SteveType(ProvisioningSteveResouceType).Update(existingSteveAPIObject, clusterObject)
