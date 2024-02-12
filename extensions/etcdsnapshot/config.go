@@ -12,4 +12,5 @@ type Config struct {
 	WorkerConcurrencyValue       string `json:"workerConcurrencyValue" yaml:"workerConcurrencyValue"`
 	WorkerUnavailableValue       string `json:"workerUnavailableValue" yaml:"workerUnavailableValue"`
 	RecurringRestores            int    `json:"recurringRestores" yaml:"recurringRestores"`
+	ReplaceWorkerNode            bool   `json:"replaceWorkerNode" yaml:"replaceWorkerNode"`
 }
