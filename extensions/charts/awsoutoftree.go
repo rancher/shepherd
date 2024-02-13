@@ -23,7 +23,7 @@ const (
 )
 
 // InstallAWSOutOfTreeChart installs the CSI chart for aws cloud provider in a given cluster.
-func InstallAWSOutOfTreeChart(client *rancher.Client, installOptions *InstallOptions, repoName, clusterID string) error {
+func InstallAWSOutOfTreeChart(client *rancher.Client, installOptions *InstallOptions, repoName, clusterID string, isLeaderMigration bool) error {
 	serverSetting, err := client.Management.Setting.ByID(serverURLSettingID)
 	if err != nil {
 		return err
@@ -42,7 +42,7 @@ func InstallAWSOutOfTreeChart(client *rancher.Client, installOptions *InstallOpt
 		DefaultRegistry: registrySetting.Value,
 	}
 
-	chartInstallAction := awsChartInstallAction(awsChartInstallActionPayload, repoName, kubeSystemNamespace, installOptions.ProjectID)
+	chartInstallAction := awsChartInstallAction(awsChartInstallActionPayload, repoName, kubeSystemNamespace, installOptions.ProjectID, isLeaderMigration)
 
 	catalogClient, err := client.GetClusterCatalogClient(installOptions.ClusterID)
 	if err != nil {
@@ -73,7 +73,7 @@ func InstallAWSOutOfTreeChart(client *rancher.Client, installOptions *InstallOpt
 }
 
 // awsChartInstallAction is a helper function that returns a chartInstallAction for aws out-of-tree chart.
-func awsChartInstallAction(awsChartInstallActionPayload *payloadOpts, repoName, chartNamespace, chartProject string) *types.ChartInstallAction {
+func awsChartInstallAction(awsChartInstallActionPayload *payloadOpts, repoName, chartNamespace, chartProject string, isLeaderMigration bool) *types.ChartInstallAction {
 	chartValues := map[string]interface{}{
 		"args": []interface{}{
 			"--use-service-account-credentials=true",
@@ -216,6 +216,9 @@ func awsChartInstallAction(awsChartInstallActionPayload *payloadOpts, repoName, 
 				"key":    "node-role.kubernetes.io/master",
 			},
 		},
+	}
+	if isLeaderMigration {
+		chartValues["args"] = append(chartValues["args"].([]interface{}), "--enable-leader-migration=true")
 	}
 
 	chartInstall := newChartInstall(
