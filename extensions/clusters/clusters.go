@@ -421,7 +421,9 @@ func NewK3SRKE2ClusterConfig(clusterName, namespace string, clustersConfig *Clus
 	}
 
 	if clustersConfig.CloudProvider == provisioninginput.AWSProviderName.String() {
-		machineSelectorConfigs = append(machineSelectorConfigs, awsOutOfTreeSystemConfig()...)
+		machineSelectorConfigs = append(machineSelectorConfigs, OutOfTreeSystemConfig(clustersConfig.CloudProvider)...)
+	} else if strings.Contains(clustersConfig.CloudProvider, "-in-tree") {
+		machineSelectorConfigs = append(machineSelectorConfigs, InTreeSystemConfig(strings.Split(clustersConfig.CloudProvider, "-in-tree")[0])...)
 	}
 
 	rkeSpecCommon := rkev1.RKEClusterSpecCommon{
@@ -460,9 +462,9 @@ func NewK3SRKE2ClusterConfig(clusterName, namespace string, clustersConfig *Clus
 	return v1Cluster
 }
 
-// awsOutOfTreeSystemConfig constructs the proper rkeSystemConfig slice for enabling the aws cloud provider
+// OutOfTreeSystemConfig constructs the proper rkeSystemConfig slice for enabling the aws cloud provider
 // out-of-tree services
-func awsOutOfTreeSystemConfig() (rkeConfig []rkev1.RKESystemConfig) {
+func OutOfTreeSystemConfig(providerName string) (rkeConfig []rkev1.RKESystemConfig) {
 	roles := []string{etcdRole, controlPlaneRole, workerRole}
 
 	for _, role := range roles {
@@ -488,10 +490,24 @@ func awsOutOfTreeSystemConfig() (rkeConfig []rkev1.RKESystemConfig) {
 	}
 
 	configData := map[string]interface{}{
-		cloudProviderAnnotationName: provisioninginput.AWSProviderName,
+		cloudProviderAnnotationName: providerName,
 		protectKernelDefaults:       false,
 	}
 
+	rkeConfig = append(rkeConfig, RKESystemConfigTemplate(configData, nil))
+	return
+}
+
+// InTreeSystemConfig constructs the proper rkeSystemConfig slice for enabling cloud provider
+// in-tree services.
+// Vsphere deprecated 1.21+
+// AWS deprecated 1.27+
+// Azure deprecated 1.28+
+func InTreeSystemConfig(providerName string) (rkeConfig []rkev1.RKESystemConfig) {
+	configData := map[string]interface{}{
+		cloudProviderAnnotationName: providerName,
+		protectKernelDefaults:       false,
+	}
 	rkeConfig = append(rkeConfig, RKESystemConfigTemplate(configData, nil))
 	return
 }
