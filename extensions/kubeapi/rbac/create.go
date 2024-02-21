@@ -72,7 +72,7 @@ func CreateRoleBinding(client *rancher.Client, clusterName, roleBindingName, nam
 
 // CreateGlobalRole is a helper function that uses the dynamic client to create a global role in the local cluster.
 func CreateGlobalRole(client *rancher.Client, globalRole *v3.GlobalRole) (*v3.GlobalRole, error) {
-	dynamicClient, err := client.GetDownStreamClusterClient(localcluster)
+	dynamicClient, err := client.GetDownStreamClusterClient(LocalCluster)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func CreateGlobalRole(client *rancher.Client, globalRole *v3.GlobalRole) (*v3.Gl
 
 // CreateGlobalRoleBinding is a helper function that uses the dynamic client to create a global role binding for a specific user.
 func CreateGlobalRoleBinding(client *rancher.Client, globalRoleBinding *v3.GlobalRoleBinding) (*v3.GlobalRoleBinding, error) {
-	dynamicClient, err := client.GetDownStreamClusterClient(localcluster)
+	dynamicClient, err := client.GetDownStreamClusterClient(LocalCluster)
 	if err != nil {
 		return nil, err
 	}
@@ -112,4 +112,26 @@ func CreateGlobalRoleBinding(client *rancher.Client, globalRoleBinding *v3.Globa
 	}
 
 	return newGlobalRoleBinding, nil
+}
+
+// CreateProjectRoleTemplateBinding is a helper function that uses the dynamic client to create a project role template binding in the local cluster.
+func CreateProjectRoleTemplateBinding(client *rancher.Client, prtb *v3.ProjectRoleTemplateBinding) (*v3.ProjectRoleTemplateBinding, error) {
+	dynamicClient, err := client.GetDownStreamClusterClient(LocalCluster)
+	if err != nil {
+		return nil, err
+	}
+
+	projectRoleTemplateBindingResource := dynamicClient.Resource(ProjectRoleTemplateBindingGroupVersionResource).Namespace(prtb.Namespace)
+	unstructuredResp, err := projectRoleTemplateBindingResource.Create(context.TODO(), unstructured.MustToUnstructured(prtb), metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	newprtb := &v3.ProjectRoleTemplateBinding{}
+	err = scheme.Scheme.Convert(unstructuredResp, newprtb, unstructuredResp.GroupVersionKind())
+	if err != nil {
+		return nil, err
+	}
+
+	return newprtb, nil
 }

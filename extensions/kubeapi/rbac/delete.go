@@ -9,7 +9,7 @@ import (
 
 // DeleteGlobalRoleBinding is a helper function that uses the dynamic client to delete a Global Role Binding by name
 func DeleteGlobalRoleBinding(client *rancher.Client, globalRoleBindingName string) error {
-	dynamicClient, err := client.GetDownStreamClusterClient(localcluster)
+	dynamicClient, err := client.GetDownStreamClusterClient(LocalCluster)
 	if err != nil {
 		return err
 	}
@@ -25,7 +25,7 @@ func DeleteGlobalRoleBinding(client *rancher.Client, globalRoleBindingName strin
 
 // DeleteGlobalRole is a helper function that uses the dynamic client to delete a Global Role by name
 func DeleteGlobalRole(client *rancher.Client, globalRoleName string) error {
-	dynamicClient, err := client.GetDownStreamClusterClient(localcluster)
+	dynamicClient, err := client.GetDownStreamClusterClient(LocalCluster)
 	if err != nil {
 		return err
 	}
