@@ -12,7 +12,7 @@ import (
 
 // UpdateGlobalRole is a helper function that uses the dynamic client to update a Global Role
 func UpdateGlobalRole(client *rancher.Client, updatedGlobalRole *v3.GlobalRole) (*v3.GlobalRole, error) {
-	dynamicClient, err := client.GetDownStreamClusterClient(localcluster)
+	dynamicClient, err := client.GetDownStreamClusterClient(LocalCluster)
 	if err != nil {
 		return nil, err
 	}
