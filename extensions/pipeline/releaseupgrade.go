@@ -61,6 +61,8 @@ type HAConfig struct {
 	Cleanup                    *bool  `yaml:"cleanup" json:"cleanup" default:"true"`
 	HelmExtraSettings          string `yaml:"helmExtraSettings" json:"helmExtraSettings"`
 	HelmExtraSettingsToUpgrade string `yaml:"helmExtraSettingsToUpgrade" json:"helmExtraSettingsToUpgrade"`
+	HelmRepoURL                string `yaml:"helmURL" json:"helmURL"`
+	HelmRepoURLToUpgrade       string `yaml:"helmURLToUpgrade" json:"helmURLToUpgrade"`
 }
 
 // ClustersConfigKey is the key name of Clusters values in the cattle config
