@@ -44,47 +44,47 @@ func UpdateGlobalRole(client *rancher.Client, updatedGlobalRole *v3.GlobalRole) 
 }
 
 // UpdateRoleTemplate is a helper function that uses the dynamic client to update an existing cluster role template
-func UpdateRoleTemplate(client *rancher.Client, updatedCRT *v3.RoleTemplate) (*v3.RoleTemplate, error) {
+func UpdateRoleTemplate(client *rancher.Client, updatedRoleTemplate *v3.RoleTemplate) (*v3.RoleTemplate, error) {
 	dynamicClient, err := client.GetDownStreamClusterClient(LocalCluster)
 	if err != nil {
 		return nil, err
 	}
-	crtUnstructured := dynamicClient.Resource(RoleTemplateGroupVersionResource)
-	roleTemplate, err := crtUnstructured.Get(context.TODO(), updatedCRT.Name, metav1.GetOptions{})
+	roleTemplateUnstructured := dynamicClient.Resource(RoleTemplateGroupVersionResource)
+	roleTemplate, err := roleTemplateUnstructured.Get(context.TODO(), updatedRoleTemplate.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	currentCRT := &v3.RoleTemplate{}
-	err = scheme.Scheme.Convert(roleTemplate, currentCRT, roleTemplate.GroupVersionKind())
+	currentRoleTemplate := &v3.RoleTemplate{}
+	err = scheme.Scheme.Convert(roleTemplate, currentRoleTemplate, roleTemplate.GroupVersionKind())
 	if err != nil {
 		return nil, err
 	}
 
-	updatedCRT.ObjectMeta.ResourceVersion = currentCRT.ObjectMeta.ResourceVersion
+	updatedRoleTemplate.ObjectMeta.ResourceVersion = currentRoleTemplate.ObjectMeta.ResourceVersion
 
-	unstructuredResp, err := crtUnstructured.Update(context.TODO(), unstructured.MustToUnstructured(updatedCRT), metav1.UpdateOptions{})
+	unstructuredResp, err := roleTemplateUnstructured.Update(context.TODO(), unstructured.MustToUnstructured(updatedRoleTemplate), metav1.UpdateOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	newCRT := &v3.RoleTemplate{}
-	err = scheme.Scheme.Convert(unstructuredResp, newCRT, unstructuredResp.GroupVersionKind())
+	newRoleTemplate := &v3.RoleTemplate{}
+	err = scheme.Scheme.Convert(unstructuredResp, newRoleTemplate, unstructuredResp.GroupVersionKind())
 	if err != nil {
 		return nil, err
 	}
-	return newCRT, nil
+	return newRoleTemplate, nil
 
 }
 
 // UpdateClusterRoleTemplateBindings is a helper function that uses the dynamic client to update an existing cluster role template binding
-func UpdateClusterRoleTemplateBindings(client *rancher.Client, namespace string, updatedCRTB *v3.ClusterRoleTemplateBinding) (*v3.ClusterRoleTemplateBinding, error) {
+func UpdateClusterRoleTemplateBindings(client *rancher.Client, existingCRTB *v3.ClusterRoleTemplateBinding, updatedCRTB *v3.ClusterRoleTemplateBinding) (*v3.ClusterRoleTemplateBinding, error) {
 	dynamicClient, err := client.GetDownStreamClusterClient(LocalCluster)
 	if err != nil {
 		return nil, err
 	}
-	crtbUnstructured := dynamicClient.Resource(ClusterRoleTemplateBindingGroupVersionResource).Namespace(namespace)
-	clusterRoleTemplateBinding, err := crtbUnstructured.Get(context.TODO(), updatedCRTB.Name, metav1.GetOptions{})
+	crtbUnstructured := dynamicClient.Resource(ClusterRoleTemplateBindingGroupVersionResource).Namespace(existingCRTB.Namespace)
+	clusterRoleTemplateBinding, err := crtbUnstructured.Get(context.TODO(), existingCRTB.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
