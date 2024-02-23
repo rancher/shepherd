@@ -114,6 +114,28 @@ func CreateGlobalRoleBinding(client *rancher.Client, globalRoleBinding *v3.Globa
 	return newGlobalRoleBinding, nil
 }
 
+// CreateRoleTemplate is a helper function that uses the dynamic client to create a cluster/project role template for a specific user
+func CreateRoleTemplate(client *rancher.Client, roleTemplate *v3.RoleTemplate) (*v3.RoleTemplate, error) {
+	dynamicClient, err := client.GetDownStreamClusterClient(LocalCluster)
+	if err != nil {
+		return nil, err
+	}
+
+	roleTemplateResource := dynamicClient.Resource(RoleTemplateGroupVersionResource)
+	unstructuredResp, err := roleTemplateResource.Create(context.Background(), unstructured.MustToUnstructured(roleTemplate), metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	newRoleTemplate := &v3.RoleTemplate{}
+	err = scheme.Scheme.Convert(unstructuredResp, newRoleTemplate, unstructuredResp.GroupVersionKind())
+	if err != nil {
+		return nil, err
+	}
+
+	return newRoleTemplate, nil
+}
+
 // CreateProjectRoleTemplateBinding is a helper function that uses the dynamic client to create a project role template binding in the local cluster.
 func CreateProjectRoleTemplateBinding(client *rancher.Client, prtb *v3.ProjectRoleTemplateBinding) (*v3.ProjectRoleTemplateBinding, error) {
 	dynamicClient, err := client.GetDownStreamClusterClient(LocalCluster)
@@ -134,4 +156,27 @@ func CreateProjectRoleTemplateBinding(client *rancher.Client, prtb *v3.ProjectRo
 	}
 
 	return newprtb, nil
+}
+
+// CreateClusterRoleTemplateBinding is a helper function that uses the dynamic client to create a cluster role template binding for a specific user
+// in the given downstream cluster.
+func CreateClusterRoleTemplateBinding(client *rancher.Client, crtb *v3.ClusterRoleTemplateBinding) (*v3.ClusterRoleTemplateBinding, error) {
+	dynamicClient, err := client.GetDownStreamClusterClient(LocalCluster)
+	if err != nil {
+		return nil, err
+	}
+
+	clusterRoleTemplateBindingResource := dynamicClient.Resource(ClusterRoleTemplateBindingGroupVersionResource).Namespace(crtb.Namespace)
+	unstructuredResp, err := clusterRoleTemplateBindingResource.Create(context.Background(), unstructured.MustToUnstructured(crtb), metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	newClusterRoleTemplateBinding := &v3.ClusterRoleTemplateBinding{}
+	err = scheme.Scheme.Convert(unstructuredResp, newClusterRoleTemplateBinding, unstructuredResp.GroupVersionKind())
+	if err != nil {
+		return nil, err
+	}
+
+	return newClusterRoleTemplateBinding, nil
 }
