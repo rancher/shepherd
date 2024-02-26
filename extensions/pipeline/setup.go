@@ -80,15 +80,18 @@ func PostRancherInstall(adminClient *rancher.Client, adminPassword string) error
 
 // UpdateEULA is a function that updates EULA after the rancher installation
 func UpdateEULA(adminClient *rancher.Client) error {
-	steveClient, err := adminClient.Steve.ProxyDownstream(clusterName)
-	if err != nil {
-		return err
-	}
-
-	urlSetting := &v3.Setting{}
+	var steveClient *v1.Client
 	var urlSettingResp *v1.SteveAPIObject
 	var serverURL error
-	err = kwait.Poll(500*time.Millisecond, 2*time.Minute, func() (done bool, err error) {
+
+	urlSetting := &v3.Setting{}
+
+	err := kwait.Poll(500*time.Millisecond, 2*time.Minute, func() (done bool, err error) {
+		steveClient, err = adminClient.Steve.ProxyDownstream(clusterName)
+		if err != nil {
+			return false, err
+		}
+
 		urlSettingResp, err = steveClient.SteveType("management.cattle.io.setting").ByID("server-url")
 		if err != nil {
 			serverURL = err
