@@ -45,7 +45,7 @@ func InstallRancher(ts *session.Session, restConfig *rest.Config) error {
 	}
 
 	// Install Rancher Chart
-	err = helm.InstallChart(ts, "rancher",
+	return helm.InstallChart(ts, "rancher",
 		"rancher-stable/rancher",
 		"cattle-system",
 		"",
@@ -57,11 +57,6 @@ func InstallRancher(ts *session.Session, restConfig *rest.Config) error {
 		"useBundledSystemChart=true",
 		"--set",
 		"replicas=1")
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // InstallCertManager installs latest version cert manager available through helm
@@ -87,10 +82,5 @@ func InstallCertManager(ts *session.Session, restConfig *rest.Config) error {
 	}
 
 	// Install cert-manager Chart
-	err = helm.InstallChart(ts, "cert-manager", "jetstack/cert-manager", "cert-manager", "", "--set", "installCRDs=true")
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return helm.InstallChart(ts, "cert-manager", "jetstack/cert-manager", "cert-manager", "", "--set", "installCRDs=true")
 }

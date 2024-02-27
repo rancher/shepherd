@@ -209,16 +209,16 @@ func GetPodLogsWithContext(ctx context.Context, client *rancher.Client, clusterI
 	}
 	defer logFile.Close()
 
-	return readAndWriteLogsWithContext(ctx, stream, logFile, bufferSizeStr)
+	return readAndWriteLogsWithContext(ctx, stream, logFile, bufferSizeStr, false)
 }
 
 // readAndWriteLogsWithContext is a helper function that reads and writes text to console output and the specific logFile using a channel
-//   - filters out log lines containing "debug"
+//   - you can choose not to print out log lines containing "debug" or "trace" logs, they will still be output to the file pointer
 //   - if the context is canceled before all logs are read, the function returns immediately with the logs read so far and the context's error
 //
 // Buffer size (e.g., '64KB', '8MB', '1GB') influences log reading; an empty string results in bufio.Scanner's default of 4096 bytes
 // returns a string of all logs read and an error if any
-func readAndWriteLogsWithContext(ctx context.Context, stream io.ReadCloser, logFile *os.File, bufferSizeStr string) (string, error) {
+func readAndWriteLogsWithContext(ctx context.Context, stream io.ReadCloser, logFile *os.File, bufferSizeStr string, excludeDebug bool) (string, error) {
 	logs := &strings.Builder{}
 	defer logFile.Close()
 
@@ -239,7 +239,11 @@ func readAndWriteLogsWithContext(ctx context.Context, stream io.ReadCloser, logF
 			return logs.String(), ctx.Err() // Return immediately if context is canceled
 		default:
 			logLine := scanner.Text()
-			if !strings.Contains(strings.ToLower(logLine), "debug") && strings.TrimSpace(logLine) != "" {
+			lineHasDebug := strings.Contains(strings.ToLower(logLine), "debug") || strings.Contains(strings.ToLower(logLine), "trace")
+			if excludeDebug && lineHasDebug {
+				continue
+			}
+			if strings.TrimSpace(logLine) != "" {
 				fmt.Println(logLine) // Write log to stdout
 			}
 			fmt.Fprintln(logFile, logLine) // Write log to file

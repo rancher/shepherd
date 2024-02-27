@@ -17,7 +17,7 @@ linters-settings:
       disabled: true
     - name: exported
       disabled: false
-  goconst: 
+  goconst:
     min-len: 2
     min-occurrences: 10
     match-constant: true
@@ -39,3 +39,7 @@ issues:
     - ^*\.yaml$
     - ^*\.yml$
   exclude-generated-strict: true
+  exclude-rules:
+    - path: extensions/kubeconfig/podlogs.go
+      linters:
+        - forbidigo
