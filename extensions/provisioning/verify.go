@@ -42,6 +42,7 @@ const (
 	hostnameLimit               = 63
 	machineNameAnnotation       = "cluster.x-k8s.io/machine"
 	machineSteveResourceType    = "cluster.x-k8s.io.machine"
+	onDemandPrefix              = "on-demand-"
 )
 
 // VerifyRKE1Cluster validates that the RKE1 cluster and its resources are in a good state, matching a given config.
@@ -644,7 +645,7 @@ func VerifyUpgrade(t *testing.T, updatedCluster *bundledclusters.BundledCluster,
 }
 
 // VerifySnapshots waits for a cluster's snapshots to be ready and validates that the correct number of snapshots have been taken
-func VerifySnapshots(client *rancher.Client, localclusterID string, clusterName string, expectedSnapshotLength int) (string, error) {
+func VerifySnapshots(client *rancher.Client, localclusterID string, clusterName string, expectedSnapshotLength int, isRKE1 bool) (string, error) {
 	client, err := client.ReLogin()
 	if err != nil {
 		return "", err
