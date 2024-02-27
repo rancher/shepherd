@@ -7,7 +7,19 @@ import (
 	"github.com/rancher/shepherd/pkg/session"
 )
 
-var helmCmd = "helm_v3"
+var helmCmd = ""
+
+func SetHelmCmd(command string) error {
+	helmCmd = "helm_v3"
+	if command != "" {
+		msg, err := exec.Command(command).CombinedOutput()
+		if err != nil {
+			return errors.Wrapf(err, "SetHelmCmd: errored while running `%s` %s", command, string(msg))
+		}
+		helmCmd = command
+	}
+	return nil
+}
 
 // InstallChart installs a helm chart using helm CLI.
 // Send the helm set command strings such as "--set", "installCRDs=true"
@@ -34,12 +46,8 @@ func InstallChart(ts *session.Session, releaseName, helmRepo, namespace, version
 		commandArgs = append(commandArgs, "--version", version)
 	}
 
-	msg, err := exec.Command(helmCmd, commandArgs...).CombinedOutput()
-	if err != nil {
-		return errors.Wrap(err, "InstallChart: "+string(msg))
-	}
-
-	return nil
+	_, err := execCommand("InstallChart: ", commandArgs)
+	return err
 }
 
 // UpgradeChart upgrades a helm chart using helm CLI.
@@ -67,12 +75,24 @@ func UpgradeChart(ts *session.Session, releaseName, helmRepo, namespace, version
 		commandArgs = append(commandArgs, "--version", version)
 	}
 
-	msg, err := exec.Command(helmCmd, commandArgs...).CombinedOutput()
-	if err != nil {
-		return errors.Wrap(err, "UpgradeChart: "+string(msg))
+	_, err := execCommand("UpgradeChart: ", commandArgs)
+	return err
+
+}
+
+func GetValues(releaseName, namespace string, args ...string) (string, error) {
+	// Default helm upgrade command
+	commandArgs := []string{
+		"get",
+		"values",
+		releaseName,
+		"--namespace",
+		namespace,
 	}
 
-	return nil
+	commandArgs = append(commandArgs, args...)
+
+	return execCommand("GetValues: ", commandArgs)
 }
 
 // UninstallChart uninstalls a helm chart using helm CLI in a given namespace
@@ -87,20 +107,30 @@ func UninstallChart(releaseName, namespace string, args ...string) error {
 		"--wait",
 	}
 
-	msg, err := exec.Command(helmCmd, commandArgs...).CombinedOutput()
-	if err != nil {
-		return errors.Wrap(err, "UninstallChart: "+string(msg))
-	}
+	commandArgs = append(commandArgs, args...)
 
-	return nil
+	_, err := execCommand("UninstallChart: ", commandArgs)
+	return err
 }
 
 // AddHelmRepo adds the specified helm repository using the helm repo add command.
 func AddHelmRepo(name, url string) error {
-	msg, err := exec.Command(helmCmd, "repo", "add", name, url).CombinedOutput()
-	if err != nil {
-		return errors.Wrap(err, "AddHelmRepo: "+string(msg))
+	commandArgs := []string{
+		"repo",
+		"add",
+		name,
+		url,
 	}
 
-	return nil
+	_, err := execCommand("AddHelmRepo: ", commandArgs)
+	return err
+}
+
+func execCommand(errMsg string, commandArgs []string) (string, error) {
+	msg, err := exec.Command(helmCmd, commandArgs...).CombinedOutput()
+	if err != nil {
+		return "", errors.Wrap(err, errMsg+string(msg))
+	}
+
+	return string(msg), nil
 }
