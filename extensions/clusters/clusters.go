@@ -1278,6 +1278,43 @@ func WatchAndWaitForCluster(client *rancher.Client, steveID string) error {
 	return err
 }
 
+// WatchAndWaitForCluster is function that waits for a cluster to go unactive before checking its active state.
+func WatchAndWaitForClusterWithTimeout(client *rancher.Client, steveID string, timeoutSeconds *int64) error {
+	var clusterResp *v1.SteveAPIObject
+	err := kwait.Poll(500*time.Millisecond, 2*time.Minute, func() (done bool, err error) {
+		clusterResp, err = client.Steve.SteveType(ProvisioningSteveResourceType).ByID(steveID)
+		if err != nil {
+			return false, err
+		}
+		state := clusterResp.ObjectMeta.State.Name
+		return state != "active", nil
+	})
+	if err != nil {
+		return err
+	}
+	logrus.Infof("waiting for cluster to be up.............")
+
+	adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+	if err != nil {
+		return err
+	}
+	kubeProvisioningClient, err := adminClient.GetKubeAPIProvisioningClient()
+	if err != nil {
+		return err
+	}
+
+	result, err := kubeProvisioningClient.Clusters(clusterResp.ObjectMeta.Namespace).Watch(context.TODO(), metav1.ListOptions{
+		FieldSelector:  "metadata.name=" + clusterResp.Name,
+		TimeoutSeconds: timeoutSeconds,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = wait.WatchWait(result, IsProvisioningClusterReady)
+	return err
+}
+
 // GetProvisioningClusterByName is a helper function to get cluster object with the cluster name
 func GetProvisioningClusterByName(client *rancher.Client, clusterName string, namespace string) (*apisV1.Cluster, *v1.SteveAPIObject, error) {
 	clusterObj, err := client.Steve.SteveType(ProvisioningSteveResourceType).ByID(namespace + "/" + clusterName)
@@ -1297,6 +1334,27 @@ func GetProvisioningClusterByName(client *rancher.Client, clusterName string, na
 // WaitForActiveCluster is a "helper" function that waits for the cluster to reach the active state.
 // The function accepts a Rancher client and a cluster ID as parameters.
 func WaitForActiveRKE1Cluster(client *rancher.Client, clusterID string) error {
+	err := kwait.Poll(500*time.Millisecond, 30*time.Minute, func() (done bool, err error) {
+		client, err = client.ReLogin()
+		if err != nil {
+			return false, err
+		}
+		clusterResp, err := client.Management.Cluster.ByID(clusterID)
+		if err != nil {
+			return false, err
+		}
+		if clusterResp.State == active {
+			return true, nil
+		}
+		return false, nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func WaitForActiveRKE1ClusterWithTimeout(client *rancher.Client, clusterID string, timeoutMinutes int) error {
 	err := kwait.Poll(500*time.Millisecond, 30*time.Minute, func() (done bool, err error) {
 		client, err = client.ReLogin()
 		if err != nil {
