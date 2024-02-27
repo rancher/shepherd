@@ -9,25 +9,38 @@ import (
 	fleet "github.com/rancher/fleet/pkg/apis/fleet.cattle.io/v1alpha1"
 	"github.com/rancher/norman/types"
 	catalogv1 "github.com/rancher/rancher/pkg/apis/catalog.cattle.io/v1"
+	managementv3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
 	provisioningv1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
 	rkev1 "github.com/rancher/rancher/pkg/apis/rke.cattle.io/v1"
 	"github.com/rancher/shepherd/pkg/codegen/generator"
 	managementSchema "github.com/rancher/shepherd/pkg/schemas/management.cattle.io/v3"
 	planv1 "github.com/rancher/system-upgrade-controller/pkg/apis/upgrade.cattle.io/v1"
 	"github.com/rancher/types/factory"
-	controllergen "github.com/rancher/wrangler/pkg/controller-gen"
-	"github.com/rancher/wrangler/pkg/controller-gen/args"
+	controllergen "github.com/rancher/wrangler/v2/pkg/controller-gen"
+	"github.com/rancher/wrangler/v2/pkg/controller-gen/args"
 
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 func main() {
-	os.Unsetenv("GOPATH")
+	err := os.Unsetenv("GOPATH")
+	if err != nil {
+		return
+	}
 
 	controllergen.Run(args.Options{
 		OutputPackage: "github.com/rancher/shepherd/pkg/generated",
 		Boilerplate:   "pkg/codegen/boilerplate.go.txt",
 		Groups: map[string]args.Group{
+			"management.cattle.io": {
+				PackageName: "management.cattle.io",
+				Types: []interface{}{
+					// All structs with an embedded ObjectMeta field will be picked up
+					"./vendor/github.com/rancher/rancher/pkg/apis/management.cattle.io/v3",
+					managementv3.ProjectCatalog{},
+					managementv3.ClusterCatalog{},
+				},
+			},
 			"catalog.cattle.io": {
 				PackageName: "catalog.cattle.io",
 				Types: []interface{}{
