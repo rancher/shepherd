@@ -22,7 +22,7 @@ var DeploymentGroupVersionResource = schema.GroupVersionResource{
 }
 
 // CreateDeployment is a helper function that uses the dynamic client to create a deployment on a namespace for a specific cluster.
-func CreateDeployment(client *rancher.Client, clusterName, deploymentName, namespace string, template corev1.PodTemplateSpec) (*appv1.Deployment, error) {
+func CreateDeployment(client *rancher.Client, clusterName, deploymentName, namespace string, template corev1.PodTemplateSpec, replicas int32) (*appv1.Deployment, error) {
 	dynamicClient, err := client.GetDownStreamClusterClient(clusterName)
 	if err != nil {
 		return nil, err
@@ -42,6 +42,7 @@ func CreateDeployment(client *rancher.Client, clusterName, deploymentName, names
 			Namespace: namespace,
 		},
 		Spec: appv1.DeploymentSpec{
+			Replicas: &replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
