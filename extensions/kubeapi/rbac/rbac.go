@@ -3,9 +3,9 @@ package rbac
 import (
 	"context"
 
+	v3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
 	"github.com/rancher/shepherd/clients/rancher"
 	"github.com/rancher/shepherd/pkg/api/scheme"
-	v3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -80,15 +80,14 @@ var ProjectRoleTemplateBindingGroupVersionResource = schema.GroupVersionResource
 	Resource: "projectroletemplatebindings",
 }
 
-
 // GetProjectRoleTemplateBindingsByName is a helper function that uses the dynamic client to get a projectroletemplatebinding from local cluster.
 func GetProjectRoleTemplateBindingsByName(client *rancher.Client, getOpts metav1.GetOptions, name string) (*v3.ProjectRoleTemplateBinding, error) {
-	dynamicClient, err := client.GetDownStreamClusterClient(localcluster)
+	dynamicClient, err := client.GetDownStreamClusterClient(LocalCluster)
 	if err != nil {
 		return nil, err
 	}
 	projectRoleTemplateBindingResource := dynamicClient.Resource(ProjectRoleTemplateBindingGroupVersionResource)
-	unstructuredResp, err := projectRoleTemplateBindingResource.Get(context.TODO(),name, metav1.GetOptions{})
+	unstructuredResp, err := projectRoleTemplateBindingResource.Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
