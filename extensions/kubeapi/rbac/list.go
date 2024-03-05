@@ -162,7 +162,7 @@ func ListRoleTemplates(client *rancher.Client, listOpt metav1.ListOptions) (*v3.
 
 // ListProjectRoleTemplateBindings is a helper function that uses the dynamic client to list projectroletemplatebindings from local cluster.
 func ListProjectRoleTemplateBindings(client *rancher.Client, listOpt metav1.ListOptions) (*v3.ProjectRoleTemplateBindingList, error) {
-	dynamicClient, err := client.GetDownStreamClusterClient(localcluster)
+	dynamicClient, err := client.GetDownStreamClusterClient(LocalCluster)
 	if err != nil {
 		return nil, err
 	}
@@ -184,4 +184,3 @@ func ListProjectRoleTemplateBindings(client *rancher.Client, listOpt metav1.List
 	}
 	return prtbList, nil
 }
-
