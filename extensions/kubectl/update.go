@@ -18,6 +18,7 @@ import (
 
 // TODO: attempt to create generic updatefields func
 func UpdateFields(obj *v1Unstructured.Unstructured, fields map[string]interface{}) error {
+	var err error
 
 	for k, v := range fields {
 		if strings.Contains(k, ".") {
@@ -32,19 +33,19 @@ func UpdateFields(obj *v1Unstructured.Unstructured, fields map[string]interface{
 			}
 			nestedSlice, nestedFound, err := v1Unstructured.NestedSlice(obj.Object, keyFields...)
 			if err != nil || !nestedFound || nestedSlice == nil {
-				fmt.Errorf("nested slice not found or error in spec: %v", err)
+				err = fmt.Errorf("nested slice not found or error in spec: %v", err)
 			} else {
-				return v1Unstructured.SetNestedField(nestedSlice[0].(map[string]interface{}), v, keyFields[1:]...)
+				err = v1Unstructured.SetNestedField(nestedSlice[0].(map[string]interface{}), v, keyFields[1:]...)
 			}
 			nestedMap, nestedFound, err := v1Unstructured.NestedMap(obj.Object, keyFields...)
 			if err != nil || !nestedFound || nestedMap == nil {
-				fmt.Errorf("nested map not found or error in spec: %v", err)
+				err = fmt.Errorf("nested map not found or error in spec: %v", err)
 			}
 		} else {
-			v1Unstructured.SetNestedField(obj.Object, v, k)
+			err = v1Unstructured.SetNestedField(obj.Object, v, k)
 		}
 	}
-	return nil
+	return err
 }
 
 func UpdateUnstructured(s *session.Session, client *rancher.Client, obj *v1Unstructured.Unstructured, fields map[string]interface{}, clusterID, n string, gvr schema.GroupVersionResource) (*v1Unstructured.Unstructured, error) {
