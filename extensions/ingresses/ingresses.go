@@ -1,11 +1,14 @@
 package ingresses
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/rancher/shepherd/clients/rancher"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/defaults"
@@ -24,7 +27,7 @@ const (
 
 // GetExternalIngressResponse gets a response from a specific hostname and path.
 // Returns the response and an error if any.
-func GetExternalIngressResponse(client *rancher.Client, hostname string, path string, isWithTLS bool) (*http.Response, error) {
+func GetExternalIngressResponse(client *rancher.Client, hostname string, path string, isWithTLS bool) (body string, err error) {
 	protocol := "http"
 
 	if isWithTLS {
@@ -35,35 +38,46 @@ func GetExternalIngressResponse(client *rancher.Client, hostname string, path st
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	req.Header.Add("Authorization", "Bearer "+client.RancherConfig.AdminToken)
 
-	resp, err := client.Management.APIBaseClient.Ops.Client.Do(req)
+	resp, err := client.Management.Ops.Client.Do(req)
 	if err != nil {
-		return nil, err
+		return
 	}
 	defer resp.Body.Close()
 
-	return resp, nil
+	if resp.StatusCode == http.StatusOK {
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return "", err
+		}
+
+		body = string(bodyBytes)
+	} else {
+		return "", errors.Wrapf(err, "resp status code is: %v while getting external ingress response", resp.StatusCode)
+	}
+
+	return
 }
 
 // IsIngressExternallyAccessible checks if the ingress is accessible externally,
 // it returns true if the ingress is accessible, false if it is not, and an error if there is an error.
-func IsIngressExternallyAccessible(client *rancher.Client, hostname string, path string, isWithTLS bool) (bool, error) {
-	resp, err := GetExternalIngressResponse(client, hostname, path, isWithTLS)
+func IsIngressExternallyAccessible(client *rancher.Client, hostname string, path string, isWithTLS bool) (accessible bool, err error) {
+	_, err = GetExternalIngressResponse(client, hostname, path, isWithTLS)
 	if err != nil {
-		return false, err
+		return
 	}
 
-	return resp.StatusCode == http.StatusOK, nil
+	return !accessible, nil
 }
 
 // CreateIngress will create an Ingress object in the downstream cluster.
 func CreateIngress(client *v1.Client, ingressName string, ingressTemplate networking.Ingress) (*v1.SteveAPIObject, error) {
 	podClient := client.SteveType(pod)
-	err := kwait.Poll(15*time.Second, defaults.FiveMinuteTimeout, func() (done bool, err error) {
+	err := kwait.PollUntilContextTimeout(context.TODO(), 15*time.Second, defaults.FiveMinuteTimeout, true, func(context.Context) (done bool, err error) {
 		newPods, err := podClient.List(nil)
 		if err != nil {
 			return false, nil
