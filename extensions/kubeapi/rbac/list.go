@@ -184,4 +184,3 @@ func ListProjectRoleTemplateBindings(client *rancher.Client, listOpt metav1.List
 	}
 	return prtbList, nil
 }
-
