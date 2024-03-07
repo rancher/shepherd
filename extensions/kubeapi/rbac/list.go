@@ -32,6 +32,7 @@ func ListRoleBindings(client *rancher.Client, clusterName, namespace string, lis
 
 		rbList.Items = append(rbList.Items, *rb)
 	}
+
 	return rbList, nil
 }
 
@@ -54,6 +55,7 @@ func ListClusterRoleBindings(client *rancher.Client, clusterName string, listOpt
 		if err != nil {
 			return nil, err
 		}
+
 		crbList.Items = append(crbList.Items, *crb)
 	}
 
@@ -79,6 +81,7 @@ func ListGlobalRoleBindings(client *rancher.Client, listOpt metav1.ListOptions) 
 		if err != nil {
 			return nil, err
 		}
+
 		grbList.Items = append(grbList.Items, *grb)
 	}
 
@@ -104,6 +107,7 @@ func ListClusterRoleTemplateBindings(client *rancher.Client, listOpt metav1.List
 		if err != nil {
 			return nil, err
 		}
+
 		crtbList.Items = append(crtbList.Items, *crtb)
 	}
 
@@ -129,6 +133,7 @@ func ListGlobalRoles(client *rancher.Client, listOpt metav1.ListOptions) (*v3.Gl
 		if err != nil {
 			return nil, err
 		}
+
 		grList.Items = append(grList.Items, *gr)
 	}
 
@@ -154,6 +159,7 @@ func ListRoleTemplates(client *rancher.Client, listOpt metav1.ListOptions) (*v3.
 		if err != nil {
 			return nil, err
 		}
+
 		rtList.Items = append(rtList.Items, *rt)
 	}
 
