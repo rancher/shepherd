@@ -424,6 +424,16 @@ func NewK3SRKE2ClusterConfig(clusterName, namespace string, clustersConfig *Clus
 		machineSelectorConfigs = append(machineSelectorConfigs, awsOutOfTreeSystemConfig()...)
 	}
 
+	if clustersConfig.CloudProvider == provisioninginput.VsphereCloudProviderName.String() {
+		machineSelectorConfigs = append(machineSelectorConfigs,
+			RKESystemConfigTemplate(map[string]interface{}{
+				cloudProviderAnnotationName: provisioninginput.VsphereCloudProviderName.String(),
+				protectKernelDefaults:       false,
+			},
+				nil),
+		)
+	}
+
 	rkeSpecCommon := rkev1.RKEClusterSpecCommon{
 		UpgradeStrategy:       upgradeStrategy,
 		ChartValues:           chartValuesMap,
