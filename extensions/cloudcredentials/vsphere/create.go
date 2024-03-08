@@ -27,3 +27,12 @@ func CreateVsphereCloudCredentials(rancherClient *rancher.Client) (*cloudcredent
 	}
 	return resp, nil
 }
+
+// GetVspherePassword is a helper to get the password from the cloud credential object as a string
+func GetVspherePassword() string {
+	var vmwarevsphereCredentialConfig cloudcredentials.VmwarevsphereCredentialConfig
+
+	config.LoadConfig(cloudcredentials.VmwarevsphereCredentialConfigurationFileKey, &vmwarevsphereCredentialConfig)
+
+	return vmwarevsphereCredentialConfig.Password
+}

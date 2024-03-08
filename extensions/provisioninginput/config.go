@@ -25,14 +25,15 @@ const (
 type ProviderName string
 
 const (
-	AWSProviderName       ProviderName = "aws"
-	AzureProviderName     ProviderName = "azure"
-	DOProviderName        ProviderName = "do"
-	HarvesterProviderName ProviderName = "harvester"
-	LinodeProviderName    ProviderName = "linode"
-	GoogleProviderName    ProviderName = "google"
-	VsphereProviderName   ProviderName = "vsphere"
-	ExternalProviderName  ProviderName = "external"
+	AWSProviderName          ProviderName = "aws"
+	AzureProviderName        ProviderName = "azure"
+	DOProviderName           ProviderName = "do"
+	HarvesterProviderName    ProviderName = "harvester"
+	LinodeProviderName       ProviderName = "linode"
+	GoogleProviderName       ProviderName = "google"
+	VsphereProviderName      ProviderName = "vsphere"
+	VsphereCloudProviderName ProviderName = "rancher-vsphere"
+	ExternalProviderName     ProviderName = "external"
 )
 
 var AllRolesMachinePool = MachinePools{

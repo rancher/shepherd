@@ -93,7 +93,7 @@ func VerifyRKE1Cluster(t *testing.T, client *rancher.Client, clustersConfig *clu
 		}
 	}
 
-	if !strings.Contains(clustersConfig.CloudProvider, "external") {
+	if clustersConfig.CloudProvider == "" {
 		podErrors := pods.StatusPods(client, cluster.ID)
 		assert.Empty(t, podErrors)
 	}
