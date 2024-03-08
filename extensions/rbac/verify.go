@@ -12,6 +12,7 @@ import (
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/clusters"
+	"github.com/rancher/shepherd/extensions/kubeapi/rbac"
 	"github.com/rancher/shepherd/extensions/namespaces"
 	"github.com/rancher/shepherd/extensions/projects"
 	"github.com/rancher/shepherd/extensions/users"
@@ -20,6 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	coreV1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -34,6 +36,8 @@ const (
 	standardUser                  = "user"
 	activeStatus                  = "active"
 	forbiddenError                = "403 Forbidden"
+	localCluster                  = "local"
+	userKind                      = "User"
 )
 
 var rgx = regexp.MustCompile(`\[(.*?)\]`)
@@ -44,6 +48,27 @@ func VerifyGlobalRoleBindingsForUser(t *testing.T, user *management.User, adminC
 	grbs, err := adminClient.Steve.SteveType("management.cattle.io.globalrolebinding").List(query)
 	require.NoError(t, err)
 	assert.Equal(t, 1, len(grbs.Data))
+}
+
+// VerifyRoleBindingsForUser validates that the corresponding role bindings are created for the user
+func VerifyRoleBindingsForUser(t *testing.T, user *management.User, adminClient *rancher.Client, clusterID, role string) {
+	rblist, err := rbac.ListRoleBindings(adminClient, localCluster, clusterID, metav1.ListOptions{})
+	require.NoError(t, err)
+	userID := user.Resource.ID
+	userRoleBindings := []string{}
+
+	for _, rb := range rblist.Items {
+		if rb.Subjects[0].Kind == userKind && rb.Subjects[0].Name == userID {
+			userRoleBindings = append(userRoleBindings, rb.Name)
+		}
+	}
+
+	switch role {
+	case roleOwner, roleMember:
+		assert.Equal(t, 1, len(userRoleBindings))
+	case roleProjectOwner, roleProjectMember, restrictedAdmin:
+		assert.Equal(t, 2, len(userRoleBindings))
+	}
 }
 
 // VerifyUserCanListCluster validates a user with the required global permissions are able to/not able to list the clusters in rancher server
