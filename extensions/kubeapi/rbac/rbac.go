@@ -1,14 +1,6 @@
 package rbac
 
 import (
-<<<<<<< HEAD
-	"context"
-
-	v3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
-	"github.com/rancher/shepherd/clients/rancher"
-	"github.com/rancher/shepherd/pkg/api/scheme"
-=======
->>>>>>> parent of a26b3ee (Adding extensions for rbac checks)
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
