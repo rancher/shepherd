@@ -45,7 +45,7 @@ func InstallRancherIstioChart(client *rancher.Client, installOptions *InstallOpt
 
 	chartInstallAction := newIstioChartInstallAction(istioChartInstallActionPayload, rancherIstioOpts)
 
-	catalogClient, err := client.GetClusterCatalogClient(installOptions.ClusterID)
+	catalogClient, err := client.GetClusterCatalogClient(installOptions.Cluster.ID)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func InstallRancherIstioChart(client *rancher.Client, installOptions *InstallOpt
 			return err
 		}
 
-		steveclient, err := client.Steve.ProxyDownstream(installOptions.ClusterID)
+		steveclient, err := client.Steve.ProxyDownstream(installOptions.Cluster.ID)
 		if err != nil {
 			return err
 		}
@@ -101,7 +101,7 @@ func InstallRancherIstioChart(client *rancher.Client, installOptions *InstallOpt
 		if err != nil {
 			return err
 		}
-		adminDynamicClient, err := adminClient.GetDownStreamClusterClient(installOptions.ClusterID)
+		adminDynamicClient, err := adminClient.GetDownStreamClusterClient(installOptions.Cluster.ID)
 		if err != nil {
 			return err
 		}
@@ -111,7 +111,6 @@ func InstallRancherIstioChart(client *rancher.Client, installOptions *InstallOpt
 			FieldSelector:  "metadata.name=" + RancherIstioNamespace,
 			TimeoutSeconds: &defaults.WatchTimeoutSeconds,
 		})
-
 		if err != nil {
 			return err
 		}
@@ -178,10 +177,10 @@ func newIstioChartInstallAction(p *payloadOpts, rancherIstioOpts *RancherIstioOp
 			"enabled": rancherIstioOpts.CNI,
 		},
 	}
-	chartInstall := newChartInstall(p.Name, p.InstallOptions.Version, p.InstallOptions.ClusterID, p.InstallOptions.ClusterName, p.Host, rancherChartsName, p.ProjectID, p.DefaultRegistry, istioValues)
+	chartInstall := newChartInstall(p.Name, p.Version, p.Cluster.ID, p.Cluster.Name, p.Host, rancherChartsName, p.ProjectID, p.DefaultRegistry, istioValues)
 	chartInstalls := []types.ChartInstall{*chartInstall}
 
-	chartInstallAction := newChartInstallAction(p.Namespace, p.InstallOptions.ProjectID, chartInstalls)
+	chartInstallAction := newChartInstallAction(p.Namespace, p.ProjectID, chartInstalls)
 
 	return chartInstallAction
 }
@@ -208,7 +207,7 @@ func UpgradeRancherIstioChart(client *rancher.Client, installOptions *InstallOpt
 
 	chartUpgradeAction := newIstioChartUpgradeAction(istioChartUpgradeActionPayload, rancherIstioOpts)
 
-	catalogClient, err := client.GetClusterCatalogClient(installOptions.ClusterID)
+	catalogClient, err := client.GetClusterCatalogClient(installOptions.Cluster.ID)
 	if err != nil {
 		return err
 	}
@@ -222,7 +221,7 @@ func UpgradeRancherIstioChart(client *rancher.Client, installOptions *InstallOpt
 	if err != nil {
 		return err
 	}
-	adminCatalogClient, err := adminClient.GetClusterCatalogClient(installOptions.ClusterID)
+	adminCatalogClient, err := adminClient.GetClusterCatalogClient(installOptions.Cluster.ID)
 	if err != nil {
 		return err
 	}
@@ -299,7 +298,7 @@ func newIstioChartUpgradeAction(p *payloadOpts, rancherIstioOpts *RancherIstioOp
 			"enabled": rancherIstioOpts.CNI,
 		},
 	}
-	chartUpgrade := newChartUpgrade(p.Name, p.InstallOptions.Version, p.InstallOptions.ClusterID, p.InstallOptions.ClusterName, p.Host, p.DefaultRegistry, istioValues)
+	chartUpgrade := newChartUpgrade(p.Name, p.Version, p.Cluster.ID, p.Cluster.Name, p.Host, p.DefaultRegistry, istioValues)
 	chartUpgrades := []types.ChartUpgrade{*chartUpgrade}
 
 	chartUpgradeAction := newChartUpgradeAction(p.Namespace, chartUpgrades)

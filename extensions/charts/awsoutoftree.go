@@ -44,7 +44,7 @@ func InstallAWSOutOfTreeChart(client *rancher.Client, installOptions *InstallOpt
 
 	chartInstallAction := awsChartInstallAction(awsChartInstallActionPayload, repoName, kubeSystemNamespace, installOptions.ProjectID)
 
-	catalogClient, err := client.GetClusterCatalogClient(installOptions.ClusterID)
+	catalogClient, err := client.GetClusterCatalogClient(installOptions.Cluster.ID)
 	if err != nil {
 		return err
 	}
@@ -220,9 +220,9 @@ func awsChartInstallAction(awsChartInstallActionPayload *payloadOpts, repoName, 
 
 	chartInstall := newChartInstall(
 		awsChartInstallActionPayload.Name,
-		awsChartInstallActionPayload.InstallOptions.Version,
-		awsChartInstallActionPayload.InstallOptions.ClusterID,
-		awsChartInstallActionPayload.InstallOptions.ClusterName,
+		awsChartInstallActionPayload.Version,
+		awsChartInstallActionPayload.Cluster.ID,
+		awsChartInstallActionPayload.Cluster.Name,
 		awsChartInstallActionPayload.Host,
 		repoName,
 		chartProject,
