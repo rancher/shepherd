@@ -267,6 +267,7 @@ func NewRKE1ClusterConfig(clusterName string, client *rancher.Client, clustersCo
 	}
 	newConfig.ClusterAgentDeploymentCustomization = clustersConfig.ClusterAgent
 	newConfig.FleetAgentDeploymentCustomization = clustersConfig.FleetAgent
+	newConfig.AgentEnvVars = clustersConfig.AgentEnvVarsRKE1
 
 	if clustersConfig.Registries != nil {
 		if clustersConfig.Registries.RKE1Registries != nil {
@@ -303,6 +304,10 @@ func NewRKE1ClusterConfig(clusterName string, client *rancher.Client, clustersCo
 
 	if clustersConfig.PSACT != "" {
 		newConfig.DefaultPodSecurityAdmissionConfigurationTemplateName = clustersConfig.PSACT
+	}
+
+	if clustersConfig.AgentEnvVars != nil {
+		newConfig.AgentEnvVars = clustersConfig.AgentEnvVarsRKE1
 	}
 
 	return newConfig
@@ -450,6 +455,8 @@ func NewK3SRKE2ClusterConfig(clusterName, namespace string, clustersConfig *Clus
 		MachinePools:         machinePools,
 	}
 
+	agentEnvVars := []rkev1.EnvVar{}
+
 	spec := apisV1.ClusterSpec{
 		CloudCredentialSecretName:           cloudCredentialSecretName,
 		KubernetesVersion:                   clustersConfig.KubernetesVersion,
@@ -457,10 +464,15 @@ func NewK3SRKE2ClusterConfig(clusterName, namespace string, clustersConfig *Clus
 		RKEConfig:                           rkeConfig,
 		ClusterAgentDeploymentCustomization: clusterAgentDeploymentCustomization,
 		FleetAgentDeploymentCustomization:   fleetAgentDeploymentCustomization,
+		AgentEnvVars:                        agentEnvVars,
 	}
 
 	if clustersConfig.PSACT != "" {
 		spec.DefaultPodSecurityAdmissionConfigurationTemplateName = clustersConfig.PSACT
+	}
+
+	if clustersConfig.AgentEnvVars != nil {
+		spec.AgentEnvVars = clustersConfig.AgentEnvVars
 	}
 
 	v1Cluster := &apisV1.Cluster{
