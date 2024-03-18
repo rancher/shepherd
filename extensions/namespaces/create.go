@@ -9,8 +9,10 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
-	"github.com/rancher/shepherd/extensions/defaults"
-	"github.com/rancher/shepherd/extensions/kubeapi/namespaces"
+	defaultAnnotations "github.com/rancher/shepherd/extensions/defaults/annotations"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
+	"github.com/rancher/shepherd/extensions/defaults/timeouts"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	"github.com/rancher/shepherd/pkg/wait"
 	coreV1 "k8s.io/api/core/v1"
@@ -33,10 +35,10 @@ func CreateNamespace(client *rancher.Client, namespaceName, containerDefaultReso
 		annotations = make(map[string]string)
 	}
 	if containerDefaultResourceLimit != "" {
-		annotations["field.cattle.io/containerDefaultResourceLimit"] = containerDefaultResourceLimit
+		annotations[defaultAnnotations.ContainerResourceLimit] = containerDefaultResourceLimit
 	}
 	if project != nil {
-		annotations["field.cattle.io/projectId"] = project.ID
+		annotations[defaultAnnotations.ProjectId] = project.ID
 	}
 	namespace := &coreV1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -51,7 +53,7 @@ func CreateNamespace(client *rancher.Client, namespaceName, containerDefaultReso
 		return nil, err
 	}
 
-	nameSpaceClient := steveClient.SteveType(NamespaceSteveType)
+	nameSpaceClient := steveClient.SteveType(stevetypes.Namespace)
 
 	resp, err := nameSpaceClient.Create(namespace)
 	if err != nil {
@@ -73,7 +75,7 @@ func CreateNamespace(client *rancher.Client, namespaceName, containerDefaultReso
 
 	clusterRoleWatch, err := clusterRoleResource.Watch(context.TODO(), metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + fmt.Sprintf("%s-namespaces-edit", projectID),
-		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+		TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 	})
 
 	if err != nil {
@@ -108,7 +110,7 @@ func CreateNamespace(client *rancher.Client, namespaceName, containerDefaultReso
 			return err
 		}
 
-		nameSpaceClient = steveClient.SteveType(NamespaceSteveType)
+		nameSpaceClient = steveClient.SteveType(stevetypes.Namespace)
 		err := nameSpaceClient.Delete(resp)
 		if errors.IsNotFound(err) {
 			return nil
@@ -117,10 +119,10 @@ func CreateNamespace(client *rancher.Client, namespaceName, containerDefaultReso
 			return err
 		}
 
-		adminNamespaceResource := adminDynamicClient.Resource(namespaces.NamespaceGroupVersionResource).Namespace("")
+		adminNamespaceResource := adminDynamicClient.Resource(groupversionresources.Namespace()).Namespace("")
 		watchInterface, err := adminNamespaceResource.Watch(context.TODO(), metav1.ListOptions{
 			FieldSelector:  "metadata.name=" + resp.Name,
-			TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+			TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 		})
 
 		if err != nil {

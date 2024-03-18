@@ -12,7 +12,10 @@ import (
 	"time"
 
 	"github.com/rancher/shepherd/clients/rancher"
-	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/namespaces"
+	"github.com/rancher/shepherd/extensions/defaults/states"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
+	"github.com/rancher/shepherd/extensions/defaults/timeouts"
 	extnodes "github.com/rancher/shepherd/extensions/nodes"
 	"github.com/rancher/shepherd/extensions/provisioninginput"
 	"github.com/rancher/shepherd/pkg/nodes"
@@ -26,9 +29,6 @@ const (
 	checkCPU        provisioninginput.SSHTestCase = "CheckCPU"
 	checkCPUCommand                               = "ps -C agent -o %cpu --no-header"
 	nodeReboot      provisioninginput.SSHTestCase = "NodeReboot"
-	activeState                                   = "active"
-	runningState                                  = "running"
-	fleetNamespace                                = "fleet-default"
 )
 
 // CallSSHTestByName tests the ssh tests specified in the provisioninginput config clusterSSHTests field.
@@ -59,12 +59,12 @@ func CallSSHTestByName(testCase provisioninginput.SSHTestCase, node *nodes.Node,
 			return err
 		}
 		// Verify machine shuts down within five minutes, shutting down should not take longer than that depending on the ami
-		err = wait.Poll(1*time.Second, defaults.FiveMinuteTimeout, func() (bool, error) {
-			newNode, err := client.Steve.SteveType(machineSteveResourceType).ByID(fleetNamespace + "/" + machineName)
+		err = wait.Poll(1*time.Second, timeouts.FiveMinute, func() (bool, error) {
+			newNode, err := client.Steve.SteveType(stevetypes.Machine).ByID(namespaces.Fleet + "/" + machineName)
 			if err != nil {
 				return false, err
 			}
-			if newNode.State.Name == runningState {
+			if newNode.State.Name == states.Running {
 				return false, nil
 			}
 			return true, nil
@@ -74,7 +74,7 @@ func CallSSHTestByName(testCase provisioninginput.SSHTestCase, node *nodes.Node,
 			return err
 		}
 
-		err = extnodes.AllMachineReady(client, clusterID, defaults.TenMinuteTimeout)
+		err = extnodes.AllMachineReady(client, clusterID, timeouts.TenMinute)
 		if err != nil {
 			logrus.Errorf("Node %s failed to reboot successfully", node.PublicIPAddress)
 			return err

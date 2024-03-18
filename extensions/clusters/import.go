@@ -10,6 +10,7 @@ import (
 	"github.com/rancher/shepherd/clients/dynamic"
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
+	"github.com/rancher/shepherd/extensions/defaults/namespaces"
 	ext_unstructured "github.com/rancher/shepherd/extensions/unstructured"
 	"github.com/rancher/shepherd/pkg/wait"
 	batchv1 "k8s.io/api/batch/v1"
@@ -50,10 +51,6 @@ users:
   user:
     tokenFile: /run/secrets/kubernetes.io/serviceaccount/token
 `
-)
-
-var (
-	importTimeout = int64(60 * 20)
 )
 
 // ImportCluster creates a job using the given rest config that applies the import yaml from the given management cluster.
@@ -109,7 +106,7 @@ func ImportCluster(client *rancher.Client, cluster *apisV1.Cluster, rest *rest.C
 		return true, nil
 	})
 
-	_, err = downClient.Resource(corev1.SchemeGroupVersion.WithResource("serviceaccounts")).Namespace("kube-system").Create(context.TODO(), ext_unstructured.MustToUnstructured(sa), metav1.CreateOptions{})
+	_, err = downClient.Resource(corev1.SchemeGroupVersion.WithResource("serviceaccounts")).Namespace(namespaces.KubeSystem).Create(context.TODO(), ext_unstructured.MustToUnstructured(sa), metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
@@ -122,7 +119,7 @@ func ImportCluster(client *rancher.Client, cluster *apisV1.Cluster, rest *rest.C
 			{
 				Kind:      "ServiceAccount",
 				Name:      sa.Name,
-				Namespace: "kube-system",
+				Namespace: namespaces.KubeSystem,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
@@ -144,7 +141,7 @@ func ImportCluster(client *rancher.Client, cluster *apisV1.Cluster, rest *rest.C
 			"config": kubeConfig,
 		},
 	}
-	_, err = downClient.Resource(corev1.SchemeGroupVersion.WithResource("configmaps")).Namespace("kube-system").Create(context.TODO(), ext_unstructured.MustToUnstructured(cm), metav1.CreateOptions{})
+	_, err = downClient.Resource(corev1.SchemeGroupVersion.WithResource("configmaps")).Namespace(namespaces.KubeSystem).Create(context.TODO(), ext_unstructured.MustToUnstructured(cm), metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
@@ -199,12 +196,13 @@ func ImportCluster(client *rancher.Client, cluster *apisV1.Cluster, rest *rest.C
 			},
 		},
 	}
-	_, err = downClient.Resource(batchv1.SchemeGroupVersion.WithResource("jobs")).Namespace("kube-system").Create(context.TODO(), ext_unstructured.MustToUnstructured(job), metav1.CreateOptions{})
+	_, err = downClient.Resource(batchv1.SchemeGroupVersion.WithResource("jobs")).Namespace(namespaces.KubeSystem).Create(context.TODO(), ext_unstructured.MustToUnstructured(job), metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
 
-	jobWatch, err := downClient.Resource(batchv1.SchemeGroupVersion.WithResource("jobs")).Namespace("kube-system").Watch(context.TODO(), metav1.ListOptions{
+	importTimeout := int64(60 * 20)
+	jobWatch, err := downClient.Resource(batchv1.SchemeGroupVersion.WithResource("jobs")).Namespace(namespaces.KubeSystem).Watch(context.TODO(), metav1.ListOptions{
 		FieldSelector:  fields.OneTermEqualSelector("metadata.name", job.Name).String(),
 		TimeoutSeconds: &importTimeout,
 	})

@@ -4,6 +4,7 @@ import (
 	v3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
 	"github.com/rancher/shepherd/clients/rancher"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 )
 
 // ShellVersion is a helper that gets the shell setting json based on the ID and return the shell image value.
@@ -14,7 +15,7 @@ func ShellVersion(client *rancher.Client, clusterID, resourceName string) (strin
 	}
 
 	shellSetting := &v3.Setting{}
-	shellSettingResp, err := steveClient.SteveType("management.cattle.io.setting").ByID("shell-image")
+	shellSettingResp, err := steveClient.SteveType(stevetypes.ManagementSetting).ByID("shell-image")
 	if err != nil {
 		return "", err
 	}

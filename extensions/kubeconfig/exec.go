@@ -22,8 +22,6 @@ const (
 	apiPath = "/api"
 )
 
-var podGroupVersion = corev1.SchemeGroupVersion.WithResource("pods").GroupVersion()
-
 // LogStreamer is a struct that acts like io.Writer inorder to retrieve Stdout from a kubectl exec command in pod
 type LogStreamer struct {
 	b bytes.Buffer
@@ -45,6 +43,7 @@ func (l *LogStreamer) Write(p []byte) (n int, err error) {
 // takes the kubeconfig in form of a restclient.Config object, the pod name, the namespace of the pod,
 // and the command a user wants to run.
 func KubectlExec(restConfig *restclient.Config, podName, namespace string, command []string) (*LogStreamer, error) {
+	podGroupVersion := corev1.SchemeGroupVersion.WithResource("pods").GroupVersion()
 	restConfig.ContentConfig.NegotiatedSerializer = serializer.NewCodecFactory(k8Scheme.Scheme)
 	restConfig.ContentConfig.GroupVersion = &podGroupVersion
 	restConfig.APIPath = apiPath
@@ -85,6 +84,7 @@ func KubectlExec(restConfig *restclient.Config, podName, namespace string, comma
 // the kubeconfig in form of a restclient.Config object, the pod name, the namespace of the pod, the filename, and then
 // the local destination (dest) where the file will be copied to.
 func CopyFileFromPod(restConfig *restclient.Config, clientConfig clientcmd.ClientConfig, podName, namespace, filename, dest string) error {
+	podGroupVersion := corev1.SchemeGroupVersion.WithResource("pods").GroupVersion()
 	restConfig.ContentConfig.NegotiatedSerializer = serializer.NewCodecFactory(k8Scheme.Scheme)
 	restConfig.ContentConfig.GroupVersion = &podGroupVersion
 	restConfig.APIPath = apiPath

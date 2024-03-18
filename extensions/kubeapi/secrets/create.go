@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	"github.com/rancher/shepherd/extensions/unstructured"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	corev1 "k8s.io/api/core/v1"
@@ -17,7 +18,8 @@ func CreateSecretForCluster(client *rancher.Client, secret *corev1.Secret, clust
 	if err != nil {
 		return nil, err
 	}
-	secretResource := dynamicClient.Resource(SecretGroupVersionResource).Namespace(namespace)
+
+	secretResource := dynamicClient.Resource(groupversionresources.Secret()).Namespace(namespace)
 
 	return CreateSecret(secretResource, secret)
 }

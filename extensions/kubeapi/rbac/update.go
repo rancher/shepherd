@@ -5,6 +5,7 @@ import (
 
 	v3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	"github.com/rancher/shepherd/extensions/unstructured"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,7 +17,7 @@ func UpdateGlobalRole(client *rancher.Client, updatedGlobalRole *v3.GlobalRole) 
 	if err != nil {
 		return nil, err
 	}
-	globalRoleResource := dynamicClient.Resource(GlobalRoleGroupVersionResource)
+	globalRoleResource := dynamicClient.Resource(groupversionresources.GlobalRole())
 	globalRolesUnstructured, err := globalRoleResource.Get(context.TODO(), updatedGlobalRole.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -49,7 +50,7 @@ func UpdateRoleTemplate(client *rancher.Client, updatedRoleTemplate *v3.RoleTemp
 	if err != nil {
 		return nil, err
 	}
-	roleTemplateUnstructured := dynamicClient.Resource(RoleTemplateGroupVersionResource)
+	roleTemplateUnstructured := dynamicClient.Resource(groupversionresources.RoleTemplate())
 	roleTemplate, err := roleTemplateUnstructured.Get(context.TODO(), updatedRoleTemplate.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -83,7 +84,7 @@ func UpdateClusterRoleTemplateBindings(client *rancher.Client, existingCRTB *v3.
 	if err != nil {
 		return nil, err
 	}
-	crtbUnstructured := dynamicClient.Resource(ClusterRoleTemplateBindingGroupVersionResource).Namespace(existingCRTB.Namespace)
+	crtbUnstructured := dynamicClient.Resource(groupversionresources.ClusterRoleTemplateBinding()).Namespace(existingCRTB.Namespace)
 	clusterRoleTemplateBinding, err := crtbUnstructured.Get(context.TODO(), existingCRTB.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err

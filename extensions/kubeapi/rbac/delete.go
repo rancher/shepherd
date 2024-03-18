@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -14,7 +15,7 @@ func DeleteGlobalRoleBinding(client *rancher.Client, globalRoleBindingName strin
 		return err
 	}
 
-	globalRoleBindingResource := dynamicClient.Resource(GlobalRoleBindingGroupVersionResource)
+	globalRoleBindingResource := dynamicClient.Resource(groupversionresources.GlobalRoleBinding())
 
 	err = globalRoleBindingResource.Delete(context.TODO(), globalRoleBindingName, metav1.DeleteOptions{})
 	if err != nil {
@@ -30,7 +31,7 @@ func DeleteGlobalRole(client *rancher.Client, globalRoleName string) error {
 		return err
 	}
 
-	globalRoleResource := dynamicClient.Resource(GlobalRoleGroupVersionResource)
+	globalRoleResource := dynamicClient.Resource(groupversionresources.GlobalRole())
 
 	err = globalRoleResource.Delete(context.TODO(), globalRoleName, metav1.DeleteOptions{})
 	if err != nil {
@@ -46,7 +47,7 @@ func DeleteRoletemplate(client *rancher.Client, roleName string) error {
 		return err
 	}
 
-	roleResource := dynamicClient.Resource(RoleTemplateGroupVersionResource)
+	roleResource := dynamicClient.Resource(groupversionresources.RoleTemplate())
 
 	err = roleResource.Delete(context.TODO(), roleName, metav1.DeleteOptions{})
 	if err != nil {

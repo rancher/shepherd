@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/rancher/shepherd/clients/rancher"
-	"github.com/rancher/shepherd/extensions/kubeapi/storageclasses"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	"github.com/rancher/shepherd/extensions/unstructured"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	storagev1 "k8s.io/api/storage/v1"
@@ -39,7 +39,7 @@ func CreateAWSEBSStorageClass(client *rancher.Client, clusterName, fsType, encry
 		return nil, err
 	}
 
-	storageClassVolumesResource := dynamicClient.Resource(storageclasses.StorageClassGroupVersionResource).Namespace("")
+	storageClassVolumesResource := dynamicClient.Resource(groupversionresources.StorageClass()).Namespace("")
 
 	unstructuredResp, err := storageClassVolumesResource.Create(context.TODO(), unstructuredStorageClass, metav1.CreateOptions{})
 	if err != nil {

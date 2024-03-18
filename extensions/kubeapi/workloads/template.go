@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/rancher/shepherd/clients/rancher"
-	"github.com/rancher/shepherd/extensions/kubeapi/secrets"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,7 +18,7 @@ func NewImagePullSecret(client *rancher.Client, clusterName, namespace string) (
 		return nil, err
 	}
 
-	resp, err := k8sClient.Resource(secrets.SecretGroupVersionResource).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+	resp, err := k8sClient.Resource(groupversionresources.Secret()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

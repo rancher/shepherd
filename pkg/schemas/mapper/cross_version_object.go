@@ -10,27 +10,6 @@ import (
 	"github.com/rancher/norman/types/convert"
 )
 
-var (
-	kindMap = map[string]string{
-		"deployment":            "Deployment",
-		"replicationcontroller": "ReplicationController",
-		"statefulset":           "StatefulSet",
-		"daemonset":             "DaemonSet",
-		"job":                   "Job",
-		"cronjob":               "CronJob",
-		"replicaset":            "ReplicaSet",
-	}
-	groupVersionMap = map[string]string{
-		"deployment":            "apps/v1beta2",
-		"replicationcontroller": "core/v1",
-		"statefulset":           "apps/v1beta2",
-		"daemonset":             "apps/v1beta2",
-		"job":                   "batch/v1",
-		"cronjob":               "batch/v1beta1",
-		"replicaset":            "apps/v1beta2",
-	}
-)
-
 type CrossVersionObjectToWorkload struct {
 	Field string
 }
@@ -39,6 +18,16 @@ func (c CrossVersionObjectToWorkload) ToInternal(data map[string]interface{}) er
 	obj, ok := values.GetValue(data, strings.Split(c.Field, "/")...)
 	if !ok {
 		return nil
+	}
+
+	groupVersionMap := map[string]string{
+		"deployment":            "apps/v1beta2",
+		"replicationcontroller": "core/v1",
+		"statefulset":           "apps/v1beta2",
+		"daemonset":             "apps/v1beta2",
+		"job":                   "batch/v1",
+		"cronjob":               "batch/v1beta1",
+		"replicaset":            "apps/v1beta2",
 	}
 	workloadID := convert.ToString(obj)
 	parts := strings.SplitN(workloadID, ":", 3)
@@ -72,5 +61,14 @@ func (c CrossVersionObjectToWorkload) ModifySchema(schema *types.Schema, schemas
 }
 
 func getKind(i string) string {
+	kindMap := map[string]string{
+		"deployment":            "Deployment",
+		"replicationcontroller": "ReplicationController",
+		"statefulset":           "StatefulSet",
+		"daemonset":             "DaemonSet",
+		"job":                   "Job",
+		"cronjob":               "CronJob",
+		"replicaset":            "ReplicaSet",
+	}
 	return kindMap[i]
 }

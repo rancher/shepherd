@@ -7,8 +7,8 @@ import (
 	catalogv1 "github.com/rancher/rancher/pkg/apis/catalog.cattle.io/v1"
 	"github.com/rancher/shepherd/clients/rancher"
 	"github.com/rancher/shepherd/clients/rancher/catalog"
-	"github.com/rancher/shepherd/extensions/defaults"
-	kubenamespaces "github.com/rancher/shepherd/extensions/kubeapi/namespaces"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
+	"github.com/rancher/shepherd/extensions/defaults/timeouts"
 	"github.com/rancher/shepherd/extensions/namespaces"
 	"github.com/rancher/shepherd/pkg/api/steve/catalog/types"
 	"github.com/rancher/shepherd/pkg/wait"
@@ -65,7 +65,7 @@ func InstallRancherAlertingChart(client *rancher.Client, installOptions *Install
 
 		watchAppInterface, err := catalogClient.Apps(RancherAlertingNamespace).Watch(context.TODO(), metav1.ListOptions{
 			FieldSelector:  "metadata.name=" + RancherAlertingName,
-			TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+			TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 		})
 		if err != nil {
 			return err
@@ -115,11 +115,11 @@ func InstallRancherAlertingChart(client *rancher.Client, installOptions *Install
 			if err != nil {
 				return err
 			}
-			adminNamespaceResource := adminDynamicClient.Resource(kubenamespaces.NamespaceGroupVersionResource).Namespace("")
+			adminNamespaceResource := adminDynamicClient.Resource(groupversionresources.Namespace()).Namespace("")
 
 			watchNamespaceInterface, err := adminNamespaceResource.Watch(context.TODO(), metav1.ListOptions{
 				FieldSelector:  "metadata.name=" + RancherAlertingNamespace,
-				TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+				TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 			})
 			if err != nil {
 				return err
@@ -147,7 +147,7 @@ func InstallRancherAlertingChart(client *rancher.Client, installOptions *Install
 	// wait for chart to be full deployed
 	watchAppInterface, err := catalogClient.Apps(RancherAlertingNamespace).Watch(context.TODO(), metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + RancherAlertingName,
-		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+		TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 	})
 	if err != nil {
 		return err

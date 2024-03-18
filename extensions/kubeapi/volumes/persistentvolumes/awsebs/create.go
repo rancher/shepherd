@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/rancher/shepherd/clients/rancher"
-	"github.com/rancher/shepherd/extensions/kubeapi/volumes/persistentvolumes"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	"github.com/rancher/shepherd/extensions/unstructured"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 
@@ -37,7 +37,7 @@ func CreateAWSEBSPersistentVolume(client *rancher.Client, clusterName, fsType, v
 		return nil, err
 	}
 
-	persistentVolumesResource := dynamicClient.Resource(persistentvolumes.PersistentVolumesGroupVersionResource).Namespace("")
+	persistentVolumesResource := dynamicClient.Resource(groupversionresources.PersistentVolume()).Namespace("")
 
 	unstructuredResp, err := persistentVolumesResource.Create(context.TODO(), unstructuredPersistentVolume, metav1.CreateOptions{})
 	if err != nil {

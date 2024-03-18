@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	defaultlabels "github.com/rancher/shepherd/extensions/defaults/labels"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	"github.com/rancher/shepherd/extensions/unstructured"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	appv1 "k8s.io/api/apps/v1"
@@ -20,7 +22,7 @@ func CreateDaemonSet(client *rancher.Client, clusterName, daemonSetName, namespa
 	}
 
 	labels := map[string]string{}
-	labels["workload.user.cattle.io/workloadselector"] = fmt.Sprintf("apps.daemonset-%v-%v", namespace, daemonSetName)
+	labels[defaultlabels.WorkloadSelector] = fmt.Sprintf("apps.daemonset-%v-%v", namespace, daemonSetName)
 
 	template.ObjectMeta = metav1.ObjectMeta{
 		Labels: labels,
@@ -40,7 +42,7 @@ func CreateDaemonSet(client *rancher.Client, clusterName, daemonSetName, namespa
 		},
 	}
 
-	daemonSetResource := dynamicClient.Resource(DaemonSetGroupVersionResource).Namespace(namespace)
+	daemonSetResource := dynamicClient.Resource(groupversionresources.Daemonset()).Namespace(namespace)
 
 	unstructuredResp, err := daemonSetResource.Create(context.TODO(), unstructured.MustToUnstructured(daemonSet), metav1.CreateOptions{})
 	if err != nil {

@@ -5,21 +5,14 @@ import (
 	"fmt"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	defaultlabels "github.com/rancher/shepherd/extensions/defaults/labels"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	"github.com/rancher/shepherd/extensions/unstructured"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
-
-// DeploymentGroupVersionResource is the required Group Version Resource for accessing deployments in a cluster,
-// using the dynamic client.
-var DeploymentGroupVersionResource = schema.GroupVersionResource{
-	Group:    "apps",
-	Version:  "v1",
-	Resource: "deployments",
-}
 
 // CreateDeployment is a helper function that uses the dynamic client to create a deployment on a namespace for a specific cluster.
 func CreateDeployment(client *rancher.Client, clusterName, deploymentName, namespace string, template corev1.PodTemplateSpec, replicas int32) (*appv1.Deployment, error) {
@@ -29,7 +22,7 @@ func CreateDeployment(client *rancher.Client, clusterName, deploymentName, names
 	}
 
 	labels := map[string]string{}
-	labels["workload.user.cattle.io/workloadselector"] = fmt.Sprintf("apps.deployment-%v-%v", namespace, deploymentName)
+	labels[defaultlabels.WorkloadSelector] = fmt.Sprintf("apps.deployment-%v-%v", namespace, deploymentName)
 
 	template.ObjectMeta = metav1.ObjectMeta{
 		Labels: labels,
@@ -50,7 +43,7 @@ func CreateDeployment(client *rancher.Client, clusterName, deploymentName, names
 		},
 	}
 
-	deploymentResource := dynamicClient.Resource(DeploymentGroupVersionResource).Namespace(namespace)
+	deploymentResource := dynamicClient.Resource(groupversionresources.Deployment()).Namespace(namespace)
 
 	unstructuredResp, err := deploymentResource.Create(context.TODO(), unstructured.MustToUnstructured(deployment), metav1.CreateOptions{})
 	if err != nil {

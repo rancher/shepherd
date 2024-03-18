@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	"github.com/rancher/shepherd/clients/rancher"
-	"github.com/rancher/shepherd/extensions/defaults"
+	defaultAnnotations "github.com/rancher/shepherd/extensions/defaults/annotations"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
+	"github.com/rancher/shepherd/extensions/defaults/timeouts"
 	"github.com/rancher/shepherd/extensions/unstructured"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	"github.com/rancher/shepherd/pkg/wait"
@@ -25,12 +27,12 @@ func CreateNamespace(client *rancher.Client, clusterID, projectName, namespaceNa
 	}
 
 	if containerDefaultResourceLimit != "" {
-		annotations["field.cattle.io/containerDefaultResourceLimit"] = containerDefaultResourceLimit
+		annotations[defaultAnnotations.ContainerResourceLimit] = containerDefaultResourceLimit
 	}
 
 	if projectName != "" {
 		annotationValue := clusterID + ":" + projectName
-		annotations["field.cattle.io/projectId"] = annotationValue
+		annotations[defaultAnnotations.ProjectId] = annotationValue
 	}
 
 	namespace := &coreV1.Namespace{
@@ -56,7 +58,7 @@ func CreateNamespace(client *rancher.Client, clusterID, projectName, namespaceNa
 		return nil, err
 	}
 
-	namespaceResource := dynamicClient.Resource(NamespaceGroupVersionResource).Namespace("")
+	namespaceResource := dynamicClient.Resource(groupversionresources.Namespace()).Namespace("")
 
 	unstructuredResp, err := namespaceResource.Create(context.TODO(), unstructured.MustToUnstructured(namespace), metav1.CreateOptions{})
 	if err != nil {
@@ -67,7 +69,7 @@ func CreateNamespace(client *rancher.Client, clusterID, projectName, namespaceNa
 
 	clusterRoleWatch, err := clusterRoleResource.Watch(context.TODO(), metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + fmt.Sprintf("%s-namespaces-edit", projectName),
-		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+		TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 	})
 
 	if err != nil {
@@ -105,10 +107,10 @@ func CreateNamespace(client *rancher.Client, clusterID, projectName, namespaceNa
 			return err
 		}
 
-		adminNamespaceResource := adminDynamicClient.Resource(NamespaceGroupVersionResource).Namespace("")
+		adminNamespaceResource := adminDynamicClient.Resource(groupversionresources.Namespace()).Namespace("")
 		watchInterface, err := adminNamespaceResource.Watch(context.TODO(), metav1.ListOptions{
 			FieldSelector:  "metadata.name=" + unstructuredResp.GetName(),
-			TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+			TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 		})
 
 		if err != nil {

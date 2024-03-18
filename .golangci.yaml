@@ -10,6 +10,7 @@ linters:
   - goconst
   - forbidigo
   - predeclared
+  - gochecknoglobals
 linters-settings:
   revive:
     rules:
@@ -35,6 +36,11 @@ issues:
   exclude-dirs:
     - pkg/generated/*
     - clients/rancher/generated/*
+  exclude-rules:
+    #Scheme and v3 schemas are being skipped due to the complexity of updating the global vars used in Shepherd clients
+    - path: pkg/*
+      linters:
+        - gochecknoglobals
   exclude-files:
     - ^*\.yaml$
     - ^*\.yml$

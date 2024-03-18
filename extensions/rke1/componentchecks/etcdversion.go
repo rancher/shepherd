@@ -4,6 +4,9 @@ import (
 	"strings"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/defaults/annotations"
+	"github.com/rancher/shepherd/extensions/defaults/labels"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/rancher/shepherd/pkg/nodes"
 	"github.com/sirupsen/logrus"
 )
@@ -15,7 +18,7 @@ func CheckETCDVersion(client *rancher.Client, nodes []*nodes.Node, clusterID str
 		return nil, err
 	}
 
-	nodesList, err := steveClient.SteveType("node").List(nil)
+	nodesList, err := steveClient.SteveType(stevetypes.Node).List(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -23,8 +26,8 @@ func CheckETCDVersion(client *rancher.Client, nodes []*nodes.Node, clusterID str
 	var etcdResult []string
 
 	for _, rancherNode := range nodesList.Data {
-		externalIP := rancherNode.Annotations["rke.cattle.io/external-ip"]
-		etcdRole := rancherNode.Labels["node-role.kubernetes.io/etcd"] == "true"
+		externalIP := rancherNode.Annotations[annotations.ExternalIp]
+		etcdRole := rancherNode.Labels[labels.EtcdRole] == "true"
 
 		if etcdRole == true {
 			for _, node := range nodes {

@@ -6,18 +6,12 @@ import (
 
 	v3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 )
-
-var TokenGroupVersionResource = schema.GroupVersionResource{
-	Group:    "management.cattle.io",
-	Version:  "v3",
-	Resource: "tokens",
-}
 
 // PatchToken is a helper function that uses the dynamic client to patch a token by its name.
 // Different token operations are supported: add, replace, remove.
@@ -27,7 +21,7 @@ func PatchToken(client *rancher.Client, clusterID, tokenName, patchOp, patchPath
 		return nil, nil, err
 	}
 
-	tokenResource := dynamicClient.Resource(TokenGroupVersionResource)
+	tokenResource := dynamicClient.Resource(groupversionresources.Token())
 
 	patchJSONOperation := fmt.Sprintf(`
 	[

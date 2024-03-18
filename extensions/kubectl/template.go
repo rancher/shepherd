@@ -6,6 +6,7 @@ import (
 	namegen "github.com/rancher/shepherd/pkg/namegenerator"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/defaults/timeouts"
 	"github.com/rancher/shepherd/extensions/kubeconfig"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -30,8 +31,6 @@ const (
 	Namespace             = "kube-system"
 	JobName               = "kubectl"
 )
-
-var importTimeout = int64(60 * 2)
 
 // CreateJobAndRunKubectlCommands is a helper to create a job and run the kubectl commands in the pods of the Job.
 // It then returns errors or nil from the job.
@@ -100,7 +99,7 @@ func CreateJobAndRunKubectlCommands(clusterID, jobname string, job *batchv1.Job,
 
 	jobWatch, err := downClient.Resource(batchv1.SchemeGroupVersion.WithResource("jobs")).Namespace(Namespace).Watch(context.TODO(), metav1.ListOptions{
 		FieldSelector:  fields.OneTermEqualSelector("metadata.name", job.Name).String(),
-		TimeoutSeconds: &importTimeout,
+		TimeoutSeconds: timeouts.WatchTimeout(timeouts.TwoMinute),
 	})
 	if err != nil {
 		return err

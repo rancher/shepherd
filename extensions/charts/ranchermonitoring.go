@@ -10,9 +10,9 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	"github.com/rancher/shepherd/clients/rancher/catalog"
 	"github.com/rancher/shepherd/extensions/clusters"
-	"github.com/rancher/shepherd/extensions/defaults"
-	kubenamespaces "github.com/rancher/shepherd/extensions/kubeapi/namespaces"
-	"github.com/rancher/shepherd/extensions/namespaces"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
+	"github.com/rancher/shepherd/extensions/defaults/timeouts"
 	"github.com/rancher/shepherd/pkg/api/steve/catalog/types"
 	"github.com/rancher/shepherd/pkg/wait"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -72,7 +72,7 @@ func InstallRancherMonitoringChart(client *rancher.Client, installOptions *Insta
 
 		watchAppInterface, err := catalogClient.Apps(RancherMonitoringNamespace).Watch(context.TODO(), metav1.ListOptions{
 			FieldSelector:  "metadata.name=" + RancherMonitoringName,
-			TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+			TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 		})
 		if err != nil {
 			return err
@@ -97,7 +97,7 @@ func InstallRancherMonitoringChart(client *rancher.Client, installOptions *Insta
 
 		watchAppInterface, err = catalogClient.Apps(RancherMonitoringNamespace).Watch(context.TODO(), metav1.ListOptions{
 			FieldSelector:  "metadata.name=" + RancherMonitoringCRDName,
-			TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+			TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 		})
 		if err != nil {
 			return err
@@ -123,7 +123,7 @@ func InstallRancherMonitoringChart(client *rancher.Client, installOptions *Insta
 			return err
 		}
 
-		namespaceClient := steveclient.SteveType(namespaces.NamespaceSteveType)
+		namespaceClient := steveclient.SteveType(stevetypes.Namespace)
 
 		namespace, err := namespaceClient.ByID(RancherMonitoringNamespace)
 		if err != nil {
@@ -143,11 +143,11 @@ func InstallRancherMonitoringChart(client *rancher.Client, installOptions *Insta
 		if err != nil {
 			return err
 		}
-		adminNamespaceResource := adminDynamicClient.Resource(kubenamespaces.NamespaceGroupVersionResource).Namespace("")
+		adminNamespaceResource := adminDynamicClient.Resource(groupversionresources.Namespace()).Namespace("")
 
 		watchNamespaceInterface, err := adminNamespaceResource.Watch(context.TODO(), metav1.ListOptions{
 			FieldSelector:  "metadata.name=" + RancherMonitoringNamespace,
-			TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+			TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 		})
 		if err != nil {
 			return err
@@ -169,7 +169,7 @@ func InstallRancherMonitoringChart(client *rancher.Client, installOptions *Insta
 	// wait for chart to be full deployed
 	watchAppInterface, err := catalogClient.Apps(RancherMonitoringNamespace).Watch(context.TODO(), metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + RancherMonitoringName,
-		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+		TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 	})
 	if err != nil {
 		return err
@@ -267,7 +267,7 @@ func UpgradeRancherMonitoringChart(client *rancher.Client, installOptions *Insta
 	// wait for chart to be in status pending upgrade
 	watchAppInterface, err := adminCatalogClient.Apps(RancherMonitoringNamespace).Watch(context.TODO(), metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + RancherMonitoringName,
-		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+		TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 	})
 	if err != nil {
 		return err
@@ -289,7 +289,7 @@ func UpgradeRancherMonitoringChart(client *rancher.Client, installOptions *Insta
 	// wait for chart to be full deployed
 	watchAppInterface, err = adminCatalogClient.Apps(RancherMonitoringNamespace).Watch(context.TODO(), metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + RancherMonitoringName,
-		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+		TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 	})
 	if err != nil {
 		return err

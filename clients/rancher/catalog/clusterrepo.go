@@ -14,8 +14,6 @@ import (
 )
 
 const (
-	ClusterRepoSteveResourceType = "catalog.cattle.io.clusterrepo"
-
 	action           = "action"
 	chartsURL        = "v1/catalog.cattle.io.clusterrepos/"
 	link             = "link"

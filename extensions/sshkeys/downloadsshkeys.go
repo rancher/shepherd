@@ -11,24 +11,23 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	steveV1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/clusters"
+	"github.com/rancher/shepherd/extensions/defaults/annotations"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	kubeapinodes "github.com/rancher/shepherd/extensions/kubeapi/nodes"
 	"github.com/rancher/shepherd/pkg/nodes"
 	corev1 "k8s.io/api/core/v1"
 )
 
 const (
-	privateKeySSHKeyRegExPattern              = `-----BEGIN RSA PRIVATE KEY-{3,}\n([\s\S]*?)\n-{3,}END RSA PRIVATE KEY-----`
-	ClusterMachineConstraintResourceSteveType = "cluster.x-k8s.io.machine"
-	ClusterMachineAnnotation                  = "cluster.x-k8s.io/machine"
-
-	rootUser = "root"
+	privateKeySSHKeyRegExPattern = `-----BEGIN RSA PRIVATE KEY-{3,}\n([\s\S]*?)\n-{3,}END RSA PRIVATE KEY-----`
+	rootUser                     = "root"
 )
 
 // DownloadSSHKeys is a helper function that takes a client, the machinePoolNodeName to download
 // the ssh key for a particular node.
 func DownloadSSHKeys(client *rancher.Client, machinePoolNodeName string) ([]byte, error) {
 	machinePoolNodeNameName := fmt.Sprintf("fleet-default/%s", machinePoolNodeName)
-	machine, err := client.Steve.SteveType(ClusterMachineConstraintResourceSteveType).ByID(machinePoolNodeNameName)
+	machine, err := client.Steve.SteveType(stevetypes.Machine).ByID(machinePoolNodeNameName)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +60,7 @@ func DownloadSSHKeys(client *rancher.Client, machinePoolNodeName string) ([]byte
 
 // GetSSHNodeFromMachine returns the v1/node object given a steve/v1/machine object.
 func GetSSHNodeFromMachine(client *rancher.Client, sshUser string, machine *steveV1.SteveAPIObject) (*nodes.Node, error) {
-	machineName := machine.Annotations[ClusterMachineAnnotation]
+	machineName := machine.Annotations[annotations.Machine]
 	sshkey, err := DownloadSSHKeys(client, machineName)
 	if err != nil {
 		return nil, err

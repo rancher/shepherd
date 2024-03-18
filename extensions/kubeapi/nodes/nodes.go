@@ -4,19 +4,11 @@ import (
 	"context"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
-
-// NodeGroupVersionResource is the required Group Version Resource for accessing nodes in a cluster,
-// using the dynamic client.
-var NodeGroupVersionResource = schema.GroupVersionResource{
-	Group:    "",
-	Version:  "v1",
-	Resource: "nodes",
-}
 
 // GetNodes returns nodes with metav1.TypeMeta, metav1.ObjectMeta, NodeSpec, and NodeStatus to be used to gather more information from nodes
 func GetNodes(client *rancher.Client, clusterID string, listOpts metav1.ListOptions) ([]corev1.Node, error) {
@@ -27,7 +19,7 @@ func GetNodes(client *rancher.Client, clusterID string, listOpts metav1.ListOpti
 		return nil, err
 	}
 
-	nodeResource := dynamicClient.Resource(NodeGroupVersionResource)
+	nodeResource := dynamicClient.Resource(groupversionresources.Node())
 	nodes, err := nodeResource.List(context.TODO(), listOpts)
 	if err != nil {
 		return nil, err

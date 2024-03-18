@@ -7,6 +7,7 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/clusters"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/rancher/shepherd/extensions/workloads/pods"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -20,7 +21,7 @@ func CheckAllClusterPodsForRegistryPrefix(client *rancher.Client, clusterID, reg
 		return false, err
 	}
 
-	steveClient := downstreamClient.SteveType(pods.PodResourceSteveType)
+	steveClient := downstreamClient.SteveType(stevetypes.Pod)
 	podsList, err := steveClient.List(nil)
 	if err != nil {
 		return false, err

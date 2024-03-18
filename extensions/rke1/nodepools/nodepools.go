@@ -8,14 +8,11 @@ import (
 	"github.com/rancher/norman/types"
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
-	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/states"
+	"github.com/rancher/shepherd/extensions/defaults/timeouts"
 	nodestat "github.com/rancher/shepherd/extensions/nodes"
 	"github.com/sirupsen/logrus"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
-)
-
-const (
-	active = "active"
 )
 
 type NodeRoles struct {
@@ -111,13 +108,13 @@ func updateNodePoolQuantity(client *rancher.Client, cluster *management.Cluster,
 		return nil, err
 	}
 
-	err = kwait.PollUntilContextTimeout(context.TODO(), 500*time.Millisecond, defaults.ThirtyMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
+	err = kwait.PollUntilContextTimeout(context.TODO(), 500*time.Millisecond, timeouts.ThirtyMinute, true, func(ctx context.Context) (done bool, err error) {
 		clusterResp, err := client.Management.Cluster.ByID(cluster.ID)
 		if err != nil {
 			return false, err
 		}
 
-		if clusterResp.State == active && nodestat.AllManagementNodeReady(client, clusterResp.ID, defaults.ThirtyMinuteTimeout) == nil {
+		if clusterResp.State == states.Active && nodestat.AllManagementNodeReady(client, clusterResp.ID, timeouts.ThirtyMinute) == nil {
 			return true, nil
 		}
 		return false, nil

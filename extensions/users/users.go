@@ -9,6 +9,8 @@ import (
 	v3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
+	defaultLabels "github.com/rancher/shepherd/extensions/defaults/labels"
+	"github.com/rancher/shepherd/extensions/defaults/timeouts"
 	extauthz "github.com/rancher/shepherd/extensions/kubeapi/authorization"
 	"github.com/rancher/shepherd/extensions/kubeapi/rbac"
 	password "github.com/rancher/shepherd/extensions/users/passwordgenerator"
@@ -24,12 +26,6 @@ import (
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 )
-
-const (
-	rtbOwnerLabel = "authz.cluster.cattle.io/rtb-owner-updated"
-)
-
-var timeout = int64(60 * 3)
 
 // UserConfig sets and returns username and password of the user
 func UserConfig() (user *management.User) {
@@ -91,7 +87,7 @@ func AddProjectMember(rancherClient *rancher.Client, project *management.Project
 
 	opts := metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + name,
-		TimeoutSeconds: &timeout,
+		TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThreeMinute),
 	}
 	watchInterface, err := adminClient.GetManagementWatchInterface(management.ProjectType, opts)
 	if err != nil {
@@ -197,7 +193,7 @@ func AddClusterRoleToUser(rancherClient *rancher.Client, cluster *management.Clu
 
 	opts := metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + cluster.ID,
-		TimeoutSeconds: &timeout,
+		TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThreeMinute),
 	}
 	watchInterface, err := adminClient.GetManagementWatchInterface(management.ClusterType, opts)
 	if err != nil {
@@ -318,7 +314,7 @@ const (
 
 func waitForCRTBRollout(client *rancher.Client, crtb *management.ClusterRoleTemplateBinding, opType operationType) error {
 	crtbNamespace, crtbName := ref.Parse(crtb.ID)
-	req, err := labels.NewRequirement(rtbOwnerLabel, selection.In, []string{fmt.Sprintf("%s_%s", crtbNamespace, crtbName)})
+	req, err := labels.NewRequirement(defaultLabels.RtbOwnerUpdated, selection.In, []string{fmt.Sprintf("%s_%s", crtbNamespace, crtbName)})
 	if err != nil {
 		return fmt.Errorf("unable to form label requirement for %s/%s: %w", crtbNamespace, crtbName, err)
 	}

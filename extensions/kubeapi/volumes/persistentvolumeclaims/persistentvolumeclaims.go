@@ -5,13 +5,14 @@ import (
 	"strconv"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	defaultAnnotations "github.com/rancher/shepherd/extensions/defaults/annotations"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	"github.com/rancher/shepherd/extensions/unstructured"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1Unstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 const (
@@ -24,14 +25,6 @@ const (
 	AccessModeReadOnlyMany  = "ReadOnlyMany"
 )
 
-// PersistentVolumeClaimGroupVersionResource is the required Group Version Resource for accessing persistent
-// volume claims in a cluster, using the dynamic client.
-var PersistentVolumeClaimGroupVersionResource = schema.GroupVersionResource{
-	Group:    "",
-	Version:  "v1",
-	Resource: "persistentvolumeclaims",
-}
-
 // CreatePersistentVolumeClaim is a helper function that uses the dynamic client to create a persistent
 // volume claim on a namespace for a specific cluster.
 // If you pass a PersistentVolume then `storageClass` and `storage` would be optional, otherwise `persistentVolume`
@@ -41,7 +34,7 @@ func CreatePersistentVolumeClaim(client *rancher.Client, clusterName, persistent
 	var unstructuredVolumeClaim *metav1Unstructured.Unstructured
 
 	annotations := map[string]string{
-		"field.cattle.io/description": description,
+		defaultAnnotations.Description: description,
 	}
 
 	persistentVolumeClaim := &corev1.PersistentVolumeClaim{
@@ -84,7 +77,7 @@ func CreatePersistentVolumeClaim(client *rancher.Client, clusterName, persistent
 		return nil, err
 	}
 
-	PersistentVolumeClaimResource := dynamicClient.Resource(PersistentVolumeClaimGroupVersionResource).Namespace(namespace)
+	PersistentVolumeClaimResource := dynamicClient.Resource(groupversionresources.PersistentVolumeClaim()).Namespace(namespace)
 
 	unstructuredResp, err := PersistentVolumeClaimResource.Create(context.TODO(), unstructuredVolumeClaim, metav1.CreateOptions{})
 	if err != nil {

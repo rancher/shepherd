@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,7 +24,7 @@ func ListSecrets(client *rancher.Client, clusterID, namespace string, listOpts m
 		return nil, err
 	}
 
-	secretResource := dynamicClient.Resource(SecretGroupVersionResource).Namespace(namespace)
+	secretResource := dynamicClient.Resource(groupversionresources.Secret()).Namespace(namespace)
 	secrets, err := secretResource.List(context.TODO(), listOpts)
 	if err != nil {
 		return nil, err

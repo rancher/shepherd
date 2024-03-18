@@ -11,7 +11,11 @@ import (
 	rkev1 "github.com/rancher/rancher/pkg/apis/rke.cattle.io/v1"
 	"github.com/rancher/shepherd/clients/rancher"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
-	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/labels"
+	"github.com/rancher/shepherd/extensions/defaults/namespaces"
+	"github.com/rancher/shepherd/extensions/defaults/states"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
+	"github.com/rancher/shepherd/extensions/defaults/timeouts"
 	"github.com/rancher/shepherd/extensions/kubeapi/secrets"
 	nodestat "github.com/rancher/shepherd/extensions/nodes"
 	"github.com/sirupsen/logrus"
@@ -21,15 +25,9 @@ import (
 )
 
 const (
-	active                   = "active"
-	fleetNamespace           = "fleet-default"
-	initNodeLabelKey         = "rke.cattle.io/init-node"
-	local                    = "local"
-	machineNameSteveLabel    = "rke.cattle.io/machine-name"
-	machinePlanSecretType    = "rke.cattle.io/machine-plan"
-	machineSteveResourceType = "cluster.x-k8s.io.machine"
-	pool                     = "pool"
-	True                     = "true"
+	local = "local"
+	pool  = "pool"
+	True  = "true"
 
 	nodeRoleListLength = 4
 )
@@ -58,7 +56,7 @@ func MatchNodeRolesToMachinePool(nodeRoles NodeRoles, machinePools []apisV1.RKEM
 
 // updateMachinePoolQuantity is a helper method that will update the desired machine pool with the latest quantity.
 func updateMachinePoolQuantity(client *rancher.Client, cluster *v1.SteveAPIObject, nodeRoles NodeRoles) (*v1.SteveAPIObject, error) {
-	updateCluster, err := client.Steve.SteveType("provisioning.cattle.io.cluster").ByID(cluster.ID)
+	updateCluster, err := client.Steve.SteveType(stevetypes.Provisioning).ByID(cluster.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -76,24 +74,24 @@ func updateMachinePoolQuantity(client *rancher.Client, cluster *v1.SteveAPIObjec
 	updatedCluster.Spec.RKEConfig.MachinePools[machineConfig].Quantity = &newQuantity
 
 	logrus.Infof("Scaling the machine pool to %v total nodes", newQuantity)
-	cluster, err = client.Steve.SteveType("provisioning.cattle.io.cluster").Update(cluster, updatedCluster)
+	cluster, err = client.Steve.SteveType(stevetypes.Provisioning).Update(cluster, updatedCluster)
 	if err != nil {
 		return nil, err
 	}
 
-	err = kwait.PollUntilContextTimeout(context.TODO(), 500*time.Millisecond, defaults.ThirtyMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
+	err = kwait.PollUntilContextTimeout(context.TODO(), 500*time.Millisecond, timeouts.ThirtyMinute, true, func(ctx context.Context) (done bool, err error) {
 		client, err = client.ReLogin()
 		if err != nil {
 			return false, err
 		}
 
-		clusterResp, err := client.Steve.SteveType("provisioning.cattle.io.cluster").ByID(cluster.ID)
+		clusterResp, err := client.Steve.SteveType(stevetypes.Provisioning).ByID(cluster.ID)
 		if err != nil {
 			return false, err
 		}
 
-		if clusterResp.ObjectMeta.State.Name == active &&
-			nodestat.AllMachineReady(client, cluster.ID, defaults.ThirtyMinuteTimeout) == nil {
+		if clusterResp.ObjectMeta.State.Name == states.Active &&
+			nodestat.AllMachineReady(client, cluster.ID, timeouts.ThirtyMinute) == nil {
 			return true, nil
 		}
 
@@ -303,8 +301,8 @@ func MatchRoleToPool(poolRole string, allRoles []Roles) int {
 // object for rke2/k3s clusters
 func GetInitMachine(client *rancher.Client, clusterID string) (*v1.SteveAPIObject, error) {
 	logrus.Info("Retrieving secret and identifying machine...")
-	secret, err := secrets.ListSecrets(client, local, fleetNamespace, metav1.ListOptions{
-		LabelSelector: initNodeLabelKey + "=" + True,
+	secret, err := secrets.ListSecrets(client, local, namespaces.Fleet, metav1.ListOptions{
+		LabelSelector: labels.InitNode + "=" + True,
 	})
 	if err != nil {
 		return nil, err
@@ -312,10 +310,10 @@ func GetInitMachine(client *rancher.Client, clusterID string) (*v1.SteveAPIObjec
 
 	// secret.Items[0] will never change when targeting the init node secret,
 	// as the list has been filtered above to grab the single init node secret
-	initNodeMachineName := secret.Items[0].ObjectMeta.Labels[machineNameSteveLabel]
+	initNodeMachineName := secret.Items[0].ObjectMeta.Labels[labels.MachineName]
 
 	logrus.Info("Retrieving machine...")
-	initMachine, err := client.Steve.SteveType(machineSteveResourceType).ByID(fleetNamespace + "/" + initNodeMachineName)
+	initMachine, err := client.Steve.SteveType(stevetypes.Machine).ByID(namespaces.Fleet + "/" + initNodeMachineName)
 	if err != nil {
 		return nil, err
 	}

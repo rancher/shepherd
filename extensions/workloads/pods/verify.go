@@ -7,6 +7,7 @@ import (
 	provv1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
 	"github.com/rancher/shepherd/clients/rancher"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appv1 "k8s.io/api/apps/v1"
@@ -27,7 +28,7 @@ func VerifyReadyDaemonsetPods(t *testing.T, client *rancher.Client, cluster *v1.
 	daemonsetequals := false
 
 	err = wait.Poll(500*time.Millisecond, 5*time.Minute, func() (dameonsetequals bool, err error) {
-		daemonsets, err := client.Steve.SteveType(DaemonsetSteveType).ByID(status.ClusterName)
+		daemonsets, err := client.Steve.SteveType(stevetypes.Daemonset).ByID(status.ClusterName)
 		require.NoError(t, err)
 
 		daemonsetsStatusType := &appv1.DaemonSetStatus{}
@@ -41,7 +42,7 @@ func VerifyReadyDaemonsetPods(t *testing.T, client *rancher.Client, cluster *v1.
 	})
 	require.NoError(t, err)
 
-	daemonsets, err := client.Steve.SteveType(DaemonsetSteveType).ByID(status.ClusterName)
+	daemonsets, err := client.Steve.SteveType(stevetypes.Daemonset).ByID(status.ClusterName)
 	require.NoError(t, err)
 
 	daemonsetsStatusType := &appv1.DaemonSetStatus{}

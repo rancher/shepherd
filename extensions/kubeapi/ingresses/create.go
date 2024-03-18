@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	"github.com/rancher/shepherd/extensions/unstructured"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -25,7 +26,7 @@ func CreateIngress(client *rancher.Client, clusterID, ingressName, namespace str
 		Spec: *ingressSpec,
 	}
 
-	ingressResource := dynamicClient.Resource(IngressesGroupVersionResource).Namespace(namespace)
+	ingressResource := dynamicClient.Resource(groupversionresources.Ingress()).Namespace(namespace)
 
 	unstructuredResp, err := ingressResource.Create(context.TODO(), unstructured.MustToUnstructured(ingress), metav1.CreateOptions{})
 	if err != nil {

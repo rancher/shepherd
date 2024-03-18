@@ -4,7 +4,8 @@ import (
 	"context"
 
 	"github.com/rancher/shepherd/clients/rancher"
-	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
+	"github.com/rancher/shepherd/extensions/defaults/timeouts"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
@@ -16,14 +17,14 @@ func DeleteProject(client *rancher.Client, projectNamespace string, projectName 
 		return err
 	}
 
-	projectResource := dynamicClient.Resource(ProjectGroupVersionResource).Namespace(projectNamespace)
+	projectResource := dynamicClient.Resource(groupversionresources.Project()).Namespace(projectNamespace)
 
 	err = projectResource.Delete(context.TODO(), projectName, metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
 
-	err = kwait.Poll(defaults.FiveHundredMillisecondTimeout, defaults.TenSecondTimeout, func() (done bool, err error) {
+	err = kwait.Poll(timeouts.FiveHundredMillisecond, timeouts.TenSecond, func() (done bool, err error) {
 		projectList, err := ListProjects(client, projectNamespace, metav1.ListOptions{
 			FieldSelector: "metadata.name=" + projectName,
 		})

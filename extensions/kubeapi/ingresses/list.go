@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,7 +24,7 @@ func ListIngresses(client *rancher.Client, clusterID, namespace string, listOpts
 		return nil, err
 	}
 
-	ingressResource := dynamicClient.Resource(IngressesGroupVersionResource).Namespace(namespace)
+	ingressResource := dynamicClient.Resource(groupversionresources.Ingress()).Namespace(namespace)
 	ingresses, err := ingressResource.List(context.TODO(), listOpts)
 	if err != nil {
 		return nil, err

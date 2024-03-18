@@ -14,9 +14,11 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
-	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/annotations"
+	"github.com/rancher/shepherd/extensions/defaults/states"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
+	"github.com/rancher/shepherd/extensions/defaults/timeouts"
 	"github.com/rancher/shepherd/extensions/provisioninginput"
-	"github.com/rancher/shepherd/extensions/workloads/pods"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	"github.com/rancher/shepherd/pkg/wait"
 	"github.com/rancher/wrangler/pkg/summary"
@@ -30,12 +32,8 @@ import (
 )
 
 const (
-	active                               = "active"
-	baseline                             = "baseline"
-	externalAws                          = "external-aws"
-	FleetSteveResourceType               = "fleet.cattle.io.cluster"
-	PodSecurityAdmissionSteveResoureType = "management.cattle.io.podsecurityadmissionconfigurationtemplate"
-	ProvisioningSteveResourceType        = "provisioning.cattle.io.cluster"
+	baseline    = "baseline"
+	externalAws = "external-aws"
 
 	etcdRole         = "etcd-role"
 	controlPlaneRole = "control-plane-role"
@@ -45,20 +43,17 @@ const (
 	kubeletArgKey                = "kubelet-arg"
 	kubeletAPIServerArgKey       = "kubeapi-server-arg"
 	kubeControllerManagerArgKey  = "kube-controller-manager-arg"
-	cloudProviderAnnotationName  = "cloud-provider-name"
 	disableCloudController       = "disable-cloud-controller"
 	protectKernelDefaults        = "protect-kernel-defaults"
 	localcluster                 = "fleet-local/local"
 	ErrMsgListDownstreamClusters = "Couldn't list downstream clusters"
 
-	clusterStateUpgrading    = "upgrading" // For imported RKE2 and K3s clusters
-	clusterStateUpdating     = "updating"  // For all clusters except imported K3s and RKE2
 	clusterErrorStateMessage = "cluster is in error state"
 )
 
 // GetV1ProvisioningClusterByName is a helper function that returns the cluster ID by name
 func GetV1ProvisioningClusterByName(client *rancher.Client, clusterName string) (string, error) {
-	clusterList, err := client.Steve.SteveType(ProvisioningSteveResourceType).List(nil)
+	clusterList, err := client.Steve.SteveType(stevetypes.Provisioning).List(nil)
 	if err != nil {
 		return "", err
 	}
@@ -162,7 +157,7 @@ func CheckServiceAccountTokenSecret(client *rancher.Client, clusterName string) 
 
 // CreateRancherBaselinePSACT creates custom PSACT called rancher-baseline which sets each PSS to baseline.
 func CreateRancherBaselinePSACT(client *rancher.Client, psact string) error {
-	_, err := client.Steve.SteveType(PodSecurityAdmissionSteveResoureType).ByID(psact)
+	_, err := client.Steve.SteveType(stevetypes.PodSecurityAdmission).ByID(psact)
 	if err == nil {
 		return err
 	}
@@ -209,7 +204,7 @@ func CreateRancherBaselinePSACT(client *rancher.Client, psact string) error {
 		},
 	}
 
-	_, err = client.Steve.SteveType(PodSecurityAdmissionSteveResoureType).Create(template)
+	_, err = client.Steve.SteveType(stevetypes.PodSecurityAdmission).Create(template)
 	if err != nil {
 		return err
 	}
@@ -429,8 +424,8 @@ func NewK3SRKE2ClusterConfig(clusterName, namespace string, clustersConfig *Clus
 	if clustersConfig.CloudProvider == provisioninginput.VsphereCloudProviderName.String() {
 		machineSelectorConfigs = append(machineSelectorConfigs,
 			RKESystemConfigTemplate(map[string]interface{}{
-				cloudProviderAnnotationName: provisioninginput.VsphereCloudProviderName.String(),
-				protectKernelDefaults:       false,
+				annotations.CloudProviderName: provisioninginput.VsphereCloudProviderName.String(),
+				protectKernelDefaults:         false,
 			},
 				nil),
 		)
@@ -500,8 +495,8 @@ func OutOfTreeSystemConfig(providerName string) (rkeConfig []rkev1.RKESystemConf
 	}
 
 	configData := map[string]interface{}{
-		cloudProviderAnnotationName: providerName,
-		protectKernelDefaults:       false,
+		annotations.CloudProviderName: providerName,
+		protectKernelDefaults:         false,
 	}
 
 	rkeConfig = append(rkeConfig, RKESystemConfigTemplate(configData, nil))
@@ -515,8 +510,8 @@ func OutOfTreeSystemConfig(providerName string) (rkeConfig []rkev1.RKESystemConf
 // Azure deprecated 1.28+
 func InTreeSystemConfig(providerName string) (rkeConfig []rkev1.RKESystemConfig) {
 	configData := map[string]interface{}{
-		cloudProviderAnnotationName: providerName,
-		protectKernelDefaults:       false,
+		annotations.CloudProviderName: providerName,
+		protectKernelDefaults:         false,
 	}
 	rkeConfig = append(rkeConfig, RKESystemConfigTemplate(configData, nil))
 	return
@@ -947,7 +942,7 @@ func CreateRKE1Cluster(client *rancher.Client, rke1Cluster *management.Cluster) 
 
 		watchInterface, err := adminClient.GetManagementWatchInterface(management.ClusterType, metav1.ListOptions{
 			FieldSelector:  "metadata.name=" + clusterResp.ID,
-			TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+			TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 		})
 		if err != nil {
 			return err
@@ -969,7 +964,7 @@ func CreateRKE1Cluster(client *rancher.Client, rke1Cluster *management.Cluster) 
 // CreateK3SRKE2Cluster is a "helper" functions that takes a rancher client, and the rke2 cluster config as parameters. This function
 // registers a delete cluster fuction with a wait.WatchWait to ensure the cluster is removed cleanly.
 func CreateK3SRKE2Cluster(client *rancher.Client, rke2Cluster *apisV1.Cluster) (*v1.SteveAPIObject, error) {
-	cluster, err := client.Steve.SteveType(ProvisioningSteveResourceType).Create(rke2Cluster)
+	cluster, err := client.Steve.SteveType(stevetypes.Provisioning).Create(rke2Cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -980,7 +975,7 @@ func CreateK3SRKE2Cluster(client *rancher.Client, rke2Cluster *apisV1.Cluster) (
 			return false, err
 		}
 
-		_, err = client.Steve.SteveType(ProvisioningSteveResourceType).ByID(cluster.ID)
+		_, err = client.Steve.SteveType(stevetypes.Provisioning).ByID(cluster.ID)
 		if err != nil {
 			return false, nil
 		}
@@ -1005,7 +1000,7 @@ func CreateK3SRKE2Cluster(client *rancher.Client, rke2Cluster *apisV1.Cluster) (
 
 		watchInterface, err := provKubeClient.Clusters(cluster.ObjectMeta.Namespace).Watch(context.TODO(), metav1.ListOptions{
 			FieldSelector:  "metadata.name=" + cluster.ObjectMeta.Name,
-			TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+			TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 		})
 
 		if err != nil {
@@ -1017,7 +1012,7 @@ func CreateK3SRKE2Cluster(client *rancher.Client, rke2Cluster *apisV1.Cluster) (
 			return err
 		}
 
-		err = client.Steve.SteveType(ProvisioningSteveResourceType).Delete(cluster)
+		err = client.Steve.SteveType(stevetypes.Provisioning).Delete(cluster)
 		if err != nil {
 			return err
 		}
@@ -1058,13 +1053,13 @@ func DeleteRKE1Cluster(client *rancher.Client, clusterID string) error {
 // DeleteK3SRKE2Cluster is a "helper" functions that takes a rancher client, and the non-rke1 cluster ID as parameters to delete
 // the cluster.
 func DeleteK3SRKE2Cluster(client *rancher.Client, clusterID string) error {
-	cluster, err := client.Steve.SteveType(ProvisioningSteveResourceType).ByID(clusterID)
+	cluster, err := client.Steve.SteveType(stevetypes.Provisioning).ByID(clusterID)
 	if err != nil {
 		return err
 	}
 
 	logrus.Infof("Deleting cluster %s...", cluster.Name)
-	err = client.Steve.SteveType(ProvisioningSteveResourceType).Delete(cluster)
+	err = client.Steve.SteveType(stevetypes.Provisioning).Delete(cluster)
 	if err != nil {
 		return err
 	}
@@ -1074,14 +1069,14 @@ func DeleteK3SRKE2Cluster(client *rancher.Client, clusterID string) error {
 
 // UpdateK3SRKE2Cluster is a "helper" functions that takes a rancher client, old rke2/k3s cluster config, and the new rke2/k3s cluster config as parameters.
 func UpdateK3SRKE2Cluster(client *rancher.Client, cluster *v1.SteveAPIObject, updatedCluster *apisV1.Cluster) (*v1.SteveAPIObject, error) {
-	updateCluster, err := client.Steve.SteveType(ProvisioningSteveResourceType).ByID(cluster.ID)
+	updateCluster, err := client.Steve.SteveType(stevetypes.Provisioning).ByID(cluster.ID)
 	if err != nil {
 		return nil, err
 	}
 
 	updatedCluster.ObjectMeta.ResourceVersion = updateCluster.ObjectMeta.ResourceVersion
 
-	cluster, err = client.Steve.SteveType(ProvisioningSteveResourceType).Update(cluster, updatedCluster)
+	cluster, err = client.Steve.SteveType(stevetypes.Provisioning).Update(cluster, updatedCluster)
 	if err != nil {
 		return nil, err
 	}
@@ -1092,7 +1087,7 @@ func UpdateK3SRKE2Cluster(client *rancher.Client, cluster *v1.SteveAPIObject, up
 			return false, err
 		}
 
-		clusterResp, err := client.Steve.SteveType(ProvisioningSteveResourceType).ByID(cluster.ID)
+		clusterResp, err := client.Steve.SteveType(stevetypes.Provisioning).ByID(cluster.ID)
 		if err != nil {
 			return false, err
 		}
@@ -1103,13 +1098,13 @@ func UpdateK3SRKE2Cluster(client *rancher.Client, cluster *v1.SteveAPIObject, up
 			return false, err
 		}
 
-		if clusterResp.ObjectMeta.State.Name == active {
+		if clusterResp.ObjectMeta.State.Name == states.Active {
 			proxyClient, err := client.Steve.ProxyDownstream(clusterStatus.ClusterName)
 			if err != nil {
 				return false, err
 			}
 
-			_, err = proxyClient.SteveType(pods.PodResourceSteveType).List(nil)
+			_, err = proxyClient.SteveType(stevetypes.Pod).List(nil)
 			if err != nil {
 				return false, nil
 			}
@@ -1134,7 +1129,7 @@ func WaitClusterToBeInUpgrade(client *rancher.Client, clusterID string) (err err
 	var clusterInfo string
 	opts := metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + clusterID,
-		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+		TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 	}
 
 	watchInterface, err := client.GetManagementWatchInterface(management.ClusterType, opts)
@@ -1147,7 +1142,7 @@ func WaitClusterToBeInUpgrade(client *rancher.Client, clusterID string) (err err
 
 		clusterInfo = logClusterInfoWithChanges(clusterID, clusterInfo, summarizedCluster)
 
-		if summarizedCluster.Transitioning && !summarizedCluster.Error && (summarizedCluster.State == clusterStateUpdating || summarizedCluster.State == clusterStateUpgrading) {
+		if summarizedCluster.Transitioning && !summarizedCluster.Error && (summarizedCluster.State == states.Updating || summarizedCluster.State == states.Upgrading) {
 			return true, nil
 		} else if summarizedCluster.Error && isClusterInaccessible(summarizedCluster.Message) {
 			return false, nil
@@ -1173,7 +1168,7 @@ func WaitClusterUntilUpgrade(client *rancher.Client, clusterID string) (err erro
 	var clusterInfo string
 	opts := metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + clusterID,
-		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+		TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 	}
 
 	watchInterfaceWaitUpgrade, err := client.GetManagementWatchInterface(management.ClusterType, opts)
@@ -1252,13 +1247,13 @@ func logClusterInfoWithChanges(clusterID, clusterInfo string, summary summary.Su
 // WatchAndWaitForCluster is function that waits for a cluster to go unactive before checking its active state.
 func WatchAndWaitForCluster(client *rancher.Client, steveID string) error {
 	var clusterResp *v1.SteveAPIObject
-	err := kwait.PollUntilContextTimeout(context.TODO(), 1*time.Second, defaults.TwoMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
-		clusterResp, err = client.Steve.SteveType(ProvisioningSteveResourceType).ByID(steveID)
+	err := kwait.PollUntilContextTimeout(context.TODO(), 1*time.Second, timeouts.TwoMinute, true, func(ctx context.Context) (done bool, err error) {
+		clusterResp, err = client.Steve.SteveType(stevetypes.Provisioning).ByID(steveID)
 		if err != nil {
 			return false, err
 		}
 		state := clusterResp.ObjectMeta.State.Name
-		return state != "active", nil
+		return state != states.Active, nil
 	})
 	if err != nil {
 		return err
@@ -1276,7 +1271,7 @@ func WatchAndWaitForCluster(client *rancher.Client, steveID string) error {
 
 	result, err := kubeProvisioningClient.Clusters(clusterResp.ObjectMeta.Namespace).Watch(context.TODO(), metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + clusterResp.Name,
-		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+		TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 	})
 	if err != nil {
 		return err
@@ -1288,7 +1283,7 @@ func WatchAndWaitForCluster(client *rancher.Client, steveID string) error {
 
 // GetProvisioningClusterByName is a helper function to get cluster object with the cluster name
 func GetProvisioningClusterByName(client *rancher.Client, clusterName string, namespace string) (*apisV1.Cluster, *v1.SteveAPIObject, error) {
-	clusterObj, err := client.Steve.SteveType(ProvisioningSteveResourceType).ByID(namespace + "/" + clusterName)
+	clusterObj, err := client.Steve.SteveType(stevetypes.Provisioning).ByID(namespace + "/" + clusterName)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1314,7 +1309,7 @@ func WaitForActiveRKE1Cluster(client *rancher.Client, clusterID string) error {
 		if err != nil {
 			return false, err
 		}
-		if clusterResp.State == active {
+		if clusterResp.State == states.Active {
 			return true, nil
 		}
 		return false, nil
@@ -1327,7 +1322,7 @@ func WaitForActiveRKE1Cluster(client *rancher.Client, clusterID string) error {
 
 // ListDownstreamClusters is a helper function to get the name of the downstream clusters
 func ListDownstreamClusters(client *rancher.Client) (clusterNames []string, err error) {
-	clusterList, err := client.Steve.SteveType(ProvisioningSteveResourceType).ListAll(nil)
+	clusterList, err := client.Steve.SteveType(stevetypes.Provisioning).ListAll(nil)
 	if err != nil {
 		return nil, errors.Wrap(err, ErrMsgListDownstreamClusters)
 	}

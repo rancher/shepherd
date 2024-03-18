@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	appv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,7 +24,7 @@ func ListDaemonsets(client *rancher.Client, clusterID, namespace string, listOpt
 		return nil, err
 	}
 
-	daemonsetResource := dynamicClient.Resource(DaemonSetGroupVersionResource).Namespace(namespace)
+	daemonsetResource := dynamicClient.Resource(groupversionresources.Daemonset()).Namespace(namespace)
 	daemonsets, err := daemonsetResource.List(context.TODO(), listOpts)
 	if err != nil {
 		return nil, err

@@ -15,7 +15,10 @@ import (
 	steveV1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/clusters"
 	"github.com/rancher/shepherd/extensions/clusters/bundledclusters"
-	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/annotations"
+	"github.com/rancher/shepherd/extensions/defaults/namespaces"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
+	"github.com/rancher/shepherd/extensions/defaults/timeouts"
 	"github.com/rancher/shepherd/extensions/etcdsnapshot"
 	"github.com/rancher/shepherd/extensions/kubeconfig"
 	nodestat "github.com/rancher/shepherd/extensions/nodes"
@@ -40,8 +43,6 @@ import (
 const (
 	logMessageKubernetesVersion = "Validating the current version is the upgraded one"
 	hostnameLimit               = 63
-	machineNameAnnotation       = "cluster.x-k8s.io/machine"
-	machineSteveResourceType    = "cluster.x-k8s.io.machine"
 	onDemandPrefix              = "on-demand-"
 )
 
@@ -55,7 +56,7 @@ func VerifyRKE1Cluster(t *testing.T, client *rancher.Client, clustersConfig *clu
 
 	watchInterface, err := adminClient.GetManagementWatchInterface(management.ClusterType, metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + cluster.ID,
-		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+		TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 	})
 	require.NoError(t, err)
 
@@ -69,7 +70,7 @@ func VerifyRKE1Cluster(t *testing.T, client *rancher.Client, clustersConfig *clu
 	require.NoError(t, err)
 	assert.NotEmpty(t, clusterToken)
 
-	err = nodestat.AllManagementNodeReady(client, cluster.ID, defaults.ThirtyMinuteTimeout)
+	err = nodestat.AllManagementNodeReady(client, cluster.ID, timeouts.ThirtyMinute)
 	require.NoError(t, err)
 
 	if clustersConfig.PSACT == string(provisioninginput.RancherPrivileged) || clustersConfig.PSACT == string(provisioninginput.RancherRestricted) || clustersConfig.PSACT == string(provisioninginput.RancherBaseline) {
@@ -110,9 +111,9 @@ func VerifyCluster(t *testing.T, client *rancher.Client, clustersConfig *cluster
 	kubeProvisioningClient, err := adminClient.GetKubeAPIProvisioningClient()
 	require.NoError(t, err)
 
-	watchInterface, err := kubeProvisioningClient.Clusters(namespace).Watch(context.TODO(), metav1.ListOptions{
+	watchInterface, err := kubeProvisioningClient.Clusters(namespaces.Fleet).Watch(context.TODO(), metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + cluster.Name,
-		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+		TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 	})
 	require.NoError(t, err)
 
@@ -124,7 +125,7 @@ func VerifyCluster(t *testing.T, client *rancher.Client, clustersConfig *cluster
 	require.NoError(t, err)
 	assert.NotEmpty(t, clusterToken)
 
-	err = nodestat.AllMachineReady(client, cluster.ID, defaults.ThirtyMinuteTimeout)
+	err = nodestat.AllMachineReady(client, cluster.ID, timeouts.ThirtyMinute)
 	require.NoError(t, err)
 
 	status := &provv1.ClusterStatus{}
@@ -180,7 +181,7 @@ func VerifyHostedCluster(t *testing.T, client *rancher.Client, cluster *manageme
 
 	watchInterface, err := adminClient.GetManagementWatchInterface(management.ClusterType, metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + cluster.ID,
-		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+		TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 	})
 	require.NoError(t, err)
 
@@ -193,7 +194,7 @@ func VerifyHostedCluster(t *testing.T, client *rancher.Client, cluster *manageme
 	require.NoError(t, err)
 	assert.NotEmpty(t, clusterToken)
 
-	err = nodestat.AllManagementNodeReady(client, cluster.ID, defaults.ThirtyMinuteTimeout)
+	err = nodestat.AllManagementNodeReady(client, cluster.ID, timeouts.ThirtyMinute)
 	require.NoError(t, err)
 
 	podErrors := pods.StatusPods(client, cluster.ID)
@@ -210,7 +211,7 @@ func VerifyDeleteRKE1Cluster(t *testing.T, client *rancher.Client, clusterID str
 
 	watchInterface, err := adminClient.GetManagementWatchInterface(management.ClusterType, metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + clusterID,
-		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+		TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 	})
 	require.NoError(t, err)
 
@@ -231,7 +232,7 @@ func VerifyDeleteRKE1Cluster(t *testing.T, client *rancher.Client, clusterID str
 
 // VerifyDeleteRKE2K3SCluster validates that a non-rke1 cluster and its resources are deleted.
 func VerifyDeleteRKE2K3SCluster(t *testing.T, client *rancher.Client, clusterID string) {
-	cluster, err := client.Steve.SteveType("provisioning.cattle.io.cluster").ByID(clusterID)
+	cluster, err := client.Steve.SteveType(stevetypes.Provisioning).ByID(clusterID)
 	require.NoError(t, err)
 
 	adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
@@ -240,9 +241,9 @@ func VerifyDeleteRKE2K3SCluster(t *testing.T, client *rancher.Client, clusterID 
 	provKubeClient, err := adminClient.GetKubeAPIProvisioningClient()
 	require.NoError(t, err)
 
-	watchInterface, err := provKubeClient.Clusters(namespace).Watch(context.TODO(), metav1.ListOptions{
+	watchInterface, err := provKubeClient.Clusters(namespaces.Fleet).Watch(context.TODO(), metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + cluster.Name,
-		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+		TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 	})
 	require.NoError(t, err)
 
@@ -337,7 +338,7 @@ func VerifyHostnameLength(t *testing.T, client *rancher.Client, clusterObject *s
 		query2, err := url.ParseQuery(fmt.Sprintf("labelSelector=%s=%s", capi.MachineDeploymentNameLabel, md.Name))
 		require.NoError(t, err)
 
-		machineResp, err := client.Steve.SteveType(machineSteveResourceType).List(query2)
+		machineResp, err := client.Steve.SteveType(stevetypes.Machine).List(query2)
 		require.NoError(t, err)
 
 		assert.True(t, len(machineResp.Data) > 0)
@@ -401,7 +402,7 @@ func VerifySnapshots(client *rancher.Client, localclusterID string, clusterName 
 	var snapshotToBeRestored string
 	var snapshotNameList []string
 	s3Prefix := onDemandPrefix + clusterName
-	err = kwait.PollUntilContextTimeout(context.TODO(), 5*time.Second, defaults.FiveMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
+	err = kwait.PollUntilContextTimeout(context.TODO(), 5*time.Second, timeouts.FiveMinute, true, func(ctx context.Context) (done bool, err error) {
 		if isRKE1 {
 			snapshotObjectList, err := etcdsnapshot.GetRKE1Snapshots(client, clusterName)
 			if err != nil {
@@ -460,7 +461,7 @@ func VerifySSHTests(t *testing.T, client *rancher.Client, clusterObject *steveV1
 	steveClient, err := client.Steve.ProxyDownstream(clusterID)
 	require.NoError(t, err)
 
-	nodesSteveObjList, err := steveClient.SteveType("node").List(nil)
+	nodesSteveObjList, err := steveClient.SteveType(stevetypes.Node).List(nil)
 	require.NoError(t, err)
 
 	sshUser, err := sshkeys.GetSSHUser(client, clusterObject)
@@ -471,7 +472,7 @@ func VerifySSHTests(t *testing.T, client *rancher.Client, clusterObject *steveV1
 			clusterNode, err := sshkeys.GetSSHNodeFromMachine(client, sshUser, &machine)
 			require.NoError(t, err)
 
-			machineName := machine.Annotations[machineNameAnnotation]
+			machineName := machine.Annotations[annotations.Machine]
 			err = CallSSHTestByName(tests, clusterNode, client, clusterID, machineName)
 			require.NoError(t, err)
 

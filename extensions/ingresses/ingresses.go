@@ -11,7 +11,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rancher/shepherd/clients/rancher"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
-	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
+	"github.com/rancher/shepherd/extensions/defaults/timeouts"
 	"github.com/rancher/shepherd/extensions/workloads/pods"
 	"github.com/sirupsen/logrus"
 	networking "k8s.io/api/networking/v1"
@@ -20,7 +21,6 @@ import (
 
 const (
 	IngressSteveType = "networking.k8s.io.ingress"
-	pod              = "pod"
 	IngressNginx     = "ingress-nginx"
 	RancherWebhook   = "rancher-webhook"
 )
@@ -76,8 +76,8 @@ func IsIngressExternallyAccessible(client *rancher.Client, hostname string, path
 
 // CreateIngress will create an Ingress object in the downstream cluster.
 func CreateIngress(client *v1.Client, ingressName string, ingressTemplate networking.Ingress) (*v1.SteveAPIObject, error) {
-	podClient := client.SteveType(pod)
-	err := kwait.PollUntilContextTimeout(context.TODO(), 15*time.Second, defaults.FiveMinuteTimeout, true, func(context.Context) (done bool, err error) {
+	podClient := client.SteveType(stevetypes.Pod)
+	err := kwait.PollUntilContextTimeout(context.TODO(), 15*time.Second, timeouts.FiveMinute, true, func(context.Context) (done bool, err error) {
 		newPods, err := podClient.List(nil)
 		if err != nil {
 			return false, nil

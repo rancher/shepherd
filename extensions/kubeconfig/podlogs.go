@@ -27,6 +27,8 @@ func GetPodLogs(client *rancher.Client, clusterID string, podName string, namesp
 	if err != nil {
 		return "", err
 	}
+
+	podGroupVersion := corev1.SchemeGroupVersion.WithResource("pods").GroupVersion()
 	restConfig.ContentConfig.NegotiatedSerializer = serializer.NewCodecFactory(k8Scheme.Scheme)
 	restConfig.ContentConfig.GroupVersion = &podGroupVersion
 	restConfig.APIPath = apiPath
