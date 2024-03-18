@@ -9,7 +9,7 @@ import (
 	apiv1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
 	"github.com/rancher/shepherd/clients/rancher"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
-	"github.com/rancher/shepherd/extensions/clusters"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/rancher/shepherd/extensions/kubeconfig"
 	"github.com/rancher/shepherd/pkg/killserver"
 	"github.com/sirupsen/logrus"
@@ -132,7 +132,7 @@ func KillRancherTestServicesRetrieveCoverage(client *rancher.Client) error {
 // inorder for the code coverage report to be written, and then copies over the coverage reports from the pods
 // to a local destination. The custom code coverage rancher-agent image must be running in the downstream cluster.
 func KillAgentTestServicesRetrieveCoverage(client *rancher.Client) error {
-	clusters, err := client.Steve.SteveType(clusters.ProvisioningSteveResourceType).ListAll(nil)
+	clusters, err := client.Steve.SteveType(stevetypes.Provisioning).ListAll(nil)
 	if err != nil {
 		return err
 	}

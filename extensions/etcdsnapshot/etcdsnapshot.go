@@ -12,14 +12,14 @@ import (
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	"github.com/rancher/shepherd/extensions/clusters"
 	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
-	ProvisioningSteveResouceType = "provisioning.cattle.io.cluster"
-	fleetNamespace               = "fleet-default"
-	active                       = "active"
+	fleetNamespace = "fleet-default"
+	active         = "active"
 )
 
 func MatchNodeToAnyEtcdRole(client *rancher.Client, clusterID string) (int, *management.Node) {
@@ -76,7 +76,7 @@ func GetRKE2K3SSnapshots(client *rancher.Client, localclusterID string, clusterN
 		return nil, err
 	}
 
-	snapshotSteveObjList, err := steveclient.SteveType("rke.cattle.io.etcdsnapshot").List(nil)
+	snapshotSteveObjList, err := steveclient.SteveType(stevetypes.EtcdSnapshot).List(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -166,13 +166,13 @@ func CreateRKE2K3SSnapshot(client *rancher.Client, clusterName string) error {
 	}
 
 	logrus.Infof("Creating snapshot...")
-	_, err = client.Steve.SteveType(clusters.ProvisioningSteveResourceType).Update(clusterSteveObject, clusterObject)
+	_, err = client.Steve.SteveType(stevetypes.Provisioning).Update(clusterSteveObject, clusterObject)
 	if err != nil {
 		return err
 	}
 
 	err = wait.Poll(1*time.Second, defaults.FiveMinuteTimeout, func() (bool, error) {
-		snapshotSteveObjList, err := client.Steve.SteveType("rke.cattle.io.etcdsnapshot").List(nil)
+		snapshotSteveObjList, err := client.Steve.SteveType(stevetypes.EtcdSnapshot).List(nil)
 		if err != nil {
 			return false, nil
 		}
@@ -183,7 +183,7 @@ func CreateRKE2K3SSnapshot(client *rancher.Client, clusterName string) error {
 		}
 
 		for _, snapshot := range snapshotSteveObjList.Data {
-			snapshotObj, err := client.Steve.SteveType("rke.cattle.io.etcdsnapshot").ByID(snapshot.ID)
+			snapshotObj, err := client.Steve.SteveType(stevetypes.EtcdSnapshot).ByID(snapshot.ID)
 			if err != nil {
 				return false, nil
 			}
@@ -262,7 +262,7 @@ func RestoreRKE2K3SSnapshot(client *rancher.Client, clusterName string, snapshot
 	clusterObject.Spec.RKEConfig.UpgradeStrategy.WorkerConcurrency = initialWorkerValue
 
 	logrus.Infof("Restoring snapshot: %v", snapshotRestore.Name)
-	_, err = client.Steve.SteveType(ProvisioningSteveResouceType).Update(existingSteveAPIObject, clusterObject)
+	_, err = client.Steve.SteveType(stevetypes.Provisioning).Update(existingSteveAPIObject, clusterObject)
 	if err != nil {
 		return err
 	}

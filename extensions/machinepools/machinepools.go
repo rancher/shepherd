@@ -10,6 +10,7 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	nodestat "github.com/rancher/shepherd/extensions/nodes"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -45,7 +46,7 @@ func MatchNodeRolesToMachinePool(nodeRoles NodeRoles, machinePools []apisV1.RKEM
 
 // updateMachinePoolQuantity is a helper method that will update the desired machine pool with the latest quantity.
 func updateMachinePoolQuantity(client *rancher.Client, cluster *v1.SteveAPIObject, nodeRoles NodeRoles) (*v1.SteveAPIObject, error) {
-	updateCluster, err := client.Steve.SteveType("provisioning.cattle.io.cluster").ByID(cluster.ID)
+	updateCluster, err := client.Steve.SteveType(stevetypes.Provisioning).ByID(cluster.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -63,13 +64,13 @@ func updateMachinePoolQuantity(client *rancher.Client, cluster *v1.SteveAPIObjec
 	updatedCluster.Spec.RKEConfig.MachinePools[machineConfig].Quantity = &newQuantity
 
 	logrus.Infof("Scaling the machine pool to %v total nodes", newQuantity)
-	cluster, err = client.Steve.SteveType("provisioning.cattle.io.cluster").Update(cluster, updatedCluster)
+	cluster, err = client.Steve.SteveType(stevetypes.Provisioning).Update(cluster, updatedCluster)
 	if err != nil {
 		return nil, err
 	}
 
 	err = kwait.Poll(500*time.Millisecond, defaults.TenMinuteTimeout, func() (done bool, err error) {
-		clusterResp, err := client.Steve.SteveType("provisioning.cattle.io.cluster").ByID(cluster.ID)
+		clusterResp, err := client.Steve.SteveType(stevetypes.Provisioning).ByID(cluster.ID)
 		if err != nil {
 			return false, err
 		}

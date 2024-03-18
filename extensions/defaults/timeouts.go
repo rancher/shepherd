@@ -3,7 +3,10 @@ package defaults
 import "time"
 
 var (
-	WatchTimeoutSeconds           = int64(60 * 30) // 30 minutes.
+	WatchTimeoutSeconds = int64(60 * 30) // 30 minutes.
+)
+
+const (
 	FiveHundredMillisecondTimeout = 500 * time.Millisecond
 	FiveSecondTimeout             = 5 * time.Second
 	TenSecondTimeout              = 10 * time.Second

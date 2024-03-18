@@ -7,6 +7,7 @@ import (
 	"regexp"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 )
 
 const (
@@ -18,7 +19,7 @@ const (
 // the ssh key for a particular node.
 func DownloadSSHKeys(client *rancher.Client, machinePoolNodeName string) ([]byte, error) {
 	machinePoolNodeNameName := fmt.Sprintf("fleet-default/%s", machinePoolNodeName)
-	machine, err := client.Steve.SteveType(ClusterMachineConstraintResourceSteveType).ByID(machinePoolNodeNameName)
+	machine, err := client.Steve.SteveType(stevetypes.Machine).ByID(machinePoolNodeNameName)
 	if err != nil {
 		return nil, err
 	}

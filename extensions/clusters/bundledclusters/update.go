@@ -9,6 +9,7 @@ import (
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/clients/rkecli"
 	"github.com/rancher/shepherd/extensions/clusters"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 )
 
 // Update is a method of BundledCluster that uses provisioning and management clients
@@ -17,7 +18,7 @@ func (bc *BundledCluster) Update(client *rancher.Client, cUpdates *BundledCluste
 	updatedCluster = new(BundledCluster)
 	updatedCluster.Meta = bc.Meta
 
-	steveclient := client.Steve.SteveType(clusters.ProvisioningSteveResourceType)
+	steveclient := client.Steve.SteveType(stevetypes.Provisioning)
 	if err != nil {
 		return
 	}
