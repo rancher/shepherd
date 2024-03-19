@@ -21,7 +21,8 @@ import (
 	"github.com/rancher/shepherd/extensions/clusters/eks"
 	"github.com/rancher/shepherd/extensions/clusters/gke"
 	"github.com/rancher/shepherd/extensions/defaults"
-	"github.com/rancher/shepherd/extensions/etcdsnapshot"
+	"github.com/rancher/shepherd/extensions/defaults/annotations"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	k3sHardening "github.com/rancher/shepherd/extensions/hardening/k3s"
 	rke2Hardening "github.com/rancher/shepherd/extensions/hardening/rke2"
 	"github.com/rancher/shepherd/extensions/machinepools"
@@ -162,7 +163,7 @@ func CreateProvisioningCluster(client *rancher.Client, provider Provider, cluste
 		return nil, err
 	}
 
-	createdCluster, err := adminClient.Steve.SteveType(clusters.ProvisioningSteveResourceType).ByID(namespace + "/" + clusterName)
+	createdCluster, err := adminClient.Steve.SteveType(stevetypes.Provisioning).ByID(namespace + "/" + clusterName)
 	return createdCluster, err
 }
 
@@ -223,7 +224,7 @@ func CreateProvisioningCustomCluster(client *rancher.Client, externalNodeProvide
 		return nil, err
 	}
 
-	customCluster, err := client.Steve.SteveType(etcdsnapshot.ProvisioningSteveResouceType).ByID(clusterResp.ID)
+	customCluster, err := client.Steve.SteveType(stevetypes.Provisioning).ByID(clusterResp.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -337,7 +338,7 @@ func CreateProvisioningCustomCluster(client *rancher.Client, externalNodeProvide
 		logrus.Infof("Cluster has been successfully hardened!")
 	}
 
-	createdCluster, err := client.Steve.SteveType(clusters.ProvisioningSteveResourceType).ByID(namespace + "/" + clusterName)
+	createdCluster, err := client.Steve.SteveType(stevetypes.Provisioning).ByID(namespace + "/" + clusterName)
 	return createdCluster, err
 }
 
@@ -504,7 +505,7 @@ func CreateProvisioningAirgapCustomCluster(client *rancher.Client, clustersConfi
 		return nil, err
 	}
 
-	customCluster, err := client.Steve.SteveType(clusters.ProvisioningSteveResourceType).ByID(clusterResp.ID)
+	customCluster, err := client.Steve.SteveType(stevetypes.Provisioning).ByID(clusterResp.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -547,7 +548,7 @@ func CreateProvisioningAirgapCustomCluster(client *rancher.Client, clustersConfi
 		}
 	}
 
-	createdCluster, err := client.Steve.SteveType(clusters.ProvisioningSteveResourceType).ByID(namespace + "/" + clusterName)
+	createdCluster, err := client.Steve.SteveType(stevetypes.Provisioning).ByID(namespace + "/" + clusterName)
 	return createdCluster, err
 }
 
@@ -814,7 +815,7 @@ func AddRKE2K3SCustomClusterNodes(client *rancher.Client, cluster *v1.SteveAPIOb
 	}
 
 	err = kwait.Poll(500*time.Millisecond, defaults.TenMinuteTimeout, func() (done bool, err error) {
-		clusterResp, err := client.Steve.SteveType(clusters.ProvisioningSteveResourceType).ByID(cluster.ID)
+		clusterResp, err := client.Steve.SteveType(stevetypes.Provisioning).ByID(cluster.ID)
 		if err != nil {
 			return false, err
 		}
@@ -838,7 +839,7 @@ func DeleteRKE2K3SCustomClusterNodes(client *rancher.Client, clusterID string, c
 		return err
 	}
 
-	nodesSteveObjList, err := steveclient.SteveType("node").List(nil)
+	nodesSteveObjList, err := steveclient.SteveType(stevetypes.Node).List(nil)
 	if err != nil {
 		return err
 	}
@@ -846,19 +847,19 @@ func DeleteRKE2K3SCustomClusterNodes(client *rancher.Client, clusterID string, c
 	for _, nodeToDelete := range nodesToDelete {
 		for _, node := range nodesSteveObjList.Data {
 			if node.Annotations[internalIP] == nodeToDelete.PrivateIPAddress {
-				machine, err := client.Steve.SteveType(machineSteveResourceType).ByID(namespace + "/" + node.Annotations[machineNameAnnotation])
+				machine, err := client.Steve.SteveType(stevetypes.Machine).ByID(namespace + "/" + node.Annotations[annotations.Machine])
 				if err != nil {
 					return err
 				}
 
 				logrus.Infof("Deleting node %s from cluster %s", nodeToDelete.NodeID, cluster.Name)
-				err = client.Steve.SteveType(machineSteveResourceType).Delete(machine)
+				err = client.Steve.SteveType(stevetypes.Machine).Delete(machine)
 				if err != nil {
 					return err
 				}
 
 				err = kwait.Poll(500*time.Millisecond, defaults.TenMinuteTimeout, func() (done bool, err error) {
-					_, err = client.Steve.SteveType(machineSteveResourceType).ByID(machine.ID)
+					_, err = client.Steve.SteveType(stevetypes.Machine).ByID(machine.ID)
 					if err != nil {
 						logrus.Infof("Node has successfully been deleted!")
 						return true, nil

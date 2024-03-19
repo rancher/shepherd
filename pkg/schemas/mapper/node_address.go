@@ -3,6 +3,7 @@ package mapper
 import (
 	"github.com/rancher/norman/types"
 	"github.com/rancher/norman/types/values"
+	"github.com/rancher/shepherd/extensions/defaults/annotations"
 )
 
 const (
@@ -39,7 +40,7 @@ type NodeAddressAnnotationMapper struct {
 }
 
 func (n NodeAddressAnnotationMapper) FromInternal(data map[string]interface{}) {
-	externalIP, ok := values.GetValue(data, "status", "nodeAnnotations", "rke.cattle.io/external-ip")
+	externalIP, ok := values.GetValue(data, "status", "nodeAnnotations", annotations.ExternalIp)
 	if ok {
 		data[extIPField] = externalIP
 	}

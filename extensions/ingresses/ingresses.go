@@ -9,6 +9,7 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/rancher/shepherd/extensions/workloads/pods"
 	"github.com/sirupsen/logrus"
 	networking "k8s.io/api/networking/v1"
@@ -17,7 +18,6 @@ import (
 
 const (
 	IngressSteveType = "networking.k8s.io.ingress"
-	pod              = "pod"
 	IngressNginx     = "ingress-nginx"
 	RancherWebhook   = "rancher-webhook"
 )
@@ -62,7 +62,7 @@ func IsIngressExternallyAccessible(client *rancher.Client, hostname string, path
 
 // CreateIngress will create an Ingress object in the downstream cluster.
 func CreateIngress(client *v1.Client, ingressName string, ingressTemplate networking.Ingress) (*v1.SteveAPIObject, error) {
-	podClient := client.SteveType(pod)
+	podClient := client.SteveType(stevetypes.Pod)
 	err := kwait.Poll(15*time.Second, defaults.FiveMinuteTimeout, func() (done bool, err error) {
 		newPods, err := podClient.List(nil)
 		if err != nil {

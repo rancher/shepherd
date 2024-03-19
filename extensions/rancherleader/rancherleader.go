@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 
 	"github.com/rancher/shepherd/clients/rancher"
-	"github.com/rancher/shepherd/extensions/configmaps"
+	"github.com/rancher/shepherd/extensions/defaults/annotations"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 )
 
 const (
@@ -15,7 +16,7 @@ const (
 
 // GetRancherLeaderPodName is a helper function to retrieve the name of the rancher leader pod
 func GetRancherLeaderPodName(client *rancher.Client) (string, error) {
-	configMapList, err := client.Steve.SteveType(configmaps.ConfigMapSteveType).NamespacedSteveClient(KubeSystemNamespace).List(nil)
+	configMapList, err := client.Steve.SteveType(stevetypes.Configmap).NamespacedSteveClient(KubeSystemNamespace).List(nil)
 	if err != nil {
 		return "", err
 	}
@@ -23,7 +24,7 @@ func GetRancherLeaderPodName(client *rancher.Client) (string, error) {
 	var leaderAnnotation string
 	for _, cm := range configMapList.Data {
 		if cm.Name == RancherConfigMap {
-			leaderAnnotation = cm.Annotations[RancherLeaderAnnotation]
+			leaderAnnotation = cm.Annotations[annotations.ControlPlaneLeader]
 			break
 		}
 	}

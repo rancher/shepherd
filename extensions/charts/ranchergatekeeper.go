@@ -8,8 +8,8 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	"github.com/rancher/shepherd/clients/rancher/catalog"
 	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	kubenamespaces "github.com/rancher/shepherd/extensions/kubeapi/namespaces"
-	"github.com/rancher/shepherd/extensions/namespaces"
 	"github.com/rancher/shepherd/pkg/api/steve/catalog/types"
 	"github.com/rancher/shepherd/pkg/wait"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -120,7 +120,7 @@ func InstallRancherGatekeeperChart(client *rancher.Client, installOptions *Insta
 			return err
 		}
 
-		namespaceClient := steveclient.SteveType(namespaces.NamespaceSteveType)
+		namespaceClient := steveclient.SteveType(stevetypes.Namespace)
 
 		namespace, err := namespaceClient.ByID(RancherGatekeeperNamespace)
 		if err != nil {

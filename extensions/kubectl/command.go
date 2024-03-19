@@ -10,9 +10,9 @@ import (
 
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/rancher/shepherd/extensions/kubeconfig"
 	"github.com/rancher/shepherd/extensions/workloads"
-	"github.com/rancher/shepherd/extensions/workloads/pods"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -97,7 +97,7 @@ func Command(client *rancher.Client, yamlContent *management.ImportClusterYamlIn
 	}
 
 	steveClient := client.Steve
-	pods, err := steveClient.SteveType(pods.PodResourceSteveType).NamespacedSteveClient(Namespace).List(nil)
+	pods, err := steveClient.SteveType(stevetypes.Pod).NamespacedSteveClient(Namespace).List(nil)
 	if err != nil {
 		return "", err
 	}

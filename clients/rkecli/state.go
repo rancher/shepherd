@@ -12,7 +12,7 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	v3 "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
-	"github.com/rancher/shepherd/extensions/configmaps"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/rancher/shepherd/pkg/config"
 	"github.com/rancher/shepherd/pkg/file"
 	"gopkg.in/yaml.v2"
@@ -169,7 +169,7 @@ func NewStateFile(state *cluster.FullState, dirName string) (stateFilePath strin
 // GetFullState is a function that gets RKE full state from "full-cluster-state" configmap.
 // And returns the cluster full state.
 func GetFullState(client *rancher.Client) (state *cluster.FullState, err error) {
-	namespacedConfigmapClient := client.Steve.SteveType(configmaps.ConfigMapSteveType).NamespacedSteveClient(cluster.SystemNamespace)
+	namespacedConfigmapClient := client.Steve.SteveType(stevetypes.Configmap).NamespacedSteveClient(cluster.SystemNamespace)
 	if err != nil {
 		return
 	}

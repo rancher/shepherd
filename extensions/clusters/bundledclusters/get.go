@@ -2,7 +2,7 @@ package bundledclusters
 
 import (
 	"github.com/rancher/shepherd/clients/rancher"
-	"github.com/rancher/shepherd/extensions/clusters"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 )
 
 // Get is a method of BundledCluster that uses provisioning and management clients
@@ -11,7 +11,7 @@ func (bc *BundledCluster) Get(client *rancher.Client) (cluster *BundledCluster, 
 	cluster = new(BundledCluster)
 	cluster.Meta = bc.Meta
 
-	steveclient := client.Steve.SteveType(clusters.ProvisioningSteveResourceType)
+	steveclient := client.Steve.SteveType(stevetypes.Provisioning)
 	if err != nil {
 		return
 	}

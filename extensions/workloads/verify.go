@@ -4,6 +4,7 @@ import (
 	"time"
 
 	steveV1 "github.com/rancher/shepherd/clients/rancher/v1"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	appv1 "k8s.io/api/apps/v1"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
@@ -14,7 +15,7 @@ func VerifyDeployment(steveClient *steveV1.Client, deployment *steveV1.SteveAPIO
 		if err != nil {
 			return false, nil
 		}
-		deploymentResp, err := steveClient.SteveType(DeploymentSteveType).ByID(deployment.Namespace + "/" + deployment.Name)
+		deploymentResp, err := steveClient.SteveType(stevetypes.Deployment).ByID(deployment.Namespace + "/" + deployment.Name)
 		if err != nil {
 			return false, nil
 		}

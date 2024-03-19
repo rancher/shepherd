@@ -9,13 +9,11 @@ import (
 
 	"github.com/rancher/shepherd/clients/rancher"
 	steveV1 "github.com/rancher/shepherd/clients/rancher/v1"
-	"github.com/rancher/shepherd/extensions/workloads/pods"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
-	repoType                     = "catalog.cattle.io.clusterrepo"
-	appsType                     = "catalog.cattle.io.apps"
 	awsUpstreamCloudProviderRepo = "https://github.com/kubernetes/cloud-provider-aws.git"
 	masterBranch                 = "master"
 	AwsUpstreamChartName         = "aws-cloud-controller-manager"
@@ -237,7 +235,7 @@ func awsChartInstallAction(awsChartInstallActionPayload *payloadOpts, repoName, 
 // upstream bug in helm charts, where you can't override the nodeSelector during a deployment of an upstream chart.
 func updateHelmNodeSelectors(client *steveV1.Client, daemonsetNamespace, daemonsetName string, newNodeSelector map[string]string) error {
 	err := kwait.Poll(1*time.Second, 1*time.Minute, func() (done bool, err error) {
-		_, err = client.SteveType(pods.DaemonsetSteveType).ByID(daemonsetNamespace + "/" + daemonsetName)
+		_, err = client.SteveType(stevetypes.Daemonset).ByID(daemonsetNamespace + "/" + daemonsetName)
 		if err != nil {
 			return false, nil
 		}
@@ -247,7 +245,7 @@ func updateHelmNodeSelectors(client *steveV1.Client, daemonsetNamespace, daemons
 		return err
 	}
 
-	steveDaemonset, err := client.SteveType(pods.DaemonsetSteveType).ByID(daemonsetNamespace + "/" + daemonsetName)
+	steveDaemonset, err := client.SteveType(stevetypes.Daemonset).ByID(daemonsetNamespace + "/" + daemonsetName)
 	if err != nil {
 		return err
 	}
@@ -260,6 +258,6 @@ func updateHelmNodeSelectors(client *steveV1.Client, daemonsetNamespace, daemons
 
 	daemonsetObject.Spec.Template.Spec.NodeSelector = newNodeSelector
 
-	_, err = client.SteveType(pods.DaemonsetSteveType).Update(steveDaemonset, daemonsetObject)
+	_, err = client.SteveType(stevetypes.Daemonset).Update(steveDaemonset, daemonsetObject)
 	return err
 }

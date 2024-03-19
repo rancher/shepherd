@@ -13,6 +13,7 @@ import (
 
 	"github.com/rancher/shepherd/clients/rancher"
 	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	extnodes "github.com/rancher/shepherd/extensions/nodes"
 	"github.com/rancher/shepherd/extensions/provisioninginput"
 	"github.com/rancher/shepherd/pkg/nodes"
@@ -60,7 +61,7 @@ func CallSSHTestByName(testCase provisioninginput.SSHTestCase, node *nodes.Node,
 		}
 		// Verify machine shuts down within five minutes, shutting down should not take longer than that depending on the ami
 		err = wait.Poll(1*time.Second, defaults.FiveMinuteTimeout, func() (bool, error) {
-			newNode, err := client.Steve.SteveType(machineSteveResourceType).ByID(fleetNamespace + "/" + machineName)
+			newNode, err := client.Steve.SteveType(stevetypes.Machine).ByID(fleetNamespace + "/" + machineName)
 			if err != nil {
 				return false, err
 			}

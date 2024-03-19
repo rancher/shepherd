@@ -10,6 +10,7 @@ import (
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/rancher/shepherd/extensions/kubeapi/namespaces"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	"github.com/rancher/shepherd/pkg/wait"
@@ -51,7 +52,7 @@ func CreateNamespace(client *rancher.Client, namespaceName, containerDefaultReso
 		return nil, err
 	}
 
-	nameSpaceClient := steveClient.SteveType(NamespaceSteveType)
+	nameSpaceClient := steveClient.SteveType(stevetypes.Namespace)
 
 	resp, err := nameSpaceClient.Create(namespace)
 	if err != nil {
@@ -108,7 +109,7 @@ func CreateNamespace(client *rancher.Client, namespaceName, containerDefaultReso
 			return err
 		}
 
-		nameSpaceClient = steveClient.SteveType(NamespaceSteveType)
+		nameSpaceClient = steveClient.SteveType(stevetypes.Namespace)
 		err := nameSpaceClient.Delete(resp)
 		if errors.IsNotFound(err) {
 			return nil

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	deflabels "github.com/rancher/shepherd/extensions/defaults/labels"
 	"github.com/rancher/shepherd/extensions/unstructured"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	appv1 "k8s.io/api/apps/v1"
@@ -29,7 +30,7 @@ func CreateDeployment(client *rancher.Client, clusterName, deploymentName, names
 	}
 
 	labels := map[string]string{}
-	labels["workload.user.cattle.io/workloadselector"] = fmt.Sprintf("apps.deployment-%v-%v", namespace, deploymentName)
+	labels[deflabels.WorkloadSelector] = fmt.Sprintf("apps.deployment-%v-%v", namespace, deploymentName)
 
 	template.ObjectMeta = metav1.ObjectMeta{
 		Labels: labels,

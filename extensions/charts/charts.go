@@ -8,6 +8,7 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	steveV1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/rancher/shepherd/extensions/kubeapi/workloads/daemonsets"
 	"github.com/rancher/shepherd/extensions/kubeapi/workloads/deployments"
 	"github.com/rancher/shepherd/pkg/api/scheme"
@@ -345,13 +346,13 @@ func CreateChartRepoFromGithub(client *steveV1.Client, githubURL, githubBranch, 
 			InsecureSkipTLSverify: true,
 		},
 	}
-	_, err := client.SteveType(repoType).Create(repoObject)
+	_, err := client.SteveType(stevetypes.ClusterRepo).Create(repoObject)
 	if err != nil {
 		return err
 	}
 
 	err = kwait.Poll(1*time.Second, 2*time.Minute, func() (done bool, err error) {
-		res, err := client.SteveType(repoType).List(nil)
+		res, err := client.SteveType(stevetypes.ClusterRepo).List(nil)
 		if err != nil {
 			return false, err
 		}

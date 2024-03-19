@@ -10,6 +10,7 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	"github.com/rancher/shepherd/extensions/clusters"
 	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/rancher/shepherd/pkg/config"
 	"github.com/rancher/shepherd/pkg/session"
 	"github.com/rancher/shepherd/pkg/wait"
@@ -105,7 +106,7 @@ func CreateAndImportK3DCluster(client *rancher.Client, name, image, hostname str
 			Namespace: "fleet-default",
 		},
 	}
-	clusterObj, err := client.Steve.SteveType(clusters.ProvisioningSteveResourceType).Create(cluster)
+	clusterObj, err := client.Steve.SteveType(stevetypes.Provisioning).Create(cluster)
 	if err != nil {
 		return nil, errors.Wrap(err, "CreateAndImportK3DCluster: failed to create provisioning cluster")
 	}
@@ -114,7 +115,7 @@ func CreateAndImportK3DCluster(client *rancher.Client, name, image, hostname str
 	logrus.Infof("Creating K3D cluster...")
 	downRest, err := CreateK3DCluster(client.Session, name, hostname, servers, agents)
 	if err != nil {
-		_ = client.Steve.SteveType(clusters.ProvisioningSteveResourceType).Delete(clusterObj)
+		_ = client.Steve.SteveType(stevetypes.Provisioning).Delete(clusterObj)
 		return nil, errors.Wrap(err, "CreateAndImportK3DCluster: failed to create k3d cluster")
 	}
 

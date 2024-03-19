@@ -17,6 +17,8 @@ import (
 	"github.com/rancher/shepherd/extensions/clusters"
 	"github.com/rancher/shepherd/extensions/clusters/bundledclusters"
 	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/annotations"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/rancher/shepherd/extensions/etcdsnapshot"
 	kubeapinodes "github.com/rancher/shepherd/extensions/kubeapi/nodes"
 	"github.com/rancher/shepherd/extensions/kubeconfig"
@@ -43,8 +45,6 @@ import (
 const (
 	logMessageKubernetesVersion = "Validating the current version is the upgraded one"
 	hostnameLimit               = 63
-	machineNameAnnotation       = "cluster.x-k8s.io/machine"
-	machineSteveResourceType    = "cluster.x-k8s.io.machine"
 	onDemandPrefix              = "on-demand-"
 )
 
@@ -234,7 +234,7 @@ func VerifyDeleteRKE1Cluster(t *testing.T, client *rancher.Client, clusterID str
 
 // VerifyDeleteRKE2K3SCluster validates that a non-rke1 cluster and its resources are deleted.
 func VerifyDeleteRKE2K3SCluster(t *testing.T, client *rancher.Client, clusterID string) {
-	cluster, err := client.Steve.SteveType("provisioning.cattle.io.cluster").ByID(clusterID)
+	cluster, err := client.Steve.SteveType(stevetypes.Provisioning).ByID(clusterID)
 	require.NoError(t, err)
 
 	adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
@@ -340,7 +340,7 @@ func VerifyHostnameLength(t *testing.T, client *rancher.Client, clusterObject *s
 		query2, err := url.ParseQuery(fmt.Sprintf("labelSelector=%s=%s", capi.MachineDeploymentNameLabel, md.Name))
 		require.NoError(t, err)
 
-		machineResp, err := client.Steve.SteveType(machineSteveResourceType).List(query2)
+		machineResp, err := client.Steve.SteveType(stevetypes.Machine).List(query2)
 		require.NoError(t, err)
 
 		assert.True(t, len(machineResp.Data) > 0)
@@ -458,7 +458,7 @@ func VerifySSHTests(t *testing.T, client *rancher.Client, clusterObject *steveV1
 
 	steveClient, err := client.Steve.ProxyDownstream(clusterID)
 	require.NoError(t, err)
-	nodesSteveObjList, err := steveClient.SteveType("node").List(nil)
+	nodesSteveObjList, err := steveClient.SteveType(stevetypes.Node).List(nil)
 	require.NoError(t, err)
 
 	dynamicSchema := clusterSpec.RKEConfig.MachinePools[0].DynamicSchemaSpec
@@ -469,7 +469,7 @@ func VerifySSHTests(t *testing.T, client *rancher.Client, clusterObject *steveV1
 	sshUser := data.ResourceFields.SSHUser.Default.StringValue
 	for _, tests := range sshTests {
 		for _, node := range nodesSteveObjList.Data {
-			machineName := node.Annotations[machineNameAnnotation]
+			machineName := node.Annotations[annotations.Machine]
 			sshkey, err := sshkeys.DownloadSSHKeys(client, machineName)
 			require.NoError(t, err)
 			assert.NotEmpty(t, sshkey)

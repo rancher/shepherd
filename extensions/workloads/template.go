@@ -3,6 +3,7 @@ package workloads
 import (
 	"fmt"
 
+	"github.com/rancher/shepherd/extensions/defaults/labels"
 	appv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -48,8 +49,8 @@ func NewDeploymentTemplate(deploymentName string, namespace string, template cor
 	}
 
 	if isCattleLabeled {
-		matchLabels["workload.user.cattle.io/workloadselector"] = fmt.Sprintf("apps.deployment-%v-%v", namespace, deploymentName)
-		template.ObjectMeta.Labels["workload.user.cattle.io/workloadselector"] = fmt.Sprintf("apps.deployment-%v-%v", namespace, deploymentName)
+		matchLabels[labels.WorkloadSelector] = fmt.Sprintf("apps.deployment-%v-%v", namespace, deploymentName)
+		template.ObjectMeta.Labels[labels.WorkloadSelector] = fmt.Sprintf("apps.deployment-%v-%v", namespace, deploymentName)
 	}
 
 	return &appv1.Deployment{
@@ -74,8 +75,8 @@ func NewDaemonSetTemplate(daemonsetName string, namespace string, template corev
 	}
 
 	if isCattleLabeled {
-		matchLabels["workload.user.cattle.io/workloadselector"] = fmt.Sprintf("apps.daemonset-%v-%v", namespace, daemonsetName)
-		template.ObjectMeta.Labels["workload.user.cattle.io/workloadselector"] = fmt.Sprintf("apps.daemonset-%v-%v", namespace, daemonsetName)
+		matchLabels[labels.WorkloadSelector] = fmt.Sprintf("apps.daemonset-%v-%v", namespace, daemonsetName)
+		template.ObjectMeta.Labels[labels.WorkloadSelector] = fmt.Sprintf("apps.daemonset-%v-%v", namespace, daemonsetName)
 	}
 
 	return &appv1.DaemonSet{

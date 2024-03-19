@@ -5,21 +5,19 @@ import (
 
 	"github.com/rancher/norman/types"
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/defaults/annotations"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
-	activeState              = "active"
-	runningState             = "running"
-	errorState               = "error"
-	machineSteveResourceType = "cluster.x-k8s.io.machine"
-	machineSteveAnnotation   = "cluster.x-k8s.io/machine"
-	fleetNamespace           = "fleet-default"
-	etcdLabel                = "rke.cattle.io/etcd-role"
-	clusterLabel             = "cluster.x-k8s.io/cluster-name"
-	PollInterval             = time.Duration(5 * time.Second)
-	PollTimeout              = time.Duration(15 * time.Minute)
+	activeState    = "active"
+	runningState   = "running"
+	errorState     = "error"
+	fleetNamespace = "fleet-default"
+	PollInterval   = time.Duration(5 * time.Second)
+	PollTimeout    = time.Duration(15 * time.Minute)
 )
 
 // AllManagementNodeReady is a helper method that will loop and check if the node is ready in the RKE1 cluster.
@@ -66,7 +64,7 @@ func AllMachineReady(client *rancher.Client, clusterID string, timeout time.Dura
 			return false, err
 		}
 		for _, node := range nodes.Data {
-			machine, err := client.Steve.SteveType(machineSteveResourceType).ByID(fleetNamespace + "/" + node.Annotations[machineSteveAnnotation])
+			machine, err := client.Steve.SteveType(stevetypes.Machine).ByID(fleetNamespace + "/" + node.Annotations[annotations.Machine])
 			if err != nil {
 				return false, err
 			}

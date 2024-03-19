@@ -11,7 +11,7 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
-	"github.com/rancher/shepherd/extensions/clusters"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/rancher/shepherd/extensions/namespaces"
 	"github.com/rancher/shepherd/extensions/projects"
 	"github.com/rancher/shepherd/extensions/users"
@@ -41,14 +41,14 @@ var rgx = regexp.MustCompile(`\[(.*?)\]`)
 // VerifyGlobalRoleBindingsForUser validates that a global role bindings is created for a user when the user is created
 func VerifyGlobalRoleBindingsForUser(t *testing.T, user *management.User, adminClient *rancher.Client) {
 	query := url.Values{"filter": {"userName=" + user.ID}}
-	grbs, err := adminClient.Steve.SteveType("management.cattle.io.globalrolebinding").List(query)
+	grbs, err := adminClient.Steve.SteveType(stevetypes.GlobalRoleBinding).List(query)
 	require.NoError(t, err)
 	assert.Equal(t, 1, len(grbs.Data))
 }
 
 // VerifyUserCanListCluster validates a user with the required global permissions are able to/not able to list the clusters in rancher server
 func VerifyUserCanListCluster(t *testing.T, client, standardClient *rancher.Client, clusterID, role string) {
-	clusterList, err := standardClient.Steve.SteveType(clusters.ProvisioningSteveResourceType).ListAll(nil)
+	clusterList, err := standardClient.Steve.SteveType(stevetypes.Provisioning).ListAll(nil)
 	require.NoError(t, err)
 
 	clusterStatus := &apiV1.ClusterStatus{}
@@ -56,7 +56,7 @@ func VerifyUserCanListCluster(t *testing.T, client, standardClient *rancher.Clie
 	require.NoError(t, err)
 
 	if role == restrictedAdmin {
-		adminClusterList, err := client.Steve.SteveType(clusters.ProvisioningSteveResourceType).ListAll(nil)
+		adminClusterList, err := client.Steve.SteveType(stevetypes.Provisioning).ListAll(nil)
 		require.NoError(t, err)
 		assert.Equal(t, (len(adminClusterList.Data) - 1), len(clusterList.Data))
 	}
@@ -139,11 +139,11 @@ func VerifyUserCanListNamespace(t *testing.T, client, standardClient *rancher.Cl
 	steveStandardClient, err := standardClient.Steve.ProxyDownstream(clusterID)
 	require.NoError(t, err)
 
-	namespaceListAdmin, err := steveAdminClient.SteveType(namespaces.NamespaceSteveType).List(nil)
+	namespaceListAdmin, err := steveAdminClient.SteveType(stevetypes.Namespace).List(nil)
 	require.NoError(t, err)
 	sortedNamespaceListAdmin := namespaceListAdmin.Names()
 
-	namespaceListNonAdmin, err := steveStandardClient.SteveType(namespaces.NamespaceSteveType).List(nil)
+	namespaceListNonAdmin, err := steveStandardClient.SteveType(stevetypes.Namespace).List(nil)
 	require.NoError(t, err)
 	sortedNamespaceListNonAdmin := namespaceListNonAdmin.Names()
 
@@ -175,9 +175,9 @@ func VerifyUserCanDeleteNamespace(t *testing.T, client, standardClient *rancher.
 	adminNamespace, err := namespaces.CreateNamespace(client, namespaceName+"-admin", "{}", map[string]string{}, map[string]string{}, project)
 	require.NoError(t, err)
 
-	namespaceID, err := steveAdminClient.SteveType(namespaces.NamespaceSteveType).ByID(adminNamespace.ID)
+	namespaceID, err := steveAdminClient.SteveType(stevetypes.Namespace).ByID(adminNamespace.ID)
 	require.NoError(t, err)
-	err = steveStandardClient.SteveType(namespaces.NamespaceSteveType).Delete(namespaceID)
+	err = steveStandardClient.SteveType(stevetypes.Namespace).Delete(namespaceID)
 
 	switch role {
 	case roleOwner, roleProjectOwner, roleProjectMember, restrictedAdmin:
