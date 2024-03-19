@@ -3,10 +3,8 @@ package namespaces
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/rancher/shepherd/clients/rancher"
-	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	"github.com/rancher/shepherd/extensions/defaults"
 	"github.com/rancher/shepherd/extensions/unstructured"
 	"github.com/rancher/shepherd/pkg/api/scheme"
@@ -21,17 +19,20 @@ import (
 
 // CreateNamespace is a helper function that uses the dynamic client to create a namespace on a project.
 // It registers a delete function with a wait.WatchWait to ensure the namspace is deleted cleanly.
-func CreateNamespace(client *rancher.Client, namespaceName, containerDefaultResourceLimit string, labels, annotations map[string]string, project *management.Project) (*coreV1.Namespace, error) {
-	// Namespace object for a project name space
+func CreateNamespace(client *rancher.Client, clusterID, projectName, namespaceName, containerDefaultResourceLimit string, labels, annotations map[string]string) (*coreV1.Namespace, error) {
 	if annotations == nil {
 		annotations = make(map[string]string)
 	}
+
 	if containerDefaultResourceLimit != "" {
 		annotations["field.cattle.io/containerDefaultResourceLimit"] = containerDefaultResourceLimit
 	}
-	if project != nil {
-		annotations["field.cattle.io/projectId"] = project.ID
+
+	if projectName != "" {
+		annotationValue := clusterID + ":" + projectName
+		annotations["field.cattle.io/projectId"] = annotationValue
 	}
+
 	namespace := &coreV1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        namespaceName,
@@ -40,7 +41,7 @@ func CreateNamespace(client *rancher.Client, namespaceName, containerDefaultReso
 		},
 	}
 
-	dynamicClient, err := client.GetDownStreamClusterClient(project.ClusterID)
+	dynamicClient, err := client.GetDownStreamClusterClient(clusterID)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +51,7 @@ func CreateNamespace(client *rancher.Client, namespaceName, containerDefaultReso
 		return nil, err
 	}
 
-	adminDynamicClient, err := adminClient.GetDownStreamClusterClient(project.ClusterID)
+	adminDynamicClient, err := adminClient.GetDownStreamClusterClient(clusterID)
 	if err != nil {
 		return nil, err
 	}
@@ -63,10 +64,9 @@ func CreateNamespace(client *rancher.Client, namespaceName, containerDefaultReso
 	}
 
 	clusterRoleResource := adminDynamicClient.Resource(rbacv1.SchemeGroupVersion.WithResource("clusterroles"))
-	projectID := strings.Split(project.ID, ":")[1]
 
 	clusterRoleWatch, err := clusterRoleResource.Watch(context.TODO(), metav1.ListOptions{
-		FieldSelector:  "metadata.name=" + fmt.Sprintf("%s-namespaces-edit", projectID),
+		FieldSelector:  "metadata.name=" + fmt.Sprintf("%s-namespaces-edit", projectName),
 		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
 	})
 
