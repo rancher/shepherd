@@ -20,262 +20,54 @@ package v3
 
 import (
 	"context"
+	"sync"
 	"time"
 
-	"github.com/rancher/lasso/pkg/client"
-	"github.com/rancher/lasso/pkg/controller"
 	v3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
-	"github.com/rancher/wrangler/pkg/apply"
-	"github.com/rancher/wrangler/pkg/condition"
-	"github.com/rancher/wrangler/pkg/generic"
-	"github.com/rancher/wrangler/pkg/kv"
+	"github.com/rancher/wrangler/v2/pkg/apply"
+	"github.com/rancher/wrangler/v2/pkg/condition"
+	"github.com/rancher/wrangler/v2/pkg/generic"
+	"github.com/rancher/wrangler/v2/pkg/kv"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/tools/cache"
 )
 
-type ProjectAlertRuleHandler func(string, *v3.ProjectAlertRule) (*v3.ProjectAlertRule, error)
-
+// ProjectAlertRuleController interface for managing ProjectAlertRule resources.
 type ProjectAlertRuleController interface {
-	generic.ControllerMeta
-	ProjectAlertRuleClient
-
-	OnChange(ctx context.Context, name string, sync ProjectAlertRuleHandler)
-	OnRemove(ctx context.Context, name string, sync ProjectAlertRuleHandler)
-	Enqueue(namespace, name string)
-	EnqueueAfter(namespace, name string, duration time.Duration)
-
-	Cache() ProjectAlertRuleCache
+	generic.ControllerInterface[*v3.ProjectAlertRule, *v3.ProjectAlertRuleList]
 }
 
+// ProjectAlertRuleClient interface for managing ProjectAlertRule resources in Kubernetes.
 type ProjectAlertRuleClient interface {
-	Create(*v3.ProjectAlertRule) (*v3.ProjectAlertRule, error)
-	Update(*v3.ProjectAlertRule) (*v3.ProjectAlertRule, error)
-	UpdateStatus(*v3.ProjectAlertRule) (*v3.ProjectAlertRule, error)
-	Delete(namespace, name string, options *metav1.DeleteOptions) error
-	Get(namespace, name string, options metav1.GetOptions) (*v3.ProjectAlertRule, error)
-	List(namespace string, opts metav1.ListOptions) (*v3.ProjectAlertRuleList, error)
-	Watch(namespace string, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(namespace, name string, pt types.PatchType, data []byte, subresources ...string) (result *v3.ProjectAlertRule, err error)
+	generic.ClientInterface[*v3.ProjectAlertRule, *v3.ProjectAlertRuleList]
 }
 
+// ProjectAlertRuleCache interface for retrieving ProjectAlertRule resources in memory.
 type ProjectAlertRuleCache interface {
-	Get(namespace, name string) (*v3.ProjectAlertRule, error)
-	List(namespace string, selector labels.Selector) ([]*v3.ProjectAlertRule, error)
-
-	AddIndexer(indexName string, indexer ProjectAlertRuleIndexer)
-	GetByIndex(indexName, key string) ([]*v3.ProjectAlertRule, error)
+	generic.CacheInterface[*v3.ProjectAlertRule]
 }
 
-type ProjectAlertRuleIndexer func(obj *v3.ProjectAlertRule) ([]string, error)
-
-type projectAlertRuleController struct {
-	controller    controller.SharedController
-	client        *client.Client
-	gvk           schema.GroupVersionKind
-	groupResource schema.GroupResource
-}
-
-func NewProjectAlertRuleController(gvk schema.GroupVersionKind, resource string, namespaced bool, controller controller.SharedControllerFactory) ProjectAlertRuleController {
-	c := controller.ForResourceKind(gvk.GroupVersion().WithResource(resource), gvk.Kind, namespaced)
-	return &projectAlertRuleController{
-		controller: c,
-		client:     c.Client(),
-		gvk:        gvk,
-		groupResource: schema.GroupResource{
-			Group:    gvk.Group,
-			Resource: resource,
-		},
-	}
-}
-
-func FromProjectAlertRuleHandlerToHandler(sync ProjectAlertRuleHandler) generic.Handler {
-	return func(key string, obj runtime.Object) (ret runtime.Object, err error) {
-		var v *v3.ProjectAlertRule
-		if obj == nil {
-			v, err = sync(key, nil)
-		} else {
-			v, err = sync(key, obj.(*v3.ProjectAlertRule))
-		}
-		if v == nil {
-			return nil, err
-		}
-		return v, err
-	}
-}
-
-func (c *projectAlertRuleController) Updater() generic.Updater {
-	return func(obj runtime.Object) (runtime.Object, error) {
-		newObj, err := c.Update(obj.(*v3.ProjectAlertRule))
-		if newObj == nil {
-			return nil, err
-		}
-		return newObj, err
-	}
-}
-
-func UpdateProjectAlertRuleDeepCopyOnChange(client ProjectAlertRuleClient, obj *v3.ProjectAlertRule, handler func(obj *v3.ProjectAlertRule) (*v3.ProjectAlertRule, error)) (*v3.ProjectAlertRule, error) {
-	if obj == nil {
-		return obj, nil
-	}
-
-	copyObj := obj.DeepCopy()
-	newObj, err := handler(copyObj)
-	if newObj != nil {
-		copyObj = newObj
-	}
-	if obj.ResourceVersion == copyObj.ResourceVersion && !equality.Semantic.DeepEqual(obj, copyObj) {
-		return client.Update(copyObj)
-	}
-
-	return copyObj, err
-}
-
-func (c *projectAlertRuleController) AddGenericHandler(ctx context.Context, name string, handler generic.Handler) {
-	c.controller.RegisterHandler(ctx, name, controller.SharedControllerHandlerFunc(handler))
-}
-
-func (c *projectAlertRuleController) AddGenericRemoveHandler(ctx context.Context, name string, handler generic.Handler) {
-	c.AddGenericHandler(ctx, name, generic.NewRemoveHandler(name, c.Updater(), handler))
-}
-
-func (c *projectAlertRuleController) OnChange(ctx context.Context, name string, sync ProjectAlertRuleHandler) {
-	c.AddGenericHandler(ctx, name, FromProjectAlertRuleHandlerToHandler(sync))
-}
-
-func (c *projectAlertRuleController) OnRemove(ctx context.Context, name string, sync ProjectAlertRuleHandler) {
-	c.AddGenericHandler(ctx, name, generic.NewRemoveHandler(name, c.Updater(), FromProjectAlertRuleHandlerToHandler(sync)))
-}
-
-func (c *projectAlertRuleController) Enqueue(namespace, name string) {
-	c.controller.Enqueue(namespace, name)
-}
-
-func (c *projectAlertRuleController) EnqueueAfter(namespace, name string, duration time.Duration) {
-	c.controller.EnqueueAfter(namespace, name, duration)
-}
-
-func (c *projectAlertRuleController) Informer() cache.SharedIndexInformer {
-	return c.controller.Informer()
-}
-
-func (c *projectAlertRuleController) GroupVersionKind() schema.GroupVersionKind {
-	return c.gvk
-}
-
-func (c *projectAlertRuleController) Cache() ProjectAlertRuleCache {
-	return &projectAlertRuleCache{
-		indexer:  c.Informer().GetIndexer(),
-		resource: c.groupResource,
-	}
-}
-
-func (c *projectAlertRuleController) Create(obj *v3.ProjectAlertRule) (*v3.ProjectAlertRule, error) {
-	result := &v3.ProjectAlertRule{}
-	return result, c.client.Create(context.TODO(), obj.Namespace, obj, result, metav1.CreateOptions{})
-}
-
-func (c *projectAlertRuleController) Update(obj *v3.ProjectAlertRule) (*v3.ProjectAlertRule, error) {
-	result := &v3.ProjectAlertRule{}
-	return result, c.client.Update(context.TODO(), obj.Namespace, obj, result, metav1.UpdateOptions{})
-}
-
-func (c *projectAlertRuleController) UpdateStatus(obj *v3.ProjectAlertRule) (*v3.ProjectAlertRule, error) {
-	result := &v3.ProjectAlertRule{}
-	return result, c.client.UpdateStatus(context.TODO(), obj.Namespace, obj, result, metav1.UpdateOptions{})
-}
-
-func (c *projectAlertRuleController) Delete(namespace, name string, options *metav1.DeleteOptions) error {
-	if options == nil {
-		options = &metav1.DeleteOptions{}
-	}
-	return c.client.Delete(context.TODO(), namespace, name, *options)
-}
-
-func (c *projectAlertRuleController) Get(namespace, name string, options metav1.GetOptions) (*v3.ProjectAlertRule, error) {
-	result := &v3.ProjectAlertRule{}
-	return result, c.client.Get(context.TODO(), namespace, name, result, options)
-}
-
-func (c *projectAlertRuleController) List(namespace string, opts metav1.ListOptions) (*v3.ProjectAlertRuleList, error) {
-	result := &v3.ProjectAlertRuleList{}
-	return result, c.client.List(context.TODO(), namespace, result, opts)
-}
-
-func (c *projectAlertRuleController) Watch(namespace string, opts metav1.ListOptions) (watch.Interface, error) {
-	return c.client.Watch(context.TODO(), namespace, opts)
-}
-
-func (c *projectAlertRuleController) Patch(namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*v3.ProjectAlertRule, error) {
-	result := &v3.ProjectAlertRule{}
-	return result, c.client.Patch(context.TODO(), namespace, name, pt, data, result, metav1.PatchOptions{}, subresources...)
-}
-
-type projectAlertRuleCache struct {
-	indexer  cache.Indexer
-	resource schema.GroupResource
-}
-
-func (c *projectAlertRuleCache) Get(namespace, name string) (*v3.ProjectAlertRule, error) {
-	obj, exists, err := c.indexer.GetByKey(namespace + "/" + name)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, errors.NewNotFound(c.resource, name)
-	}
-	return obj.(*v3.ProjectAlertRule), nil
-}
-
-func (c *projectAlertRuleCache) List(namespace string, selector labels.Selector) (ret []*v3.ProjectAlertRule, err error) {
-
-	err = cache.ListAllByNamespace(c.indexer, namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v3.ProjectAlertRule))
-	})
-
-	return ret, err
-}
-
-func (c *projectAlertRuleCache) AddIndexer(indexName string, indexer ProjectAlertRuleIndexer) {
-	utilruntime.Must(c.indexer.AddIndexers(map[string]cache.IndexFunc{
-		indexName: func(obj interface{}) (strings []string, e error) {
-			return indexer(obj.(*v3.ProjectAlertRule))
-		},
-	}))
-}
-
-func (c *projectAlertRuleCache) GetByIndex(indexName, key string) (result []*v3.ProjectAlertRule, err error) {
-	objs, err := c.indexer.ByIndex(indexName, key)
-	if err != nil {
-		return nil, err
-	}
-	result = make([]*v3.ProjectAlertRule, 0, len(objs))
-	for _, obj := range objs {
-		result = append(result, obj.(*v3.ProjectAlertRule))
-	}
-	return result, nil
-}
-
+// ProjectAlertRuleStatusHandler is executed for every added or modified ProjectAlertRule. Should return the new status to be updated
 type ProjectAlertRuleStatusHandler func(obj *v3.ProjectAlertRule, status v3.AlertStatus) (v3.AlertStatus, error)
 
+// ProjectAlertRuleGeneratingHandler is the top-level handler that is executed for every ProjectAlertRule event. It extends ProjectAlertRuleStatusHandler by a returning a slice of child objects to be passed to apply.Apply
 type ProjectAlertRuleGeneratingHandler func(obj *v3.ProjectAlertRule, status v3.AlertStatus) ([]runtime.Object, v3.AlertStatus, error)
 
+// RegisterProjectAlertRuleStatusHandler configures a ProjectAlertRuleController to execute a ProjectAlertRuleStatusHandler for every events observed.
+// If a non-empty condition is provided, it will be updated in the status conditions for every handler execution
 func RegisterProjectAlertRuleStatusHandler(ctx context.Context, controller ProjectAlertRuleController, condition condition.Cond, name string, handler ProjectAlertRuleStatusHandler) {
 	statusHandler := &projectAlertRuleStatusHandler{
 		client:    controller,
 		condition: condition,
 		handler:   handler,
 	}
-	controller.AddGenericHandler(ctx, name, FromProjectAlertRuleHandlerToHandler(statusHandler.sync))
+	controller.AddGenericHandler(ctx, name, generic.FromObjectHandlerToHandler(statusHandler.sync))
 }
 
+// RegisterProjectAlertRuleGeneratingHandler configures a ProjectAlertRuleController to execute a ProjectAlertRuleGeneratingHandler for every events observed, passing the returned objects to the provided apply.Apply.
+// If a non-empty condition is provided, it will be updated in the status conditions for every handler execution
 func RegisterProjectAlertRuleGeneratingHandler(ctx context.Context, controller ProjectAlertRuleController, apply apply.Apply,
 	condition condition.Cond, name string, handler ProjectAlertRuleGeneratingHandler, opts *generic.GeneratingHandlerOptions) {
 	statusHandler := &projectAlertRuleGeneratingHandler{
@@ -297,6 +89,7 @@ type projectAlertRuleStatusHandler struct {
 	handler   ProjectAlertRuleStatusHandler
 }
 
+// sync is executed on every resource addition or modification. Executes the configured handlers and sends the updated status to the Kubernetes API
 func (a *projectAlertRuleStatusHandler) sync(key string, obj *v3.ProjectAlertRule) (*v3.ProjectAlertRule, error) {
 	if obj == nil {
 		return obj, nil
@@ -342,8 +135,10 @@ type projectAlertRuleGeneratingHandler struct {
 	opts  generic.GeneratingHandlerOptions
 	gvk   schema.GroupVersionKind
 	name  string
+	seen  sync.Map
 }
 
+// Remove handles the observed deletion of a resource, cascade deleting every associated resource previously applied
 func (a *projectAlertRuleGeneratingHandler) Remove(key string, obj *v3.ProjectAlertRule) (*v3.ProjectAlertRule, error) {
 	if obj != nil {
 		return obj, nil
@@ -353,12 +148,17 @@ func (a *projectAlertRuleGeneratingHandler) Remove(key string, obj *v3.ProjectAl
 	obj.Namespace, obj.Name = kv.RSplit(key, "/")
 	obj.SetGroupVersionKind(a.gvk)
 
+	if a.opts.UniqueApplyForResourceVersion {
+		a.seen.Delete(key)
+	}
+
 	return nil, generic.ConfigureApplyForObject(a.apply, obj, &a.opts).
 		WithOwner(obj).
 		WithSetID(a.name).
 		ApplyObjects()
 }
 
+// Handle executes the configured ProjectAlertRuleGeneratingHandler and pass the resulting objects to apply.Apply, finally returning the new status of the resource
 func (a *projectAlertRuleGeneratingHandler) Handle(obj *v3.ProjectAlertRule, status v3.AlertStatus) (v3.AlertStatus, error) {
 	if !obj.DeletionTimestamp.IsZero() {
 		return status, nil
@@ -368,9 +168,41 @@ func (a *projectAlertRuleGeneratingHandler) Handle(obj *v3.ProjectAlertRule, sta
 	if err != nil {
 		return newStatus, err
 	}
+	if !a.isNewResourceVersion(obj) {
+		return newStatus, nil
+	}
 
-	return newStatus, generic.ConfigureApplyForObject(a.apply, obj, &a.opts).
+	err = generic.ConfigureApplyForObject(a.apply, obj, &a.opts).
 		WithOwner(obj).
 		WithSetID(a.name).
 		ApplyObjects(objs...)
+	if err != nil {
+		return newStatus, err
+	}
+	a.storeResourceVersion(obj)
+	return newStatus, nil
+}
+
+// isNewResourceVersion detects if a specific resource version was already successfully processed.
+// Only used if UniqueApplyForResourceVersion is set in generic.GeneratingHandlerOptions
+func (a *projectAlertRuleGeneratingHandler) isNewResourceVersion(obj *v3.ProjectAlertRule) bool {
+	if !a.opts.UniqueApplyForResourceVersion {
+		return true
+	}
+
+	// Apply once per resource version
+	key := obj.Namespace + "/" + obj.Name
+	previous, ok := a.seen.Load(key)
+	return !ok || previous != obj.ResourceVersion
+}
+
+// storeResourceVersion keeps track of the latest resource version of an object for which Apply was executed
+// Only used if UniqueApplyForResourceVersion is set in generic.GeneratingHandlerOptions
+func (a *projectAlertRuleGeneratingHandler) storeResourceVersion(obj *v3.ProjectAlertRule) {
+	if !a.opts.UniqueApplyForResourceVersion {
+		return
+	}
+
+	key := obj.Namespace + "/" + obj.Name
+	a.seen.Store(key, obj.ResourceVersion)
 }

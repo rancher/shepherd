@@ -20,262 +20,54 @@ package v3
 
 import (
 	"context"
+	"sync"
 	"time"
 
-	"github.com/rancher/lasso/pkg/client"
-	"github.com/rancher/lasso/pkg/controller"
 	v3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
-	"github.com/rancher/wrangler/pkg/apply"
-	"github.com/rancher/wrangler/pkg/condition"
-	"github.com/rancher/wrangler/pkg/generic"
-	"github.com/rancher/wrangler/pkg/kv"
+	"github.com/rancher/wrangler/v2/pkg/apply"
+	"github.com/rancher/wrangler/v2/pkg/condition"
+	"github.com/rancher/wrangler/v2/pkg/generic"
+	"github.com/rancher/wrangler/v2/pkg/kv"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/tools/cache"
 )
 
-type AuthConfigHandler func(string, *v3.AuthConfig) (*v3.AuthConfig, error)
-
+// AuthConfigController interface for managing AuthConfig resources.
 type AuthConfigController interface {
-	generic.ControllerMeta
-	AuthConfigClient
-
-	OnChange(ctx context.Context, name string, sync AuthConfigHandler)
-	OnRemove(ctx context.Context, name string, sync AuthConfigHandler)
-	Enqueue(name string)
-	EnqueueAfter(name string, duration time.Duration)
-
-	Cache() AuthConfigCache
+	generic.NonNamespacedControllerInterface[*v3.AuthConfig, *v3.AuthConfigList]
 }
 
+// AuthConfigClient interface for managing AuthConfig resources in Kubernetes.
 type AuthConfigClient interface {
-	Create(*v3.AuthConfig) (*v3.AuthConfig, error)
-	Update(*v3.AuthConfig) (*v3.AuthConfig, error)
-	UpdateStatus(*v3.AuthConfig) (*v3.AuthConfig, error)
-	Delete(name string, options *metav1.DeleteOptions) error
-	Get(name string, options metav1.GetOptions) (*v3.AuthConfig, error)
-	List(opts metav1.ListOptions) (*v3.AuthConfigList, error)
-	Watch(opts metav1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v3.AuthConfig, err error)
+	generic.NonNamespacedClientInterface[*v3.AuthConfig, *v3.AuthConfigList]
 }
 
+// AuthConfigCache interface for retrieving AuthConfig resources in memory.
 type AuthConfigCache interface {
-	Get(name string) (*v3.AuthConfig, error)
-	List(selector labels.Selector) ([]*v3.AuthConfig, error)
-
-	AddIndexer(indexName string, indexer AuthConfigIndexer)
-	GetByIndex(indexName, key string) ([]*v3.AuthConfig, error)
+	generic.NonNamespacedCacheInterface[*v3.AuthConfig]
 }
 
-type AuthConfigIndexer func(obj *v3.AuthConfig) ([]string, error)
-
-type authConfigController struct {
-	controller    controller.SharedController
-	client        *client.Client
-	gvk           schema.GroupVersionKind
-	groupResource schema.GroupResource
-}
-
-func NewAuthConfigController(gvk schema.GroupVersionKind, resource string, namespaced bool, controller controller.SharedControllerFactory) AuthConfigController {
-	c := controller.ForResourceKind(gvk.GroupVersion().WithResource(resource), gvk.Kind, namespaced)
-	return &authConfigController{
-		controller: c,
-		client:     c.Client(),
-		gvk:        gvk,
-		groupResource: schema.GroupResource{
-			Group:    gvk.Group,
-			Resource: resource,
-		},
-	}
-}
-
-func FromAuthConfigHandlerToHandler(sync AuthConfigHandler) generic.Handler {
-	return func(key string, obj runtime.Object) (ret runtime.Object, err error) {
-		var v *v3.AuthConfig
-		if obj == nil {
-			v, err = sync(key, nil)
-		} else {
-			v, err = sync(key, obj.(*v3.AuthConfig))
-		}
-		if v == nil {
-			return nil, err
-		}
-		return v, err
-	}
-}
-
-func (c *authConfigController) Updater() generic.Updater {
-	return func(obj runtime.Object) (runtime.Object, error) {
-		newObj, err := c.Update(obj.(*v3.AuthConfig))
-		if newObj == nil {
-			return nil, err
-		}
-		return newObj, err
-	}
-}
-
-func UpdateAuthConfigDeepCopyOnChange(client AuthConfigClient, obj *v3.AuthConfig, handler func(obj *v3.AuthConfig) (*v3.AuthConfig, error)) (*v3.AuthConfig, error) {
-	if obj == nil {
-		return obj, nil
-	}
-
-	copyObj := obj.DeepCopy()
-	newObj, err := handler(copyObj)
-	if newObj != nil {
-		copyObj = newObj
-	}
-	if obj.ResourceVersion == copyObj.ResourceVersion && !equality.Semantic.DeepEqual(obj, copyObj) {
-		return client.Update(copyObj)
-	}
-
-	return copyObj, err
-}
-
-func (c *authConfigController) AddGenericHandler(ctx context.Context, name string, handler generic.Handler) {
-	c.controller.RegisterHandler(ctx, name, controller.SharedControllerHandlerFunc(handler))
-}
-
-func (c *authConfigController) AddGenericRemoveHandler(ctx context.Context, name string, handler generic.Handler) {
-	c.AddGenericHandler(ctx, name, generic.NewRemoveHandler(name, c.Updater(), handler))
-}
-
-func (c *authConfigController) OnChange(ctx context.Context, name string, sync AuthConfigHandler) {
-	c.AddGenericHandler(ctx, name, FromAuthConfigHandlerToHandler(sync))
-}
-
-func (c *authConfigController) OnRemove(ctx context.Context, name string, sync AuthConfigHandler) {
-	c.AddGenericHandler(ctx, name, generic.NewRemoveHandler(name, c.Updater(), FromAuthConfigHandlerToHandler(sync)))
-}
-
-func (c *authConfigController) Enqueue(name string) {
-	c.controller.Enqueue("", name)
-}
-
-func (c *authConfigController) EnqueueAfter(name string, duration time.Duration) {
-	c.controller.EnqueueAfter("", name, duration)
-}
-
-func (c *authConfigController) Informer() cache.SharedIndexInformer {
-	return c.controller.Informer()
-}
-
-func (c *authConfigController) GroupVersionKind() schema.GroupVersionKind {
-	return c.gvk
-}
-
-func (c *authConfigController) Cache() AuthConfigCache {
-	return &authConfigCache{
-		indexer:  c.Informer().GetIndexer(),
-		resource: c.groupResource,
-	}
-}
-
-func (c *authConfigController) Create(obj *v3.AuthConfig) (*v3.AuthConfig, error) {
-	result := &v3.AuthConfig{}
-	return result, c.client.Create(context.TODO(), "", obj, result, metav1.CreateOptions{})
-}
-
-func (c *authConfigController) Update(obj *v3.AuthConfig) (*v3.AuthConfig, error) {
-	result := &v3.AuthConfig{}
-	return result, c.client.Update(context.TODO(), "", obj, result, metav1.UpdateOptions{})
-}
-
-func (c *authConfigController) UpdateStatus(obj *v3.AuthConfig) (*v3.AuthConfig, error) {
-	result := &v3.AuthConfig{}
-	return result, c.client.UpdateStatus(context.TODO(), "", obj, result, metav1.UpdateOptions{})
-}
-
-func (c *authConfigController) Delete(name string, options *metav1.DeleteOptions) error {
-	if options == nil {
-		options = &metav1.DeleteOptions{}
-	}
-	return c.client.Delete(context.TODO(), "", name, *options)
-}
-
-func (c *authConfigController) Get(name string, options metav1.GetOptions) (*v3.AuthConfig, error) {
-	result := &v3.AuthConfig{}
-	return result, c.client.Get(context.TODO(), "", name, result, options)
-}
-
-func (c *authConfigController) List(opts metav1.ListOptions) (*v3.AuthConfigList, error) {
-	result := &v3.AuthConfigList{}
-	return result, c.client.List(context.TODO(), "", result, opts)
-}
-
-func (c *authConfigController) Watch(opts metav1.ListOptions) (watch.Interface, error) {
-	return c.client.Watch(context.TODO(), "", opts)
-}
-
-func (c *authConfigController) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (*v3.AuthConfig, error) {
-	result := &v3.AuthConfig{}
-	return result, c.client.Patch(context.TODO(), "", name, pt, data, result, metav1.PatchOptions{}, subresources...)
-}
-
-type authConfigCache struct {
-	indexer  cache.Indexer
-	resource schema.GroupResource
-}
-
-func (c *authConfigCache) Get(name string) (*v3.AuthConfig, error) {
-	obj, exists, err := c.indexer.GetByKey(name)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, errors.NewNotFound(c.resource, name)
-	}
-	return obj.(*v3.AuthConfig), nil
-}
-
-func (c *authConfigCache) List(selector labels.Selector) (ret []*v3.AuthConfig, err error) {
-
-	err = cache.ListAll(c.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*v3.AuthConfig))
-	})
-
-	return ret, err
-}
-
-func (c *authConfigCache) AddIndexer(indexName string, indexer AuthConfigIndexer) {
-	utilruntime.Must(c.indexer.AddIndexers(map[string]cache.IndexFunc{
-		indexName: func(obj interface{}) (strings []string, e error) {
-			return indexer(obj.(*v3.AuthConfig))
-		},
-	}))
-}
-
-func (c *authConfigCache) GetByIndex(indexName, key string) (result []*v3.AuthConfig, err error) {
-	objs, err := c.indexer.ByIndex(indexName, key)
-	if err != nil {
-		return nil, err
-	}
-	result = make([]*v3.AuthConfig, 0, len(objs))
-	for _, obj := range objs {
-		result = append(result, obj.(*v3.AuthConfig))
-	}
-	return result, nil
-}
-
+// AuthConfigStatusHandler is executed for every added or modified AuthConfig. Should return the new status to be updated
 type AuthConfigStatusHandler func(obj *v3.AuthConfig, status v3.AuthConfigStatus) (v3.AuthConfigStatus, error)
 
+// AuthConfigGeneratingHandler is the top-level handler that is executed for every AuthConfig event. It extends AuthConfigStatusHandler by a returning a slice of child objects to be passed to apply.Apply
 type AuthConfigGeneratingHandler func(obj *v3.AuthConfig, status v3.AuthConfigStatus) ([]runtime.Object, v3.AuthConfigStatus, error)
 
+// RegisterAuthConfigStatusHandler configures a AuthConfigController to execute a AuthConfigStatusHandler for every events observed.
+// If a non-empty condition is provided, it will be updated in the status conditions for every handler execution
 func RegisterAuthConfigStatusHandler(ctx context.Context, controller AuthConfigController, condition condition.Cond, name string, handler AuthConfigStatusHandler) {
 	statusHandler := &authConfigStatusHandler{
 		client:    controller,
 		condition: condition,
 		handler:   handler,
 	}
-	controller.AddGenericHandler(ctx, name, FromAuthConfigHandlerToHandler(statusHandler.sync))
+	controller.AddGenericHandler(ctx, name, generic.FromObjectHandlerToHandler(statusHandler.sync))
 }
 
+// RegisterAuthConfigGeneratingHandler configures a AuthConfigController to execute a AuthConfigGeneratingHandler for every events observed, passing the returned objects to the provided apply.Apply.
+// If a non-empty condition is provided, it will be updated in the status conditions for every handler execution
 func RegisterAuthConfigGeneratingHandler(ctx context.Context, controller AuthConfigController, apply apply.Apply,
 	condition condition.Cond, name string, handler AuthConfigGeneratingHandler, opts *generic.GeneratingHandlerOptions) {
 	statusHandler := &authConfigGeneratingHandler{
@@ -297,6 +89,7 @@ type authConfigStatusHandler struct {
 	handler   AuthConfigStatusHandler
 }
 
+// sync is executed on every resource addition or modification. Executes the configured handlers and sends the updated status to the Kubernetes API
 func (a *authConfigStatusHandler) sync(key string, obj *v3.AuthConfig) (*v3.AuthConfig, error) {
 	if obj == nil {
 		return obj, nil
@@ -342,8 +135,10 @@ type authConfigGeneratingHandler struct {
 	opts  generic.GeneratingHandlerOptions
 	gvk   schema.GroupVersionKind
 	name  string
+	seen  sync.Map
 }
 
+// Remove handles the observed deletion of a resource, cascade deleting every associated resource previously applied
 func (a *authConfigGeneratingHandler) Remove(key string, obj *v3.AuthConfig) (*v3.AuthConfig, error) {
 	if obj != nil {
 		return obj, nil
@@ -353,12 +148,17 @@ func (a *authConfigGeneratingHandler) Remove(key string, obj *v3.AuthConfig) (*v
 	obj.Namespace, obj.Name = kv.RSplit(key, "/")
 	obj.SetGroupVersionKind(a.gvk)
 
+	if a.opts.UniqueApplyForResourceVersion {
+		a.seen.Delete(key)
+	}
+
 	return nil, generic.ConfigureApplyForObject(a.apply, obj, &a.opts).
 		WithOwner(obj).
 		WithSetID(a.name).
 		ApplyObjects()
 }
 
+// Handle executes the configured AuthConfigGeneratingHandler and pass the resulting objects to apply.Apply, finally returning the new status of the resource
 func (a *authConfigGeneratingHandler) Handle(obj *v3.AuthConfig, status v3.AuthConfigStatus) (v3.AuthConfigStatus, error) {
 	if !obj.DeletionTimestamp.IsZero() {
 		return status, nil
@@ -368,9 +168,41 @@ func (a *authConfigGeneratingHandler) Handle(obj *v3.AuthConfig, status v3.AuthC
 	if err != nil {
 		return newStatus, err
 	}
+	if !a.isNewResourceVersion(obj) {
+		return newStatus, nil
+	}
 
-	return newStatus, generic.ConfigureApplyForObject(a.apply, obj, &a.opts).
+	err = generic.ConfigureApplyForObject(a.apply, obj, &a.opts).
 		WithOwner(obj).
 		WithSetID(a.name).
 		ApplyObjects(objs...)
+	if err != nil {
+		return newStatus, err
+	}
+	a.storeResourceVersion(obj)
+	return newStatus, nil
+}
+
+// isNewResourceVersion detects if a specific resource version was already successfully processed.
+// Only used if UniqueApplyForResourceVersion is set in generic.GeneratingHandlerOptions
+func (a *authConfigGeneratingHandler) isNewResourceVersion(obj *v3.AuthConfig) bool {
+	if !a.opts.UniqueApplyForResourceVersion {
+		return true
+	}
+
+	// Apply once per resource version
+	key := obj.Namespace + "/" + obj.Name
+	previous, ok := a.seen.Load(key)
+	return !ok || previous != obj.ResourceVersion
+}
+
+// storeResourceVersion keeps track of the latest resource version of an object for which Apply was executed
+// Only used if UniqueApplyForResourceVersion is set in generic.GeneratingHandlerOptions
+func (a *authConfigGeneratingHandler) storeResourceVersion(obj *v3.AuthConfig) {
+	if !a.opts.UniqueApplyForResourceVersion {
+		return
+	}
+
+	key := obj.Namespace + "/" + obj.Name
+	a.seen.Store(key, obj.ResourceVersion)
 }

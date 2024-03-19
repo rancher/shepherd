@@ -16,8 +16,8 @@ import (
 	managementSchema "github.com/rancher/shepherd/pkg/schemas/management.cattle.io/v3"
 	planv1 "github.com/rancher/system-upgrade-controller/pkg/apis/upgrade.cattle.io/v1"
 	"github.com/rancher/types/factory"
-	controllergen "github.com/rancher/wrangler/pkg/controller-gen"
-	"github.com/rancher/wrangler/pkg/controller-gen/args"
+	controllergen "github.com/rancher/wrangler/v2/pkg/controller-gen"
+	"github.com/rancher/wrangler/v2/pkg/controller-gen/args"
 
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 )
