@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/tools/clientcmd/api"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 // GetKubeconfig generates a kubeconfig froma specific cluster, and returns it in the form of a *clientcmd.ClientConfig
@@ -59,7 +59,7 @@ func GetKubeconfigFromFlags(masterURL, kubeconfigPath string) (*clientcmd.Client
 		}
 
 		clientConfig = clientcmd.NewDefaultClientConfig(rawConfig, &clientcmd.ConfigOverrides{
-			ClusterInfo: api.Cluster{
+			ClusterInfo: clientcmdapi.Cluster{
 				Server: masterURL,
 			},
 		})
@@ -71,22 +71,22 @@ func GenerateKubeconfigForRestConfig(restConfig *rest.Config, defaultUser, defau
 	if defaultUser == "" || defaultContext == "" || clusterName == "" {
 		return nil, errors.New("GenerateKubeconfigForRestConfig: 'defaultUser', 'defaultContext', and 'clusterName' must all be non-zero strings")
 	}
-	clusters := make(map[string]*api.Cluster)
-	clusters["default-cluster"] = &api.Cluster{
+	clusters := make(map[string]*clientcmdapi.Cluster)
+	clusters["default-cluster"] = &clientcmdapi.Cluster{
 		Server:                   restConfig.Host,
 		CertificateAuthorityData: restConfig.CAData,
 	}
-	contexts := make(map[string]*api.Context)
-	contexts["default-context"] = &api.Context{
+	contexts := make(map[string]*clientcmdapi.Context)
+	contexts["default-context"] = &clientcmdapi.Context{
 		Cluster:  clusterName,
 		AuthInfo: defaultUser,
 	}
-	authinfos := make(map[string]*api.AuthInfo)
-	authinfos["default-user"] = &api.AuthInfo{
+	authinfos := make(map[string]*clientcmdapi.AuthInfo)
+	authinfos["default-user"] = &clientcmdapi.AuthInfo{
 		ClientCertificateData: restConfig.CertData,
 		ClientKeyData:         restConfig.KeyData,
 	}
-	clientConfig := api.Config{
+	clientConfig := clientcmdapi.Config{
 		Kind:           "Config",
 		APIVersion:     "v1",
 		Clusters:       clusters,
