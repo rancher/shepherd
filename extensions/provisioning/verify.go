@@ -158,65 +158,6 @@ func VerifyRKE1ClusterWithTimeout(t *testing.T, client *rancher.Client, clusters
 	assert.Empty(t, podErrors)
 }
 
-// VerifyRKE1ClusterWithTimeout validates that the RKE1 cluster and its resources are in a good state within the custom timeout, matching a given config.
-func VerifyRKE1ClusterWithTimeout(t *testing.T, client *rancher.Client, clustersConfig *clusters.ClusterConfig, cluster *management.Cluster, timeout *int64) {
-	client, err := client.ReLogin()
-	require.NoError(t, err)
-
-	adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
-	require.NoError(t, err)
-
-	var timeoutSeconds *int64
-	if timeout != nil {
-		timeoutSeconds = timeout
-	} else {
-		timeoutSeconds = &defaults.WatchTimeoutSeconds
-	}
-
-	watchInterface, err := adminClient.GetManagementWatchInterface(management.ClusterType, metav1.ListOptions{
-		FieldSelector:  "metadata.name=" + cluster.ID,
-		TimeoutSeconds: timeoutSeconds,
-	})
-	require.NoError(t, err)
-
-	checkFunc := clusters.IsHostedProvisioningClusterReady
-	err = wait.WatchWait(watchInterface, checkFunc)
-	require.NoError(t, err)
-
-	assert.Equal(t, clustersConfig.KubernetesVersion, cluster.RancherKubernetesEngineConfig.Version)
-
-	clusterToken, err := clusters.CheckServiceAccountTokenSecret(client, cluster.Name)
-	require.NoError(t, err)
-	assert.NotEmpty(t, clusterToken)
-
-	err = nodestat.AllManagementNodeReady(client, cluster.ID, defaults.ThirtyMinuteTimeout)
-	require.NoError(t, err)
-
-	if clustersConfig.PSACT == string(provisioninginput.RancherPrivileged) || clustersConfig.PSACT == string(provisioninginput.RancherRestricted) || clustersConfig.PSACT == string(provisioninginput.RancherBaseline) {
-		require.NotEmpty(t, cluster.DefaultPodSecurityAdmissionConfigurationTemplateName)
-
-		err := psadeploy.CreateNginxDeployment(client, cluster.ID, clustersConfig.PSACT)
-		require.NoError(t, err)
-	}
-	if clustersConfig.Registries != nil {
-		if clustersConfig.Registries.RKE1Registries != nil {
-			for _, registry := range clustersConfig.Registries.RKE1Registries {
-				havePrefix, err := registries.CheckAllClusterPodsForRegistryPrefix(client, cluster.ID, registry.URL)
-				require.NoError(t, err)
-				assert.True(t, havePrefix)
-			}
-		}
-	}
-	if clustersConfig.Networking != nil {
-		if clustersConfig.Networking.LocalClusterAuthEndpoint != nil {
-			VerifyACE(t, adminClient, cluster)
-		}
-	}
-
-	podErrors := pods.StatusPods(client, cluster.ID)
-	assert.Empty(t, podErrors)
-}
-
 // VerifyCluster validates that a non-rke1 cluster and its resources are in a good state, matching a given config.
 func VerifyCluster(t *testing.T, client *rancher.Client, clustersConfig *clusters.ClusterConfig, cluster *steveV1.SteveAPIObject) {
 	client, err := client.ReLogin()

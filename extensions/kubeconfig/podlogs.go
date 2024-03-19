@@ -170,7 +170,7 @@ func parseBufferSize(sizeStr string) (int, error) {
 // GetPodLogsWithContext fetches logs from a Kubernetes pod
 // Buffer size (e.g., '64KB', '8MB', '1GB') influences log reading; an empty string results in bufio.Scanner's default of 4096 bytes
 // returns a string of all logs read and an error if any
-func GetPodLogsWithContext(ctx context.Context, client *rancher.Client, clusterID, podName, namespace, bufferSizeStr, logFilePath string, opts *corev1.PodLogOptions) (string, error) {
+func GetPodLogsWithContext(ctx context.Context, client *rancher.Client, clusterID, podName, namespace, bufferSizeStr, logFilePath string, excludeDebug bool, opts *corev1.PodLogOptions) (string, error) {
 	var restConfig *restclient.Config
 
 	kubeConfig, err := GetKubeconfig(client, clusterID)
@@ -209,7 +209,7 @@ func GetPodLogsWithContext(ctx context.Context, client *rancher.Client, clusterI
 	}
 	defer logFile.Close()
 
-	return readAndWriteLogsWithContext(ctx, stream, logFile, bufferSizeStr, false)
+	return readAndWriteLogsWithContext(ctx, stream, logFile, bufferSizeStr, excludeDebug)
 }
 
 // readAndWriteLogsWithContext is a helper function that reads and writes text to console output and the specific logFile using a channel
