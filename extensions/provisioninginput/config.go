@@ -5,7 +5,6 @@ import (
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	"github.com/rancher/shepherd/extensions/machinepools"
 	nodepools "github.com/rancher/shepherd/extensions/rke1/nodepools"
-	corev1 "k8s.io/api/core/v1"
 )
 
 type Version string
@@ -37,47 +36,59 @@ const (
 )
 
 var AllRolesMachinePool = MachinePools{
-	NodeRoles: machinepools.NodeRoles{
-		Etcd:         true,
-		ControlPlane: true,
-		Worker:       true,
-		Quantity:     1,
+	MachinePoolConfig: machinepools.MachinePoolConfig{
+		NodeRoles: machinepools.NodeRoles{
+			Etcd:         true,
+			ControlPlane: true,
+			Worker:       true,
+			Quantity:     1,
+		},
 	},
 }
 
 var EtcdControlPlaneMachinePool = MachinePools{
-	NodeRoles: machinepools.NodeRoles{
-		Etcd:         true,
-		ControlPlane: true,
-		Quantity:     1,
+	MachinePoolConfig: machinepools.MachinePoolConfig{
+		NodeRoles: machinepools.NodeRoles{
+			Etcd:         true,
+			ControlPlane: true,
+			Quantity:     1,
+		},
 	},
 }
 
 var EtcdMachinePool = MachinePools{
-	NodeRoles: machinepools.NodeRoles{
-		Etcd:     true,
-		Quantity: 1,
+	MachinePoolConfig: machinepools.MachinePoolConfig{
+		NodeRoles: machinepools.NodeRoles{
+			Etcd:     true,
+			Quantity: 1,
+		},
 	},
 }
 
 var ControlPlaneMachinePool = MachinePools{
-	NodeRoles: machinepools.NodeRoles{
-		ControlPlane: true,
-		Quantity:     1,
+	MachinePoolConfig: machinepools.MachinePoolConfig{
+		NodeRoles: machinepools.NodeRoles{
+			ControlPlane: true,
+			Quantity:     1,
+		},
 	},
 }
 
 var WorkerMachinePool = MachinePools{
-	NodeRoles: machinepools.NodeRoles{
-		Worker:   true,
-		Quantity: 1,
+	MachinePoolConfig: machinepools.MachinePoolConfig{
+		NodeRoles: machinepools.NodeRoles{
+			Worker:   true,
+			Quantity: 1,
+		},
 	},
 }
 
 var WindowsMachinePool = MachinePools{
-	NodeRoles: machinepools.NodeRoles{
-		Windows:  true,
-		Quantity: 1,
+	MachinePoolConfig: machinepools.MachinePoolConfig{
+		NodeRoles: machinepools.NodeRoles{
+			Windows:  true,
+			Quantity: 1,
+		},
 	},
 }
 
@@ -173,22 +184,14 @@ type Registries struct {
 	RKE2Username   string                       `json:"rke2Username,omitempty" yaml:"rke2Username,omitempty"`
 }
 
-type Pools struct {
-	NodeLabels             map[string]string `json:"nodeLabels,omitempty" yaml:"nodeLabels,omitempty"`
-	NodeTaints             []corev1.Taint    `json:"nodeTaints,omitempty" yaml:"nodeTaints,omitempty"`
-	SpecifyCustomPrivateIP bool              `json:"specifyPrivateIP,omitempty" yaml:"specifyPrivateIP,omitempty"`
-	SpecifyCustomPublicIP  bool              `json:"specifyPublicIP,omitempty" yaml:"specifyPublicIP,omitempty" default:"true"`
-	CustomNodeNameSuffix   string            `json:"nodeNameSuffix,omitempty" yaml:"nodeNameSuffix,omitempty"`
-}
-
 type MachinePools struct {
-	Pools
-	NodeRoles machinepools.NodeRoles `json:"nodeRoles,omitempty" yaml:"nodeRoles,omitempty" default:"[]"`
-	IsSecure  bool                   `json:"isSecure,omitempty" yaml:"isSecure,omitempty" default:"false"`
+	machinepools.Pools
+	MachinePoolConfig machinepools.MachinePoolConfig `json:"machinePoolConfig,omitempty" yaml:"machinePoolConfig,omitempty" default:"[]"`
+	IsSecure          bool                           `json:"isSecure,omitempty" yaml:"isSecure,omitempty" default:"false"`
 }
 
 type NodePools struct {
-	Pools
+	machinepools.Pools
 	NodeRoles nodepools.NodeRoles `json:"nodeRoles,omitempty" yaml:"nodeRoles,omitempty" default:"[]"`
 }
 
