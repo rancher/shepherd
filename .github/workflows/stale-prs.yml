@@ -1,0 +1,115 @@
+name: Mark stale pull requests in Shepherd repo
+
+on:
+  schedule:
+  - cron: '0 0 * * 1'
+
+jobs:
+  stale:
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:      
+      - name: Checkout code
+        uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5
+        
+      - name: Check PRs and compile report
+        id: compile_report
+        uses: actions/github-script@211cb3fefb35a799baa5156f9321bb774fe56294
+        with:
+          script: |
+            const fiveDaysAgo = new Date(new Date().setDate(new Date().getDate() - 5)); 
+            const threeDaysAgo = new Date(new Date().setDate(new Date().getDate() - 3));
+            let report = '';
+            let noReviewsReport = '';
+            let noChangesReport = '';
+            let needsReviews = '';
+            let needsChanges = '';
+            let needsMerge = '';
+            let hasErrors = '';
+            try {
+                const prs = await github.paginate(github.rest.pulls.list, {
+                owner: 'rancher',
+                repo: 'shepherd',
+                state: 'open',
+                per_page: 100,
+              });
+              for ( const pr of prs ) {
+                const createdDate = new Date(pr.created_at); 
+                const updatedDate = new Date(pr.updated_at); 
+                let lastReviewDate = null
+                let lastReviewStateOne = ""
+                let lastReviewStateTwo = ""
+                let numberOfApprovedState = 0
+                statesCompare = ["COMMENTED", "CHANGES_REQUESTED"]
+                try{
+                  const reviews = await github.rest.pulls.listReviews({
+                    owner: 'rancher',
+                    repo: 'shepherd',
+                    pull_number: pr.number,
+                    per_page: 100,
+                  });
+                  
+                  if ( reviews.data.length == 0 && createdDate < fiveDaysAgo ) {
+                    noReviewsReport += `${pr.title} #${pr.number} ${pr.html_url} ${pr.user.login}\n`;
+                  } 
+                  else {
+                      for (const review of reviews.data) {
+                        const reviewDate = new Date(review.submitted_at);
+                        if(!lastReviewDate || reviewDate > lastReviewDate) {
+                          lastReviewDate = reviewDate
+                          lastReviewStateTwo = lastReviewStateOne
+                          lastReviewStateOne = review.state
+                          if ( review.state === "APPROVED"){
+                            numberOfApprovedState+=1
+                          }
+                      }
+                    }
+                  }
+                } catch( error ){
+                  hasErrors += `${pr.title} (#${pr.number}) ${pr.html_url} - Error: ${error} \n`;
+                }
+                if ( lastReviewDate && (lastReviewDate < threeDaysAgo && updatedDate <= lastReviewDate) && statesCompare.includes(lastReviewStateOne) && statesCompare.includes(lastReviewStateTwo) ) {
+                  needsChanges += `${pr.title} (#${pr.number}) ${pr.html_url} ${pr.user.login} \n`;
+                  
+                } else if ( lastReviewDate && (updatedDate > lastReviewDate) && (updatedDate < threeDaysAgo) ){
+                  needsReviews += `${pr.title} (#${pr.number}) ${pr.html_url} ${pr.user.login} \n`;
+
+                }  else if ( lastReviewDate && numberOfApprovedState >=2 && (lastReviewDate < threeDaysAgo) && !statesCompare.includes(lastReviewStateOne) ) {
+                  needsMerge += `${pr.title} (#${pr.number}) ${pr.html_url} ${pr.user.login} \n`;
+                }
+              }
+              if ( noReviewsReport ) {
+                report += `PRs with no reviews yet: \n` + noReviewsReport +`\n\n`
+              }
+              if ( needsReviews ) {
+                report += `PRs that need reviews: \n`+ needsReviews +`\n\n` 
+              }
+              if ( needsChanges ) {
+                report += `PRs with changes requested: \n`+ needsChanges +`\n\n`
+              }
+              if ( needsMerge ) {
+                report += `PRs that need to be merged: \n` + needsMerge
+              }
+              if ( hasErrors ) {
+                report += `PRs that have errors when fetching: \n` + hasErrors
+              }
+              return report;
+
+            } catch( error ){
+              report += `There is an error getting PR Status report - Error: ${error} \n`;
+              return report;
+            }
+           
+          result-encoding: string
+
+      - name: Notify on Slack
+        run: |
+          result="${{ steps.compile_report.outputs.result }}"
+          if [[ -n "$result" ]]; then 
+            curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"PR Status Report:\n$result\"}" ${{ secrets.SLACK_WEBHOOK_URL }}
+          else
+            curl -X POST -H 'Content-type: application/json' --data '{"text":"PR Status Report: There are errors please check the GH actions logs"}' ${{ secrets.SLACK_WEBHOOK_URL }}
+          fi
+        shell: bash
