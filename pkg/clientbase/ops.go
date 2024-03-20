@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rancher/norman/types"
 	"github.com/rancher/shepherd/pkg/session"
+	"github.com/sirupsen/logrus"
 )
 
 type APIOperations struct {
@@ -63,7 +64,7 @@ func (a *APIOperations) DoGet(url string, opts *types.ListOpts, respObject inter
 	}
 
 	if Debug {
-		fmt.Println("GET " + url)
+		logrus.Infoln("GET " + url)
 	}
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -90,7 +91,7 @@ func (a *APIOperations) DoGet(url string, opts *types.ListOpts, respObject inter
 	}
 
 	if Debug {
-		fmt.Println("Response <= " + string(byteContent))
+		logrus.Infoln("Response <= " + string(byteContent))
 	}
 
 	if err := json.Unmarshal(byteContent, respObject); err != nil {
@@ -142,8 +143,8 @@ func (a *APIOperations) DoModify(method string, url string, createObj interface{
 	}
 
 	if Debug {
-		fmt.Println(method + " " + url)
-		fmt.Println("Request => " + string(bodyContent))
+		logrus.Infoln(method + " " + url)
+		logrus.Infoln("Request => " + string(bodyContent))
 	}
 
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(bodyContent))
@@ -172,7 +173,7 @@ func (a *APIOperations) DoModify(method string, url string, createObj interface{
 
 	if len(byteContent) > 0 {
 		if Debug {
-			fmt.Println("Response <= " + string(byteContent))
+			logrus.Infoln("Response <= " + string(byteContent))
 		}
 		return json.Unmarshal(byteContent, respObject)
 	}
@@ -329,8 +330,8 @@ func (a *APIOperations) DoResourceDelete(schemaType string, existing *types.Reso
 }
 
 func (a *APIOperations) DoAction(schemaType string, action string,
-	existing *types.Resource, inputObject, respObject interface{}) error {
-
+	existing *types.Resource, inputObject, respObject interface{},
+) error {
 	if existing == nil {
 		return errors.New("Existing object is nil")
 	}
@@ -344,8 +345,8 @@ func (a *APIOperations) DoAction(schemaType string, action string,
 }
 
 func (a *APIOperations) DoCollectionAction(schemaType string, action string,
-	existing *types.Collection, inputObject, respObject interface{}) error {
-
+	existing *types.Collection, inputObject, respObject interface{},
+) error {
 	if existing == nil {
 		return errors.New("Existing object is nil")
 	}
@@ -373,7 +374,7 @@ func (a *APIOperations) doAction(
 	var input io.Reader
 
 	if Debug {
-		fmt.Println("POST " + actionURL)
+		logrus.Infoln("POST " + actionURL)
 	}
 
 	if inputObject != nil {
@@ -382,7 +383,7 @@ func (a *APIOperations) doAction(
 			return err
 		}
 		if Debug {
-			fmt.Println("Request => " + string(bodyContent))
+			logrus.Infoln("Request => " + string(bodyContent))
 		}
 		input = bytes.NewBuffer(bodyContent)
 	}
@@ -413,7 +414,7 @@ func (a *APIOperations) doAction(
 	}
 
 	if Debug {
-		fmt.Println("Response <= " + string(byteContent))
+		logrus.Infoln("Response <= " + string(byteContent))
 	}
 
 	if nil != respObject {
