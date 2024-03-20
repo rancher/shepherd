@@ -241,7 +241,7 @@ func (c *Client) Output(opts ...tfexec.OutputOption) ([]map[string]any, error) {
 }
 
 // WorkingDir simply returns the configured terraform working directory for terraform
-// The WorkingDir is the directory that terraform is targetting when it runs a command
+// The WorkingDir is the directory that terraform is targeting when it runs a command
 func (c *Client) WorkingDir() string {
 	return c.Terraform.WorkingDir()
 }
