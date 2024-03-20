@@ -255,7 +255,8 @@ func clusterTypes(schemas *types.Schemas) *types.Schemas {
 			schema.MustCustomizeField("extraArgs", func(field types.Field) types.Field {
 				field.Default = map[string]interface{}{
 					"election-timeout":   "5000",
-					"heartbeat-interval": "500"}
+					"heartbeat-interval": "500",
+				}
 				return field
 			})
 		}).
@@ -495,6 +496,7 @@ func tokens(schemas *types.Schemas) *types.Schemas {
 }
 
 func authnTypes(schemas *types.Schemas) *types.Schemas {
+	authConfig := "authConfig"
 	return schemas.
 		AddMapperForType(&Version, v3.User{}, m.DisplayName{},
 			&m.Embed{Field: "status"}).
@@ -536,13 +538,13 @@ func authnTypes(schemas *types.Schemas) *types.Schemas {
 		}).
 		// Local Config
 		MustImportAndCustomize(&Version, v3.LocalConfig{}, func(schema *types.Schema) {
-			schema.BaseType = "authConfig"
+			schema.BaseType = authConfig
 			schema.CollectionMethods = []string{}
 			schema.ResourceMethods = []string{http.MethodGet}
 		}).
-		//Github Config
+		// Github Config
 		MustImportAndCustomize(&Version, v3.GithubConfig{}, func(schema *types.Schema) {
-			schema.BaseType = "authConfig"
+			schema.BaseType = authConfig
 			schema.ResourceActions = map[string]types.Action{
 				"disable": {},
 				"configureTest": {
@@ -558,9 +560,9 @@ func authnTypes(schemas *types.Schemas) *types.Schemas {
 		}).
 		MustImport(&Version, v3.GithubConfigTestOutput{}).
 		MustImport(&Version, v3.GithubConfigApplyInput{}).
-		//AzureAD Config
+		// AzureAD Config
 		MustImportAndCustomize(&Version, v3.AzureADConfig{}, func(schema *types.Schema) {
-			schema.BaseType = "authConfig"
+			schema.BaseType = authConfig
 			schema.ResourceActions = map[string]types.Action{
 				"disable": {},
 				"configureTest": {
@@ -579,7 +581,7 @@ func authnTypes(schemas *types.Schemas) *types.Schemas {
 		MustImport(&Version, v3.AzureADConfigApplyInput{}).
 		// Active Directory Config
 		MustImportAndCustomize(&Version, v3.ActiveDirectoryConfig{}, func(schema *types.Schema) {
-			schema.BaseType = "authConfig"
+			schema.BaseType = authConfig
 			schema.ResourceActions = map[string]types.Action{
 				"disable": {},
 				"testAndApply": {
@@ -592,7 +594,7 @@ func authnTypes(schemas *types.Schemas) *types.Schemas {
 		MustImport(&Version, v3.ActiveDirectoryTestAndApplyInput{}).
 		// OpenLdap Config
 		MustImportAndCustomize(&Version, v3.OpenLdapConfig{}, func(schema *types.Schema) {
-			schema.BaseType = "authConfig"
+			schema.BaseType = authConfig
 			schema.ResourceActions = map[string]types.Action{
 				"disable": {},
 				"testAndApply": {
@@ -606,7 +608,7 @@ func authnTypes(schemas *types.Schemas) *types.Schemas {
 		// FreeIpa Config
 		AddMapperForType(&Version, v3.FreeIpaConfig{}, m.Drop{Field: "nestedGroupMembershipEnabled"}).
 		MustImportAndCustomize(&Version, v3.FreeIpaConfig{}, func(schema *types.Schema) {
-			schema.BaseType = "authConfig"
+			schema.BaseType = authConfig
 			schema.ResourceActions = map[string]types.Action{
 				"disable": {},
 				"testAndApply": {
@@ -647,9 +649,9 @@ func authnTypes(schemas *types.Schemas) *types.Schemas {
 		MustImportAndCustomize(&Version, v3.ShibbolethConfig{}, configSchema).
 		MustImport(&Version, v3.SamlConfigTestInput{}).
 		MustImport(&Version, v3.SamlConfigTestOutput{}).
-		//GoogleOAuth Config
+		// GoogleOAuth Config
 		MustImportAndCustomize(&Version, v3.GoogleOauthConfig{}, func(schema *types.Schema) {
-			schema.BaseType = "authConfig"
+			schema.BaseType = authConfig
 			schema.ResourceActions = map[string]types.Action{
 				"disable": {},
 				"configureTest": {
@@ -665,9 +667,9 @@ func authnTypes(schemas *types.Schemas) *types.Schemas {
 		}).
 		MustImport(&Version, v3.GoogleOauthConfigApplyInput{}).
 		MustImport(&Version, v3.GoogleOauthConfigTestOutput{}).
-		//OIDC Config
+		// OIDC Config
 		MustImportAndCustomize(&Version, v3.OIDCConfig{}, func(schema *types.Schema) {
-			schema.BaseType = "authConfig"
+			schema.BaseType = authConfig
 			schema.ResourceActions = map[string]types.Action{
 				"disable": {},
 				"configureTest": {
@@ -683,9 +685,9 @@ func authnTypes(schemas *types.Schemas) *types.Schemas {
 		}).
 		MustImport(&Version, v3.OIDCApplyInput{}).
 		MustImport(&Version, v3.OIDCTestOutput{}).
-		//KeyCloakOIDC Config
+		// KeyCloakOIDC Config
 		MustImportAndCustomize(&Version, v3.KeyCloakOIDCConfig{}, func(schema *types.Schema) {
-			schema.BaseType = "authConfig"
+			schema.BaseType = authConfig
 			schema.ResourceActions = map[string]types.Action{
 				"disable": {},
 				"configureTest": {
@@ -838,7 +840,6 @@ func alertTypes(schema *types.Schemas) *types.Schemas {
 				"unmute":     {},
 			}
 		})
-
 }
 
 func composeType(schemas *types.Schemas) *types.Schemas {
@@ -1022,7 +1023,6 @@ func clusterTemplateTypes(schemas *types.Schemas) *types.Schemas {
 				},
 			}
 		})
-
 }
 
 func encryptionTypes(schemas *types.Schemas) *types.Schemas {

@@ -1,0 +1,45 @@
+name: Verify Changes
+
+on:
+  push:
+  pull_request:
+    branches:
+      - 'release/*'
+      - 'main'
+
+jobs:
+  verify-changes:
+    name: verify-changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          submodules: recursive
+
+      - name: Setup Go
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        with:
+          go-version-file: './go.mod'
+
+      - name: Go Version
+        run: go version
+
+      - name: Generate Golang
+        run: |
+          export PATH=$PATH:/home/runner/go/bin/
+      
+      - name: Verify Go Mod
+        run: ./.github/scripts/check-go-mod.sh
+
+      - name: Build Packages
+        run: ./.github/scripts/build-packages.sh
+
+      - name: Golangci Lint
+        uses: golangci/golangci-lint-action@3cfe3a4abbb849e10058ce4af15d205b6da42804 # v4.0.0
+        with:
+          # Patch version isn't needed; https://github.com/golangci/golangci-lint-action?tab=readme-ov-file#internals
+          version: v1.57 
+          # Skip cache cause: https://github.com/golangci/golangci-lint-action/issues/135
+          skip-cache: true
