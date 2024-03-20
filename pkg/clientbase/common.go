@@ -13,6 +13,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
 	"github.com/rancher/norman/types"
@@ -23,9 +25,7 @@ const (
 	COLLECTION = "collection"
 )
 
-var (
-	Debug = false
-)
+var Debug = false
 
 type APIBaseClientInterface interface {
 	Websocket(url string, headers map[string][]string) (*websocket.Conn, *http.Response, error)
@@ -185,7 +185,7 @@ func NewAPIClient(opts *ClientOpts) (APIBaseClient, error) {
 
 	if opts.CACerts != "" {
 		if Debug {
-			fmt.Println("Some CAcerts are provided.")
+			logrus.Infoln("Some CAcerts are provided.")
 		}
 		roots := x509.NewCertPool()
 		ok := roots.AppendCertsFromPEM([]byte(opts.CACerts))
@@ -203,7 +203,7 @@ func NewAPIClient(opts *ClientOpts) (APIBaseClient, error) {
 
 	if opts.Insecure {
 		if Debug {
-			fmt.Println("Insecure TLS set.")
+			logrus.Infoln("Insecure TLS set.")
 		}
 		tr := &http.Transport{
 			TLSClientConfig: &tls.Config{
@@ -216,7 +216,7 @@ func NewAPIClient(opts *ClientOpts) (APIBaseClient, error) {
 
 	if !(opts.Insecure) && (opts.CACerts == "") {
 		if Debug {
-			fmt.Println("Insecure TLS not set and no CAcerts is provided.")
+			logrus.Infoln("Insecure TLS not set and no CAcerts is provided.")
 		}
 		tr := &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
@@ -255,7 +255,7 @@ func NewAPIClient(opts *ClientOpts) (APIBaseClient, error) {
 		req.Header.Add("Authorization", opts.getAuthHeader())
 
 		if Debug {
-			fmt.Println("GET " + req.URL.String())
+			logrus.Infoln("GET " + req.URL.String())
 		}
 
 		resp, err = client.Do(req)
@@ -278,7 +278,7 @@ func NewAPIClient(opts *ClientOpts) (APIBaseClient, error) {
 	}
 
 	if Debug {
-		fmt.Println("Response <= " + string(bytes))
+		logrus.Infoln("Response <= " + string(bytes))
 	}
 
 	err = json.Unmarshal(bytes, &schemas)
@@ -327,7 +327,7 @@ func (a *APIBaseClient) Websocket(url string, headers map[string][]string) (*web
 	}
 
 	if Debug {
-		fmt.Println("WS " + url)
+		logrus.Infoln("WS " + url)
 	}
 
 	return a.Ops.Dialer.Dial(url, http.Header(httpHeaders))
@@ -383,13 +383,14 @@ func (a *APIBaseClient) Reload(existing *types.Resource, output interface{}) err
 }
 
 func (a *APIBaseClient) Action(schemaType string, action string,
-	existing *types.Resource, inputObject, respObject interface{}) error {
+	existing *types.Resource, inputObject, respObject interface{},
+) error {
 	return a.Ops.DoAction(schemaType, action, existing, inputObject, respObject)
 }
 
 func init() {
 	Debug = os.Getenv("RANCHER_CLIENT_DEBUG") == "true"
 	if Debug {
-		fmt.Println("Rancher client debug on")
+		logrus.Infoln("Rancher client debug on")
 	}
 }
