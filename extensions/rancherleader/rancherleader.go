@@ -1,10 +1,11 @@
 package rancherleader
 
 import (
+	"net/url"
+
 	"github.com/rancher/shepherd/clients/rancher"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 	coordinationv1 "k8s.io/api/coordination/v1"
-	"net/url"
 )
 
 const (
