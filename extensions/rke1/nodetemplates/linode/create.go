@@ -21,16 +21,8 @@ func CreateLinodeNodeTemplate(rancherClient *rancher.Client) (*nodetemplates.Nod
 		LinodeNodeTemplateConfig: &linodeNodeTemplateConfig,
 	}
 
-	nodeTemplateConfig := &nodetemplates.NodeTemplate{}
-	config.LoadConfig(nodetemplates.NodeTemplateConfigurationFileKey, nodeTemplateConfig)
-
-	nodeTemplateFinal, err := nodeTemplate.MergeOverride(nodeTemplateConfig, nodetemplates.LinodeNodeTemplateConfigurationFileKey)
-	if err != nil {
-		return nil, err
-	}
-
 	resp := &nodetemplates.NodeTemplate{}
-	err = rancherClient.Management.APIBaseClient.Ops.DoCreate(management.NodeTemplateType, *nodeTemplateFinal, resp)
+	err := rancherClient.Management.APIBaseClient.Ops.DoCreate(management.NodeTemplateType, nodeTemplate, resp)
 	if err != nil {
 		return nil, err
 	}

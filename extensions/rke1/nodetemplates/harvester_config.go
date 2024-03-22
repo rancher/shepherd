@@ -1,7 +1,7 @@
 package nodetemplates
 
 // The json/yaml config key for the Harvester node template config
-const HarvesterNodeTemplateConfigurationFileKey = "harvesterConfig"
+const HarvesterNodeTemplateConfigurationFileKey = "harvesterNodeTemplate"
 
 // HarvesterNodeTemplateConfig is configuration need to create a Harvester node template
 type HarvesterNodeTemplateConfig struct {

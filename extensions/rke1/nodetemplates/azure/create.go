@@ -21,16 +21,8 @@ func CreateAzureNodeTemplate(rancherClient *rancher.Client) (*nodetemplates.Node
 		AzureNodeTemplateConfig: &azureNodeTemplateConfig,
 	}
 
-	nodeTemplateConfig := &nodetemplates.NodeTemplate{}
-	config.LoadConfig(nodetemplates.NodeTemplateConfigurationFileKey, nodeTemplateConfig)
-
-	nodeTemplateFinal, err := nodeTemplate.MergeOverride(nodeTemplateConfig, nodetemplates.AzureNodeTemplateConfigurationFileKey)
-	if err != nil {
-		return nil, err
-	}
-
 	resp := &nodetemplates.NodeTemplate{}
-	err = rancherClient.Management.APIBaseClient.Ops.DoCreate(management.NodeTemplateType, *nodeTemplateFinal, resp)
+	err := rancherClient.Management.APIBaseClient.Ops.DoCreate(management.NodeTemplateType, nodeTemplate, resp)
 	if err != nil {
 		return nil, err
 	}

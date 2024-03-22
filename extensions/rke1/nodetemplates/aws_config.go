@@ -1,7 +1,7 @@
 package nodetemplates
 
 // The json/yaml config key for the Amazon node template config
-const AmazonEC2NodeTemplateConfigurationFileKey = "amazonec2Config"
+const AmazonEC2NodeTemplateConfigurationFileKey = "awsNodeTemplate"
 
 // AmazonNodeTemplateConfig is configuration need to create a Amazon node template
 type AmazonEC2NodeTemplateConfig struct {

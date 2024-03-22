@@ -21,16 +21,8 @@ func CreateVSphereNodeTemplate(rancherClient *rancher.Client) (*nodetemplates.No
 		VmwareVsphereNodeTemplateConfig: &vmwarevsphereNodeTemplateConfig,
 	}
 
-	nodeTemplateConfig := &nodetemplates.NodeTemplate{}
-	config.LoadConfig(nodetemplates.NodeTemplateConfigurationFileKey, nodeTemplateConfig)
-
-	nodeTemplateFinal, err := nodeTemplate.MergeOverride(nodeTemplateConfig, nodetemplates.VmwareVsphereNodeTemplateConfigurationFileKey)
-	if err != nil {
-		return nil, err
-	}
-
 	resp := &nodetemplates.NodeTemplate{}
-	err = rancherClient.Management.APIBaseClient.Ops.DoCreate(management.NodeTemplateType, *nodeTemplateFinal, resp)
+	err := rancherClient.Management.APIBaseClient.Ops.DoCreate(management.NodeTemplateType, nodeTemplate, resp)
 	if err != nil {
 		return nil, err
 	}

@@ -1,7 +1,7 @@
 package nodetemplates
 
 // The json/yaml config key for the Azure node template config
-const AzureNodeTemplateConfigurationFileKey = "azureConfig"
+const AzureNodeTemplateConfigurationFileKey = "azureNodeTemplate"
 
 // AzureNodeTemplateConfig is configuration need to create a Azure node template
 type AzureNodeTemplateConfig struct {
