@@ -1,6 +1,7 @@
 package nodetemplates
 
 import (
+	"dario.cat/mergo"
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	"github.com/rancher/shepherd/extensions/rke1/nodetemplates"
@@ -24,13 +25,13 @@ func CreateHarvesterNodeTemplate(rancherClient *rancher.Client) (*nodetemplates.
 	nodeTemplateConfig := &nodetemplates.NodeTemplate{}
 	config.LoadConfig(nodetemplates.NodeTemplateConfigurationFileKey, nodeTemplateConfig)
 
-	nodeTemplateFinal, err := nodeTemplate.MergeOverride(nodeTemplateConfig, nodetemplates.HarvesterNodeTemplateConfigurationFileKey)
+	err := mergo.Merge(&nodeTemplate, nodeTemplateConfig, mergo.WithOverride)
 	if err != nil {
 		return nil, err
 	}
 
 	resp := &nodetemplates.NodeTemplate{}
-	err = rancherClient.Management.APIBaseClient.Ops.DoCreate(management.NodeTemplateType, *nodeTemplateFinal, resp)
+	err = rancherClient.Management.APIBaseClient.Ops.DoCreate(management.NodeTemplateType, nodeTemplate, resp)
 	if err != nil {
 		return nil, err
 	}
