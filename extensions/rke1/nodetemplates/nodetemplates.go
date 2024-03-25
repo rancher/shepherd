@@ -1,12 +1,7 @@
 package nodetemplates
 
 import (
-	"maps"
-
-	"github.com/pkg/errors"
 	"github.com/rancher/norman/types"
-	"gopkg.in/yaml.v2"
-	"k8s.io/utils/strings/slices"
 )
 
 // The json/yaml config key for the node template config
@@ -56,64 +51,4 @@ func providerTemplateConfigKeys() []string {
 		LinodeNodeTemplateConfigurationFileKey,
 		VmwareVsphereNodeTemplateConfigurationFileKey,
 	}
-}
-
-// MergeOverride merges two NodeTemplate objects by overriding fields from n1 with fields from n2
-//   - preserves fields not present in n2
-//   - deletes all provider keys except the specified providerTemplateConfigKey from both NodeTemplate objects before merging
-//
-// providerTemplateConfigKey: The key representing the provider template configuration to preserve during merging
-//
-// returns a pointer to the merged NodeTemplate and an error if any
-func (n1 *NodeTemplate) MergeOverride(n2 *NodeTemplate, providerTemplateConfigKey string) (*NodeTemplate, error) {
-	var n1Data map[string]any
-	n1YAML, err := yaml.Marshal(&n1)
-	if err != nil {
-		return nil, errors.Wrap(err, "MergeOverride: ")
-	}
-	err = yaml.Unmarshal(n1YAML, &n1Data)
-	if err != nil {
-		return nil, errors.Wrap(err, "MergeOverride: ")
-	}
-
-	var n2Data map[string]any
-	n2YAML, err := yaml.Marshal(&n2)
-	if err != nil {
-		return nil, errors.Wrap(err, "MergeOverride: ")
-	}
-	err = yaml.Unmarshal(n2YAML, &n2Data)
-	if err != nil {
-		return nil, errors.Wrap(err, "MergeOverride: ")
-	}
-
-	configKeys := providerTemplateConfigKeys()
-	var keyPosition int
-	for pos, configKey := range configKeys {
-		if configKey == providerTemplateConfigKey {
-			keyPosition = pos
-		}
-	}
-
-	// Delete all other provider keys from both nodetemplates
-	keysToDelete := append(configKeys[:keyPosition], configKeys[keyPosition+1:]...)
-	maps.DeleteFunc(n1Data, func(k string, v any) bool {
-		return slices.Contains(keysToDelete, k) && k != providerTemplateConfigKey
-	})
-	maps.DeleteFunc(n2Data, func(k string, v any) bool {
-		return slices.Contains(keysToDelete, k) && k != providerTemplateConfigKey
-	})
-
-	maps.Copy(n1Data, n2Data)
-
-	tempData, err := yaml.Marshal(n1Data)
-	if err != nil {
-		return nil, errors.Wrap(err, "MergeOverride: ")
-	}
-
-	var mergedNodeTemplate = NodeTemplate{}
-	err = yaml.Unmarshal(tempData, &mergedNodeTemplate)
-	if err != nil {
-		return nil, errors.Wrap(err, "MergeOverride: ")
-	}
-	return &mergedNodeTemplate, nil
 }
