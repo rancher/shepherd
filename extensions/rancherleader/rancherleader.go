@@ -1,40 +1,33 @@
 package rancherleader
 
 import (
-	"encoding/json"
-
 	"github.com/rancher/shepherd/clients/rancher"
-	"github.com/rancher/shepherd/extensions/configmaps"
+	v1 "github.com/rancher/shepherd/clients/rancher/v1"
+	coordinationv1 "k8s.io/api/coordination/v1"
+	"net/url"
 )
 
 const (
-	KubeSystemNamespace     = "kube-system"
-	RancherConfigMap        = "cattle-controllers"
-	RancherLeaderAnnotation = "control-plane.alpha.kubernetes.io/leader"
+	KubeSystemNamespace = "kube-system"
+	LeaseName           = "cattle-controllers"
+	LeaseSteveType      = "coordination.k8s.io.lease"
 )
 
 // GetRancherLeaderPodName is a helper function to retrieve the name of the rancher leader pod
 func GetRancherLeaderPodName(client *rancher.Client) (string, error) {
-	configMapList, err := client.Steve.SteveType(configmaps.ConfigMapSteveType).NamespacedSteveClient(KubeSystemNamespace).List(nil)
+	query := url.Values{"fieldSelector": {"metadata.name=" + LeaseName}}
+	lease, err := client.Steve.SteveType(LeaseSteveType).NamespacedSteveClient(KubeSystemNamespace).List(query)
 	if err != nil {
 		return "", err
 	}
 
-	var leaderAnnotation string
-	for _, cm := range configMapList.Data {
-		if cm.Name == RancherConfigMap {
-			leaderAnnotation = cm.Annotations[RancherLeaderAnnotation]
-			break
-		}
-	}
-
-	var leaderRecord map[string]interface{}
-	err = json.Unmarshal([]byte(leaderAnnotation), &leaderRecord)
+	leaseSpec := &coordinationv1.LeaseSpec{}
+	err = v1.ConvertToK8sType(lease.Data[0].Spec, leaseSpec)
 	if err != nil {
 		return "", err
 	}
 
-	leaderPodName := leaderRecord["holderIdentity"].(string)
+	leaderPodName := *leaseSpec.HolderIdentity
 
 	return leaderPodName, nil
 }
