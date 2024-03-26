@@ -10,6 +10,7 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
+	"github.com/rancher/shepherd/extensions/kubeapi/cluster"
 	"github.com/rancher/shepherd/extensions/token"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
@@ -95,6 +96,14 @@ func UpdateEULA(adminClient *rancher.Client) error {
 		urlSettingResp, err = steveClient.SteveType("management.cattle.io.setting").ByID("server-url")
 		if err != nil {
 			serverURL = err
+			return false, nil
+		}
+
+		boolTemp, err := cluster.IsClusterActive(adminClient, clusterName)
+		if err != nil {
+			serverURL = err
+			return false, nil
+		} else if !boolTemp {
 			return false, nil
 		}
 		return true, nil
