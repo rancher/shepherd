@@ -2,6 +2,8 @@ package etcdsnapshot
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -10,15 +12,20 @@ import (
 	rkev1 "github.com/rancher/rancher/pkg/apis/rke.cattle.io/v1"
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
+	rancherv1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/clusters"
 	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
+	"github.com/rancher/shepherd/extensions/kubeapi/nodes"
 	"github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
 	ProvisioningSteveResouceType = "provisioning.cattle.io.cluster"
 	fleetNamespace               = "fleet-default"
+	localClusterName             = "local"
 	active                       = "active"
 )
 
@@ -44,7 +51,7 @@ func MatchNodeToAnyEtcdRole(client *rancher.Client, clusterID string) (int, *man
 }
 
 // GetRKE1Snapshots is a helper function to get the existing snapshots for a downstream RKE1 cluster.
-func GetRKE1Snapshots(client *rancher.Client, clusterName string) ([]string, error) {
+func GetRKE1Snapshots(client *rancher.Client, clusterName string) ([]management.EtcdBackup, error) {
 	clusterID, err := clusters.GetClusterIDByName(client, clusterName)
 	if err != nil {
 		return nil, err
@@ -59,10 +66,11 @@ func GetRKE1Snapshots(client *rancher.Client, clusterName string) ([]string, err
 		return nil, err
 	}
 
-	snapshots := []string{}
+	snapshots := []management.EtcdBackup{}
+
 	for _, snapshot := range snapshotSteveObjList.Data {
 		if strings.Contains(snapshot.Name, clusterID) {
-			snapshots = append(snapshots, snapshot.ID)
+			snapshots = append(snapshots, snapshot)
 		}
 	}
 
@@ -70,21 +78,22 @@ func GetRKE1Snapshots(client *rancher.Client, clusterName string) ([]string, err
 }
 
 // GetRKE2K3SSnapshots is a helper function to get the existing snapshots for a downstream RKE2/K3S cluster.
-func GetRKE2K3SSnapshots(client *rancher.Client, localclusterID string, clusterName string) ([]string, error) {
+func GetRKE2K3SSnapshots(client *rancher.Client, localclusterID string, clusterName string) ([]rancherv1.SteveAPIObject, error) {
 	steveclient, err := client.Steve.ProxyDownstream(localclusterID)
 	if err != nil {
 		return nil, err
 	}
 
-	snapshotSteveObjList, err := steveclient.SteveType("rke.cattle.io.etcdsnapshot").List(nil)
+	snapshotSteveObjList, err := steveclient.SteveType(stevetypes.EtcdSnapshot).List(nil)
 	if err != nil {
 		return nil, err
 	}
 
-	snapshots := []string{}
+	snapshots := []rancherv1.SteveAPIObject{}
+
 	for _, snapshot := range snapshotSteveObjList.Data {
 		if strings.Contains(snapshot.ObjectMeta.Name, clusterName) {
-			snapshots = append(snapshots, snapshot.Name)
+			snapshots = append(snapshots, snapshot)
 		}
 	}
 
@@ -266,6 +275,138 @@ func RestoreRKE2K3SSnapshot(client *rancher.Client, clusterName string, snapshot
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+// RKE1RetentionLimitCheck is a check that validates that the number of automatic snapshots on the cluster is under the retention limit
+func RKE1RetentionLimitCheck(client *rancher.Client, clusterName string) error {
+	clusterID, err := clusters.GetClusterIDByName(client, clusterName)
+	if err != nil {
+		return err
+	}
+
+	clusterResp, err := client.Management.Cluster.ByID(clusterID)
+	if err != nil {
+		return err
+	}
+
+	retentionLimit := clusterResp.RancherKubernetesEngineConfig.Services.Etcd.BackupConfig.Retention
+	s3Config := clusterResp.RancherKubernetesEngineConfig.Services.Etcd.BackupConfig.S3BackupConfig
+
+	isS3 := false
+	if s3Config != nil {
+		isS3 = true
+	}
+
+	existingSnapshots, err := GetRKE1Snapshots(client, clusterName)
+	if err != nil {
+		return err
+	}
+
+	automaticSnapshots := []management.EtcdBackup{}
+
+	for _, snapshot := range existingSnapshots {
+		if !snapshot.Manual {
+			automaticSnapshots = append(automaticSnapshots, snapshot)
+		}
+	}
+
+	listOpts := metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/etcd=true"}
+	etcdNodes, err := nodes.GetNodes(client, clusterID, listOpts)
+	if err != nil {
+		return err
+	}
+
+	expectedSnapshotsNum := int(retentionLimit) * len(etcdNodes)
+	if isS3 {
+		expectedSnapshotsNum = expectedSnapshotsNum * 2
+	}
+
+	if len(automaticSnapshots) > expectedSnapshotsNum {
+		errMsg := fmt.Sprintf("retention limit exceeded: expected %d snapshots, found %d snapshots",
+			expectedSnapshotsNum, len(automaticSnapshots))
+
+		return errors.New(errMsg)
+	}
+
+	logrus.Infof("Snapshot retention limit respected, Snapshots Expected: %v Snapshots Found: %v",
+		expectedSnapshotsNum, len(automaticSnapshots))
+
+	return nil
+}
+
+// RKE2K3SRetentionLimitCheck is a check that validates that the number of automatic snapshots
+// on the cluster is under the retention limit.
+func RKE2K3SRetentionLimitCheck(client *rancher.Client, clusterName string) error {
+	v1ClusterID, err := clusters.GetV1ProvisioningClusterByName(client, clusterName)
+	if err != nil {
+		return err
+	}
+
+	clusterObj, err := client.Steve.SteveType(stevetypes.Provisioning).ByID(v1ClusterID)
+	if err != nil {
+		return err
+	}
+
+	spec := apisV1.ClusterSpec{}
+	err = rancherv1.ConvertToK8sType(clusterObj.Spec, &spec)
+	if err != nil {
+		return err
+	}
+
+	etcdConfig := spec.RKEConfig.ETCD
+	retentionLimit := etcdConfig.SnapshotRetention
+
+	isS3 := false
+	if etcdConfig.S3 != nil {
+		isS3 = true
+	}
+
+	localClusterID, err := clusters.GetClusterIDByName(client, localClusterName)
+	if err != nil {
+		return err
+	}
+
+	existingSnapshots, err := GetRKE2K3SSnapshots(client, localClusterID, clusterName)
+	if err != nil {
+		return err
+	}
+
+	automaticSnapshots := []rancherv1.SteveAPIObject{}
+
+	for _, snapshot := range existingSnapshots {
+		if strings.Contains(snapshot.Annotations["etcdsnapshot.rke.io/snapshot-file-name"], "etcd-snapshot") {
+			automaticSnapshots = append(automaticSnapshots, snapshot)
+		}
+	}
+
+	downstreamClusterID, err := clusters.GetClusterIDByName(client, clusterName)
+	if err != nil {
+		return err
+	}
+
+	listOpts := metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/etcd=true"}
+	etcdNodes, err := nodes.GetNodes(client, downstreamClusterID, listOpts)
+	if err != nil {
+		return err
+	}
+
+	expectedSnapshotsNum := int(retentionLimit) * len(etcdNodes)
+	if isS3 {
+		expectedSnapshotsNum = expectedSnapshotsNum * 2
+	}
+
+	if len(automaticSnapshots) > expectedSnapshotsNum {
+		msg := fmt.Sprintf(
+			"retention limit exceeded: expected %d snapshots, found %d snapshots",
+			expectedSnapshotsNum, len(automaticSnapshots))
+
+		return errors.New(msg)
+	}
+
+	logrus.Infof("Snapshot retention limit respected, Snapshots Expected: %v Snapshots Found: %v",
+		expectedSnapshotsNum, len(automaticSnapshots))
 
 	return nil
 }
