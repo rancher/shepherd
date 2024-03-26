@@ -397,45 +397,53 @@ func VerifySnapshots(client *rancher.Client, localclusterID string, clusterName 
 	if err != nil {
 		return "", err
 	}
-	var snapshotToBeRestored string
-	var snapshotList []string
-	s3Prefix := onDemandPrefix + clusterName
 
-	err = kwait.Poll(5*time.Second, defaults.FiveMinuteTimeout, func() (done bool, err error) {
+	var snapshotToBeRestored string
+	var snapshotNameList []string
+	s3Prefix := onDemandPrefix + clusterName
+	err = kwait.PollUntilContextTimeout(context.TODO(), 5*time.Second, defaults.FiveMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
 		if isRKE1 {
-			snapshotList, err = etcdsnapshot.GetRKE1Snapshots(client, clusterName)
+			snapshotObjectList, err := etcdsnapshot.GetRKE1Snapshots(client, clusterName)
 			if err != nil {
 				return false, err
 			}
+
+			for _, snapshot := range snapshotObjectList {
+				snapshotNameList = append(snapshotNameList, snapshot.ID)
+			}
 		} else {
-			snapshotList, err = etcdsnapshot.GetRKE2K3SSnapshots(client, localclusterID, clusterName)
+			snapshotObjectList, err := etcdsnapshot.GetRKE2K3SSnapshots(client, localclusterID, clusterName)
 			if err != nil {
 				return false, err
+			}
+
+			for _, snapshot := range snapshotObjectList {
+				snapshotNameList = append(snapshotNameList, snapshot.Name)
 			}
 		}
 
-		if len(snapshotList) == 0 {
+		if len(snapshotNameList) == 0 {
 			return false, fmt.Errorf("no snapshots found")
 		}
 
 		// Indexed from 0 for S3 checks to ensure that the local backup location does not have the s3Prefix.
 		// Needed to ensure that the correct S3 snapshot is restored.
-		if strings.Contains(snapshotList[0], s3Prefix) {
-			snapshotToBeRestored = snapshotList[len(snapshotList)-1]
+		if strings.Contains(snapshotNameList[0], s3Prefix) {
+			snapshotToBeRestored = snapshotNameList[len(snapshotNameList)-1]
 			return true, nil
 		}
 
-		if len(snapshotList) == expectedSnapshotLength {
-			snapshotToBeRestored = snapshotList[0]
+		if len(snapshotNameList) == expectedSnapshotLength {
+			snapshotToBeRestored = snapshotNameList[0]
 			return true, nil
 		}
 
-		if len(snapshotList) > expectedSnapshotLength && isRKE1 {
-			snapshotToBeRestored = snapshotList[0]
+		if len(snapshotNameList) > expectedSnapshotLength && isRKE1 {
+			snapshotToBeRestored = snapshotNameList[0]
 			return true, nil
 		}
 
-		if len(snapshotList) > expectedSnapshotLength && !isRKE1 {
+		if len(snapshotNameList) > expectedSnapshotLength && !isRKE1 {
 			return false, fmt.Errorf("more snapshots than expected")
 		}
 
