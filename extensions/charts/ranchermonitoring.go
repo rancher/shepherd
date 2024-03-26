@@ -2,11 +2,14 @@ package charts
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	catalogv1 "github.com/rancher/rancher/pkg/apis/catalog.cattle.io/v1"
 	"github.com/rancher/shepherd/clients/rancher"
 	"github.com/rancher/shepherd/clients/rancher/catalog"
+	"github.com/rancher/shepherd/extensions/clusters"
 	"github.com/rancher/shepherd/extensions/defaults"
 	kubenamespaces "github.com/rancher/shepherd/extensions/kubeapi/namespaces"
 	"github.com/rancher/shepherd/extensions/namespaces"
@@ -47,9 +50,12 @@ func InstallRancherMonitoringChart(client *rancher.Client, installOptions *Insta
 		DefaultRegistry: registrySetting.Value,
 	}
 
-	chartInstallAction := newMonitoringChartInstallAction(monitoringChartInstallActionPayload, rancherMonitoringOpts)
+	chartInstallAction, err := newMonitoringChartInstallAction(monitoringChartInstallActionPayload, rancherMonitoringOpts)
+	if err != nil {
+		return err
+	}
 
-	catalogClient, err := client.GetClusterCatalogClient(installOptions.ClusterID)
+	catalogClient, err := client.GetClusterCatalogClient(installOptions.Cluster.ID)
 	if err != nil {
 		return err
 	}
@@ -112,7 +118,7 @@ func InstallRancherMonitoringChart(client *rancher.Client, installOptions *Insta
 			return err
 		}
 
-		steveclient, err := client.Steve.ProxyDownstream(installOptions.ClusterID)
+		steveclient, err := client.Steve.ProxyDownstream(installOptions.Cluster.ID)
 		if err != nil {
 			return err
 		}
@@ -133,7 +139,7 @@ func InstallRancherMonitoringChart(client *rancher.Client, installOptions *Insta
 		if err != nil {
 			return err
 		}
-		adminDynamicClient, err := adminClient.GetDownStreamClusterClient(installOptions.ClusterID)
+		adminDynamicClient, err := adminClient.GetDownStreamClusterClient(installOptions.Cluster.ID)
 		if err != nil {
 			return err
 		}
@@ -143,7 +149,6 @@ func InstallRancherMonitoringChart(client *rancher.Client, installOptions *Insta
 			FieldSelector:  "metadata.name=" + RancherMonitoringNamespace,
 			TimeoutSeconds: &defaults.WatchTimeoutSeconds,
 		})
-
 		if err != nil {
 			return err
 		}
@@ -186,11 +191,8 @@ func InstallRancherMonitoringChart(client *rancher.Client, installOptions *Insta
 }
 
 // newMonitoringChartInstallAction is a private helper function that returns chart install action with monitoring and payload options.
-func newMonitoringChartInstallAction(p *payloadOpts, rancherMonitoringOpts *RancherMonitoringOpts) *types.ChartInstallAction {
+func newMonitoringChartInstallAction(p *payloadOpts, rancherMonitoringOpts *RancherMonitoringOpts) (*types.ChartInstallAction, error) {
 	monitoringValues := map[string]interface{}{
-		"ingressNgnix": map[string]interface{}{
-			"enabled": rancherMonitoringOpts.IngressNginx,
-		},
 		"prometheus": map[string]interface{}{
 			"prometheusSpec": map[string]interface{}{
 				"evaluationInterval": "1m",
@@ -198,27 +200,24 @@ func newMonitoringChartInstallAction(p *payloadOpts, rancherMonitoringOpts *Ranc
 				"scrapeInterval":     "1m",
 			},
 		},
-		"rkeControllerManager": map[string]interface{}{
-			"enabled": rancherMonitoringOpts.RKEControllerManager,
-		},
-		"rkeEtcd": map[string]interface{}{
-			"enabled": rancherMonitoringOpts.RKEEtcd,
-		},
-		"rkeProxy": map[string]interface{}{
-			"enabled": rancherMonitoringOpts.RKEProxy,
-		},
-		"rkeScheduler": map[string]interface{}{
-			"enabled": rancherMonitoringOpts.RKEScheduler,
-		},
 	}
 
-	chartInstall := newChartInstall(p.Name, p.InstallOptions.Version, p.InstallOptions.ClusterID, p.InstallOptions.ClusterName, p.Host, rancherChartsName, p.ProjectID, p.DefaultRegistry, monitoringValues)
-	chartInstallCRD := newChartInstall(p.Name+"-crd", p.Version, p.InstallOptions.ClusterID, p.InstallOptions.ClusterName, p.Host, rancherChartsName, p.ProjectID, p.DefaultRegistry, nil)
+	opts, err := addMonitoringProviderPrefix(p.Cluster.Provider, rancherMonitoringOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range opts {
+		monitoringValues[k] = v
+	}
+
+	chartInstall := newChartInstall(p.Name, p.Version, p.Cluster.ID, p.Cluster.Name, p.Host, rancherChartsName, p.ProjectID, p.DefaultRegistry, monitoringValues)
+	chartInstallCRD := newChartInstall(p.Name+"-crd", p.Version, p.Cluster.ID, p.Cluster.Name, p.Host, rancherChartsName, p.ProjectID, p.DefaultRegistry, nil)
 	chartInstalls := []types.ChartInstall{*chartInstallCRD, *chartInstall}
 
 	chartInstallAction := newChartInstallAction(p.Namespace, p.ProjectID, chartInstalls)
 
-	return chartInstallAction
+	return chartInstallAction, nil
 }
 
 // UpgradeMonitoringChart is a helper function that upgrades the rancher-monitoring chart.
@@ -241,9 +240,12 @@ func UpgradeRancherMonitoringChart(client *rancher.Client, installOptions *Insta
 		DefaultRegistry: registrySetting.Value,
 	}
 
-	chartUpgradeAction := newMonitoringChartUpgradeAction(monitoringChartUpgradeActionPayload, rancherMonitoringOpts)
+	chartUpgradeAction, err := newMonitoringChartUpgradeAction(monitoringChartUpgradeActionPayload, rancherMonitoringOpts)
+	if err != nil {
+		return err
+	}
 
-	catalogClient, err := client.GetClusterCatalogClient(installOptions.ClusterID)
+	catalogClient, err := client.GetClusterCatalogClient(installOptions.Cluster.ID)
 	if err != nil {
 		return err
 	}
@@ -257,7 +259,7 @@ func UpgradeRancherMonitoringChart(client *rancher.Client, installOptions *Insta
 	if err != nil {
 		return err
 	}
-	adminCatalogClient, err := adminClient.GetClusterCatalogClient(installOptions.ClusterID)
+	adminCatalogClient, err := adminClient.GetClusterCatalogClient(installOptions.Cluster.ID)
 	if err != nil {
 		return err
 	}
@@ -310,11 +312,8 @@ func UpgradeRancherMonitoringChart(client *rancher.Client, installOptions *Insta
 }
 
 // newMonitoringChartUpgradeAction is a private helper function that returns chart upgrade action with monitoring and payload options.
-func newMonitoringChartUpgradeAction(p *payloadOpts, rancherMonitoringOpts *RancherMonitoringOpts) *types.ChartUpgradeAction {
+func newMonitoringChartUpgradeAction(p *payloadOpts, rancherMonitoringOpts *RancherMonitoringOpts) (*types.ChartUpgradeAction, error) {
 	monitoringValues := map[string]interface{}{
-		"ingressNgnix": map[string]interface{}{
-			"enabled": rancherMonitoringOpts.IngressNginx,
-		},
 		"prometheus": map[string]interface{}{
 			"prometheusSpec": map[string]interface{}{
 				"evaluationInterval": "1m",
@@ -322,24 +321,57 @@ func newMonitoringChartUpgradeAction(p *payloadOpts, rancherMonitoringOpts *Ranc
 				"scrapeInterval":     "1m",
 			},
 		},
-		"rkeControllerManager": map[string]interface{}{
-			"enabled": rancherMonitoringOpts.RKEControllerManager,
-		},
-		"rkeEtcd": map[string]interface{}{
-			"enabled": rancherMonitoringOpts.RKEEtcd,
-		},
-		"rkeProxy": map[string]interface{}{
-			"enabled": rancherMonitoringOpts.RKEProxy,
-		},
-		"rkeScheduler": map[string]interface{}{
-			"enabled": rancherMonitoringOpts.RKEScheduler,
-		},
 	}
-	chartUpgrade := newChartUpgrade(p.Name, p.InstallOptions.Version, p.InstallOptions.ClusterID, p.InstallOptions.ClusterName, p.Host, p.DefaultRegistry, monitoringValues)
-	chartUpgradeCRD := newChartUpgrade(p.Name+"-crd", p.InstallOptions.Version, p.InstallOptions.ClusterID, p.InstallOptions.ClusterName, p.Host, p.DefaultRegistry, monitoringValues)
+
+	opts, err := addMonitoringProviderPrefix(p.Cluster.Provider, rancherMonitoringOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range opts {
+		monitoringValues[k] = v
+	}
+
+	chartUpgrade := newChartUpgrade(p.Name, p.Version, p.Cluster.ID, p.Cluster.Name, p.Host, p.DefaultRegistry, monitoringValues)
+	chartUpgradeCRD := newChartUpgrade(p.Name+"-crd", p.Version, p.Cluster.ID, p.Cluster.Name, p.Host, p.DefaultRegistry, monitoringValues)
 	chartUpgrades := []types.ChartUpgrade{*chartUpgradeCRD, *chartUpgrade}
 
 	chartUpgradeAction := newChartUpgradeAction(p.Namespace, chartUpgrades)
 
-	return chartUpgradeAction
+	return chartUpgradeAction, nil
+}
+
+// addProvider prefix is a private helper function that adds kubernetes provider to the monitoring opts payload keys. ex) maps "scheduler" to "rke2Scheduler"
+func addMonitoringProviderPrefix(provider clusters.KubernetesProvider, opts *RancherMonitoringOpts) (map[string]any, error) {
+	optsBytes, err := json.Marshal(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	optsMap := map[string]any{}
+	err = json.Unmarshal(optsBytes, &optsMap)
+	if err != nil {
+		return nil, err
+	}
+
+	newOptsMap := map[string]any{}
+	ingressKey := "ingressNginx"
+
+	for k, v := range optsMap {
+		// ingressNginx on RKE1 doesn't have prefix
+		if k == ingressKey && provider == clusters.KubernetesProviderRKE {
+			newOptsMap[k] = map[string]any{
+				"enabled": v,
+			}
+
+			continue
+		}
+
+		newKey := fmt.Sprintf("%v%v%v", provider, strings.ToUpper(string(k[0])), k[1:])
+		newOptsMap[newKey] = map[string]any{
+			"enabled": v,
+		}
+	}
+
+	return newOptsMap, nil
 }

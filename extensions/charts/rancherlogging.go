@@ -47,7 +47,7 @@ func InstallRancherLoggingChart(client *rancher.Client, installOptions *InstallO
 
 	chartInstallAction := newLoggingChartInstallAction(loggingChartInstallActionPayload, rancherLoggingOpts)
 
-	catalogClient, err := client.GetClusterCatalogClient(installOptions.ClusterID)
+	catalogClient, err := client.GetClusterCatalogClient(installOptions.Cluster.ID)
 	if err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func InstallRancherLoggingChart(client *rancher.Client, installOptions *InstallO
 			return err
 		}
 
-		steveclient, err := client.Steve.ProxyDownstream(installOptions.ClusterID)
+		steveclient, err := client.Steve.ProxyDownstream(installOptions.Cluster.ID)
 		if err != nil {
 			return err
 		}
@@ -131,7 +131,7 @@ func InstallRancherLoggingChart(client *rancher.Client, installOptions *InstallO
 		if err != nil {
 			return err
 		}
-		adminDynamicClient, err := adminClient.GetDownStreamClusterClient(installOptions.ClusterID)
+		adminDynamicClient, err := adminClient.GetDownStreamClusterClient(installOptions.Cluster.ID)
 		if err != nil {
 			return err
 		}
@@ -141,7 +141,6 @@ func InstallRancherLoggingChart(client *rancher.Client, installOptions *InstallO
 			FieldSelector:  "metadata.name=" + RancherLoggingNamespace,
 			TimeoutSeconds: &defaults.WatchTimeoutSeconds,
 		})
-
 		if err != nil {
 			return err
 		}
@@ -185,14 +184,16 @@ func InstallRancherLoggingChart(client *rancher.Client, installOptions *InstallO
 
 // newLoggingChartInstallAction is a private helper function that returns chart install action with logging and payload options.
 func newLoggingChartInstallAction(p *payloadOpts, rancherLoggingOpts *RancherLoggingOpts) *types.ChartInstallAction {
-	loggingValues := map[string]interface{}{
-		"additionalLoggingSources": map[string]interface{}{
-			"enabled": rancherLoggingOpts.AdditionalLoggingSources,
+	loggingValues := map[string]any{
+		string(p.Cluster.Provider): map[string]any{
+			"additionalLoggingSources": map[string]any{
+				"enabled": rancherLoggingOpts.AdditionalLoggingSources,
+			},
 		},
 	}
 
-	chartInstall := newChartInstall(p.Name, p.InstallOptions.Version, p.InstallOptions.ClusterID, p.InstallOptions.ClusterName, p.Host, rancherChartsName, p.ProjectID, p.DefaultRegistry, loggingValues)
-	chartInstallCRD := newChartInstall(p.Name+"-crd", p.Version, p.InstallOptions.ClusterID, p.InstallOptions.ClusterName, p.Host, rancherChartsName, p.ProjectID, p.DefaultRegistry, nil)
+	chartInstall := newChartInstall(p.Name, p.Version, p.Cluster.ID, p.Cluster.Name, p.Host, rancherChartsName, p.ProjectID, p.DefaultRegistry, loggingValues)
+	chartInstallCRD := newChartInstall(p.Name+"-crd", p.Version, p.Cluster.ID, p.Cluster.Name, p.Host, rancherChartsName, p.ProjectID, p.DefaultRegistry, nil)
 	chartInstalls := []types.ChartInstall{*chartInstallCRD, *chartInstall}
 
 	chartInstallAction := newChartInstallAction(p.Namespace, p.ProjectID, chartInstalls)
