@@ -38,3 +38,19 @@ func DeleteGlobalRole(client *rancher.Client, globalRoleName string) error {
 	}
 	return nil
 }
+
+// DeleteRoletemplate is a helper function that uses the dynamic client to delete a Custom Cluster Role/ Project Role template by name
+func DeleteRoletemplate(client *rancher.Client, roleName string) error {
+	dynamicClient, err := client.GetDownStreamClusterClient(LocalCluster)
+	if err != nil {
+		return err
+	}
+
+	roleResource := dynamicClient.Resource(RoleTemplateGroupVersionResource)
+
+	err = roleResource.Delete(context.TODO(), roleName, metav1.DeleteOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
+}
