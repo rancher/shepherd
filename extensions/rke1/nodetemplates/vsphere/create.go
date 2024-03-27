@@ -13,6 +13,7 @@ const vmwarevsphereNodeTemplateNameBase = "vmwarevsphereNodeConfig"
 // an VSphere node template and returns the NodeTemplate response
 func CreateVSphereNodeTemplate(rancherClient *rancher.Client) (*nodetemplates.NodeTemplate, error) {
 	var vmwarevsphereNodeTemplateConfig nodetemplates.VmwareVsphereNodeTemplateConfig
+
 	config.LoadConfig(nodetemplates.VmwareVsphereNodeTemplateConfigurationFileKey, &vmwarevsphereNodeTemplateConfig)
 
 	nodeTemplate := nodetemplates.NodeTemplate{
@@ -24,15 +25,34 @@ func CreateVSphereNodeTemplate(rancherClient *rancher.Client) (*nodetemplates.No
 	nodeTemplateConfig := &nodetemplates.NodeTemplate{}
 	config.LoadConfig(nodetemplates.NodeTemplateConfigurationFileKey, nodeTemplateConfig)
 
-	nodeTemplateFinal, err := nodeTemplate.MergeOverride(nodeTemplateConfig, nodetemplates.VmwareVsphereNodeTemplateConfigurationFileKey)
+	nodeTemplateFinal, err := nodeTemplate.
+		MergeOverride(nodeTemplateConfig, nodetemplates.VmwareVsphereNodeTemplateConfigurationFileKey)
 	if err != nil {
 		return nil, err
 	}
 
 	resp := &nodetemplates.NodeTemplate{}
 	err = rancherClient.Management.APIBaseClient.Ops.DoCreate(management.NodeTemplateType, *nodeTemplateFinal, resp)
+
 	if err != nil {
 		return nil, err
 	}
+
 	return resp, nil
+}
+
+func GetVsphereDatastoreUrl() string {
+	var vmwarevsphereNodeTemplateConfig nodetemplates.VmwareVsphereNodeTemplateConfig
+
+	config.LoadConfig(nodetemplates.VmwareVsphereNodeTemplateConfigurationFileKey, &vmwarevsphereNodeTemplateConfig)
+
+	return vmwarevsphereNodeTemplateConfig.DatastoreUrl
+}
+
+func GetVspherePassword() string {
+	var vmwarevsphereNodeTemplateConfig nodetemplates.VmwareVsphereNodeTemplateConfig
+
+	config.LoadConfig(nodetemplates.VmwareVsphereNodeTemplateConfigurationFileKey, &vmwarevsphereNodeTemplateConfig)
+
+	return vmwarevsphereNodeTemplateConfig.Password
 }

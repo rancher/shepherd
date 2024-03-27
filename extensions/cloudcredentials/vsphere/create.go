@@ -27,3 +27,11 @@ func CreateVsphereCloudCredentials(rancherClient *rancher.Client) (*cloudcredent
 	}
 	return resp, nil
 }
+
+func GetVspherePassword() string {
+	var vmwarevsphereCredentialConfig cloudcredentials.VmwarevsphereCredentialConfig
+
+	config.LoadConfig(cloudcredentials.VmwarevsphereCredentialConfigurationFileKey, &vmwarevsphereCredentialConfig)
+
+	return vmwarevsphereCredentialConfig.Password
+}
