@@ -26,6 +26,7 @@ require (
 	github.com/pkg/sftp v1.13.5
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.52.0
 	github.com/rancher/apiserver v0.0.0-20230831052300-120e615b17ba
+	github.com/rancher/backup-restore-operator v1.2.1
 	github.com/rancher/eks-operator v1.3.0
 	github.com/rancher/fleet/pkg/apis v0.0.0-20231017140638-93432f288e79
 	github.com/rancher/gke-operator v1.2.0
