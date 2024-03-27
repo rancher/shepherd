@@ -31,11 +31,7 @@ const (
 	JobName               = "kubectl"
 )
 
-var (
-	importTimeout = int64(60 * 1)
-	group         int64
-	user          int64
-)
+var importTimeout = int64(60 * 1)
 
 // CreateJobAndRunKubectlCommands is a helper to create a job and run the kubectl commands in the pods of the Job.
 // It then returns errors or nil from the job.
