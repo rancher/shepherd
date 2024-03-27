@@ -1,6 +1,7 @@
 package machinepools
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -72,14 +73,19 @@ func updateMachinePoolQuantity(client *rancher.Client, cluster *v1.SteveAPIObjec
 		return nil, err
 	}
 
-	err = kwait.Poll(500*time.Millisecond, defaults.TenMinuteTimeout, func() (done bool, err error) {
+	err = kwait.PollUntilContextTimeout(context.TODO(), 500*time.Millisecond, defaults.ThirtyMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
+		client, err = client.ReLogin()
+		if err != nil {
+			return false, err
+		}
+
 		clusterResp, err := client.Steve.SteveType("provisioning.cattle.io.cluster").ByID(cluster.ID)
 		if err != nil {
 			return false, err
 		}
 
 		if clusterResp.ObjectMeta.State.Name == active &&
-			nodestat.AllManagementNodeReady(client, cluster.ID, defaults.ThirtyMinuteTimeout) == nil {
+			nodestat.AllMachineReady(client, cluster.ID, defaults.ThirtyMinuteTimeout) == nil {
 			return true, nil
 		}
 

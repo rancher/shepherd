@@ -1,6 +1,7 @@
 package rke1
 
 import (
+	"context"
 	"strconv"
 	"time"
 
@@ -110,14 +111,13 @@ func updateNodePoolQuantity(client *rancher.Client, cluster *management.Cluster,
 		return nil, err
 	}
 
-	err = kwait.Poll(500*time.Millisecond, defaults.TenMinuteTimeout, func() (done bool, err error) {
+	err = kwait.PollUntilContextTimeout(context.TODO(), 500*time.Millisecond, defaults.ThirtyMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
 		clusterResp, err := client.Management.Cluster.ByID(cluster.ID)
 		if err != nil {
 			return false, err
 		}
 
 		if clusterResp.State == active && nodestat.AllManagementNodeReady(client, clusterResp.ID, defaults.ThirtyMinuteTimeout) == nil {
-			logrus.Infof("Node pool is scaled!")
 			return true, nil
 		}
 		return false, nil
