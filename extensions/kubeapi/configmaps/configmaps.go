@@ -53,3 +53,26 @@ func CreateConfigMap(client *rancher.Client, clusterName, configMapName, descrip
 	}
 	return newConfig, nil
 }
+
+// NewConfigmapTemplate is a constructor that creates a configmap template
+func NewConfigmapTemplate(configmapName, namespace string, annotations, labels, data map[string]string) coreV1.ConfigMap {
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	if data == nil {
+		data = make(map[string]string)
+	}
+
+	return coreV1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        configmapName,
+			Namespace:   namespace,
+			Annotations: annotations,
+			Labels:      labels,
+		},
+		Data: data,
+	}
+}
