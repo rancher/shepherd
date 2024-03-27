@@ -32,7 +32,7 @@ const (
 )
 
 var (
-	importTimeout = int64(60 * 1)
+	importTimeout = int64(60 * 2)
 	group         int64
 	user          int64
 )
