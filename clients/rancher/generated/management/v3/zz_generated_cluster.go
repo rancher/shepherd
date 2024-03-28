@@ -197,12 +197,6 @@ type ClusterOperations interface {
 
 	ActionBackupEtcd(resource *Cluster) error
 
-	ActionDisableMonitoring(resource *Cluster) error
-
-	ActionEditMonitoring(resource *Cluster, input *MonitoringInput) error
-
-	ActionEnableMonitoring(resource *Cluster, input *MonitoringInput) error
-
 	ActionExportYaml(resource *Cluster) (*ExportOutput, error)
 
 	ActionGenerateKubeconfig(resource *Cluster) (*GenerateKubeConfigOutput, error)
@@ -216,8 +210,6 @@ type ClusterOperations interface {
 	ActionRotateEncryptionKey(resource *Cluster) (*RotateEncryptionKeyOutput, error)
 
 	ActionSaveAsTemplate(resource *Cluster, input *SaveAsTemplateInput) (*SaveAsTemplateOutput, error)
-
-	ActionViewMonitoring(resource *Cluster) (*MonitoringOutput, error)
 }
 
 func newClusterClient(apiClient *Client) *ClusterClient {
@@ -294,21 +286,6 @@ func (c *ClusterClient) ActionBackupEtcd(resource *Cluster) error {
 	return err
 }
 
-func (c *ClusterClient) ActionDisableMonitoring(resource *Cluster) error {
-	err := c.apiClient.Ops.DoAction(ClusterType, "disableMonitoring", &resource.Resource, nil, nil)
-	return err
-}
-
-func (c *ClusterClient) ActionEditMonitoring(resource *Cluster, input *MonitoringInput) error {
-	err := c.apiClient.Ops.DoAction(ClusterType, "editMonitoring", &resource.Resource, input, nil)
-	return err
-}
-
-func (c *ClusterClient) ActionEnableMonitoring(resource *Cluster, input *MonitoringInput) error {
-	err := c.apiClient.Ops.DoAction(ClusterType, "enableMonitoring", &resource.Resource, input, nil)
-	return err
-}
-
 func (c *ClusterClient) ActionExportYaml(resource *Cluster) (*ExportOutput, error) {
 	resp := &ExportOutput{}
 	err := c.apiClient.Ops.DoAction(ClusterType, "exportYaml", &resource.Resource, nil, resp)
@@ -347,11 +324,5 @@ func (c *ClusterClient) ActionRotateEncryptionKey(resource *Cluster) (*RotateEnc
 func (c *ClusterClient) ActionSaveAsTemplate(resource *Cluster, input *SaveAsTemplateInput) (*SaveAsTemplateOutput, error) {
 	resp := &SaveAsTemplateOutput{}
 	err := c.apiClient.Ops.DoAction(ClusterType, "saveAsTemplate", &resource.Resource, input, resp)
-	return resp, err
-}
-
-func (c *ClusterClient) ActionViewMonitoring(resource *Cluster) (*MonitoringOutput, error) {
-	resp := &MonitoringOutput{}
-	err := c.apiClient.Ops.DoAction(ClusterType, "viewMonitoring", &resource.Resource, nil, resp)
 	return resp, err
 }
