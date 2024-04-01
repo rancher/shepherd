@@ -42,13 +42,3 @@ type NodeTemplate struct {
 	UUID                            string                           `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 	UseInternalIPAddress            *bool                            `json:"useInternalIpAddress,omitempty" yaml:"useInternalIpAddress,omitempty"`
 }
-
-func providerTemplateConfigKeys() []string {
-	return []string{
-		AmazonEC2NodeTemplateConfigurationFileKey,
-		AzureNodeTemplateConfigurationFileKey,
-		HarvesterNodeTemplateConfigurationFileKey,
-		LinodeNodeTemplateConfigurationFileKey,
-		VmwareVsphereNodeTemplateConfigurationFileKey,
-	}
-}
