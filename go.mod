@@ -33,7 +33,6 @@ require (
 	github.com/rancher/rancher/pkg/apis v0.0.0-20230915232223-a9ea4ce4a5ba
 	github.com/rancher/remotedialer v0.3.1
 	github.com/rancher/rke v1.5.0
-	github.com/rancher/steve v0.0.0-20240326191124-9b00eb3a7fc5
 	github.com/rancher/system-upgrade-controller/pkg/apis v0.0.0-20210727200656-10b094e30007
 	github.com/rancher/types v0.0.0-20220328215343-4370ff10ecd5
 	github.com/rancher/wrangler v1.1.1
@@ -104,7 +103,6 @@ require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.3.0 // indirect
-	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect

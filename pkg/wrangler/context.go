@@ -6,6 +6,7 @@ package wrangler
 import (
 	"context"
 	"fmt"
+	"github.com/rancher/shepherd/pkg/session"
 	"net"
 	"net/http"
 	"os"
@@ -24,33 +25,12 @@ import (
 	rkev1api "github.com/rancher/rancher/pkg/apis/rke.cattle.io/v1"
 	"github.com/rancher/rancher/pkg/settings"
 	"github.com/rancher/remotedialer"
-	"github.com/rancher/shepherd/pkg/generated/controllers/catalog.cattle.io"
-	catalogcontrollers "github.com/rancher/shepherd/pkg/generated/controllers/catalog.cattle.io/v1"
-	capi "github.com/rancher/shepherd/pkg/generated/controllers/cluster.x-k8s.io"
-	"github.com/rancher/shepherd/pkg/generated/controllers/cluster.x-k8s.io/v1beta1"
-	"github.com/rancher/shepherd/pkg/generated/controllers/fleet.cattle.io"
-	fleetv1alpha1 "github.com/rancher/shepherd/pkg/generated/controllers/fleet.cattle.io/v1alpha1"
 	"github.com/rancher/shepherd/pkg/generated/controllers/management.cattle.io"
 	managementv3 "github.com/rancher/shepherd/pkg/generated/controllers/management.cattle.io/v3"
-	"github.com/rancher/shepherd/pkg/generated/controllers/provisioning.cattle.io"
-	provisioningv1 "github.com/rancher/shepherd/pkg/generated/controllers/provisioning.cattle.io/v1"
-	"github.com/rancher/shepherd/pkg/generated/controllers/rke.cattle.io"
-	rkecontrollers "github.com/rancher/shepherd/pkg/generated/controllers/rke.cattle.io/v1"
-	"github.com/rancher/steve/pkg/accesscontrol"
+	"github.com/rancher/shepherd/pkg/wrangler/pkg/generic"
 	"github.com/rancher/wrangler/v2/pkg/apply"
-	admissionreg "github.com/rancher/wrangler/v2/pkg/generated/controllers/admissionregistration.k8s.io"
-	admissionregcontrollers "github.com/rancher/wrangler/v2/pkg/generated/controllers/admissionregistration.k8s.io/v1"
 	crdv1 "github.com/rancher/wrangler/v2/pkg/generated/controllers/apiextensions.k8s.io/v1"
 	apiregv1 "github.com/rancher/wrangler/v2/pkg/generated/controllers/apiregistration.k8s.io/v1"
-	"github.com/rancher/wrangler/v2/pkg/generated/controllers/apps"
-	appsv1 "github.com/rancher/wrangler/v2/pkg/generated/controllers/apps/v1"
-	"github.com/rancher/wrangler/v2/pkg/generated/controllers/batch"
-	batchv1 "github.com/rancher/wrangler/v2/pkg/generated/controllers/batch/v1"
-	"github.com/rancher/wrangler/v2/pkg/generated/controllers/core"
-	corev1 "github.com/rancher/wrangler/v2/pkg/generated/controllers/core/v1"
-	"github.com/rancher/wrangler/v2/pkg/generated/controllers/rbac"
-	rbacv1 "github.com/rancher/wrangler/v2/pkg/generated/controllers/rbac/v1"
-	"github.com/rancher/wrangler/v2/pkg/generic"
 	"github.com/rancher/wrangler/v2/pkg/leader"
 	"github.com/rancher/wrangler/v2/pkg/schemes"
 	"github.com/sirupsen/logrus"
@@ -105,26 +85,25 @@ func init() {
 type Context struct {
 	RESTConfig *rest.Config
 
-	Apply               apply.Apply
-	Dynamic             *dynamic.Controller
-	RKE                 rkecontrollers.Interface
-	Mgmt                managementv3.Interface
-	Apps                appsv1.Interface
-	Admission           admissionregcontrollers.Interface
-	Batch               batchv1.Interface
-	Fleet               fleetv1alpha1.Interface
-	Catalog             catalogcontrollers.Interface
+	Apply   apply.Apply
+	Dynamic *dynamic.Controller
+	//RKE                 rkecontrollers.Interface
+	Mgmt managementv3.Interface
+	//Apps                appsv1.Interface
+	//Admission           admissionregcontrollers.Interface
+	//Batch               batchv1.Interface
+	//Fleet               fleetv1alpha1.Interface
+	//Catalog             catalogcontrollers.Interface
 	ControllerFactory   controller.SharedControllerFactory
 	MultiClusterManager MultiClusterManager
 	TunnelServer        *remotedialer.Server
-	Provisioning        provisioningv1.Interface
-	RBAC                rbacv1.Interface
-	Core                corev1.Interface
-	API                 apiregv1.Interface
-	CRD                 crdv1.Interface
-	K8s                 *kubernetes.Clientset
+	//Provisioning        provisioningv1.Interface
+	//RBAC                rbacv1.Interface
+	//Core                corev1.Interface
+	API apiregv1.Interface
+	CRD crdv1.Interface
+	K8s *kubernetes.Clientset
 
-	ASL                     accesscontrol.AccessSetLookup
 	ClientConfig            clientcmd.ClientConfig
 	CachedDiscovery         discovery.CachedDiscoveryInterface
 	RESTMapper              meta.RESTMapper
@@ -134,20 +113,21 @@ type Context struct {
 
 	RESTClientGetter genericclioptions.RESTClientGetter
 
-	mgmt         *management.Factory
-	rbac         *rbac.Factory
-	ctlg         *catalog.Factory
-	adminReg     *admissionreg.Factory
-	apps         *apps.Factory
-	capi         *capi.Factory
-	rke          *rke.Factory
-	fleet        *fleet.Factory
-	provisioning *provisioning.Factory
-	batch        *batch.Factory
-	core         *core.Factory
+	mgmt *management.Factory
+	//rbac         *rbac.Factory
+	//ctlg         *catalog.Factory
+	//adminReg     *admissionreg.Factory
+	//apps         *apps.Factory
+	//capi         *capi.Factory
+	//rke          *rke.Factory
+	//fleet        *fleet.Factory
+	//provisioning *provisioning.Factory
+	//batch        *batch.Factory
+	//core         *core.Factory
 
 	started bool
-	CAPI    v1beta1.Interface
+	//CAPI    v1beta1.Interface
+	ts *session.Session
 }
 
 type MultiClusterManager interface {
@@ -234,16 +214,16 @@ func (w *Context) WithAgent(userAgent string) *Context {
 		wContextCopy.Apply = applyWithAgent
 	}
 	wContextCopy.Dynamic = dynamic.New(wContextCopy.K8s.Discovery())
-	wContextCopy.RKE = wContextCopy.rke.WithAgent(userAgent).V1()
+	//wContextCopy.RKE = wContextCopy.rke.WithAgent(userAgent).V1()
 	wContextCopy.Mgmt = wContextCopy.mgmt.WithAgent(userAgent).V3()
-	wContextCopy.Apps = wContextCopy.apps.WithAgent(userAgent).V1()
-	wContextCopy.Admission = wContextCopy.adminReg.WithAgent(userAgent).V1()
-	wContextCopy.Batch = wContextCopy.batch.WithAgent(userAgent).V1()
-	wContextCopy.Fleet = wContextCopy.fleet.WithAgent(userAgent).V1alpha1()
-	wContextCopy.Catalog = wContextCopy.ctlg.WithAgent(userAgent).V1()
-	wContextCopy.Provisioning = wContextCopy.provisioning.WithAgent(userAgent).V1()
-	wContextCopy.RBAC = wContextCopy.rbac.WithAgent(userAgent).V1()
-	wContextCopy.Core = wContextCopy.core.WithAgent(userAgent).V1()
+	//wContextCopy.Apps = wContextCopy.apps.WithAgent(userAgent).V1()
+	//wContextCopy.Admission = wContextCopy.adminReg.WithAgent(userAgent).V1()
+	//wContextCopy.Batch = wContextCopy.batch.WithAgent(userAgent).V1()
+	//wContextCopy.Fleet = wContextCopy.fleet.WithAgent(userAgent).V1alpha1()
+	//wContextCopy.Catalog = wContextCopy.ctlg.WithAgent(userAgent).V1()
+	//wContextCopy.Provisioning = wContextCopy.provisioning.WithAgent(userAgent).V1()
+	//wContextCopy.RBAC = wContextCopy.rbac.WithAgent(userAgent).V1()
+	//wContextCopy.Core = wContextCopy.core.WithAgent(userAgent).V1()
 
 	return &wContextCopy
 }
@@ -256,7 +236,7 @@ func enableProtobuf(cfg *rest.Config) *rest.Config {
 }
 
 // NewContext creates a new Context with the given parameters. It initializes the required controller factories and other components needed for the context.
-func NewContext(ctx context.Context, clientConfig clientcmd.ClientConfig, restConfig *rest.Config) (*Context, error) {
+func NewContext(ctx context.Context, clientConfig clientcmd.ClientConfig, restConfig *rest.Config, ts *session.Session) (*Context, error) {
 	sharedOpts := GetOptsFromEnv(Management)
 	controllerFactory, err := controller.NewSharedControllerFactoryFromConfigWithOptions(enableProtobuf(restConfig), Scheme, sharedOpts)
 	if err != nil {
@@ -277,62 +257,60 @@ func NewContext(ctx context.Context, clientConfig clientcmd.ClientConfig, restCo
 		return nil, err
 	}
 
-	apps, err := apps.NewFactoryFromConfigWithOptions(restConfig, opts)
-	if err != nil {
-		return nil, err
-	}
+	//apps, err := apps.NewFactoryFromConfigWithOptions(restConfig, opts)
+	//if err != nil {
+	//	return nil, err
+	//}
 
-	rbac, err := rbac.NewFactoryFromConfigWithOptions(restConfig, opts)
-	if err != nil {
-		return nil, err
-	}
+	//rbac, err := rbac.NewFactoryFromConfigWithOptions(restConfig, opts)
+	//if err != nil {
+	//	return nil, err
+	//}
 
-	adminReg, err := admissionreg.NewFactoryFromConfigWithOptions(restConfig, opts)
-	if err != nil {
-		return nil, err
-	}
+	//adminReg, err := admissionreg.NewFactoryFromConfigWithOptions(restConfig, opts)
+	//if err != nil {
+	//	return nil, err
+	//}
 
-	capi, err := capi.NewFactoryFromConfigWithOptions(restConfig, opts)
-	if err != nil {
-		return nil, err
-	}
+	//capi, err := capi.NewFactoryFromConfigWithOptions(restConfig, opts)
+	//if err != nil {
+	//	return nil, err
+	//}
 
-	rke, err := rke.NewFactoryFromConfigWithOptions(restConfig, opts)
-	if err != nil {
-		return nil, err
-	}
+	//rke, err := rke.NewFactoryFromConfigWithOptions(restConfig, opts)
+	//if err != nil {
+	//	return nil, err
+	//}
 
-	fleet, err := fleet.NewFactoryFromConfigWithOptions(restConfig, opts)
-	if err != nil {
-		return nil, err
-	}
+	//fleet, err := fleet.NewFactoryFromConfigWithOptions(restConfig, opts)
+	//if err != nil {
+	//	return nil, err
+	//}
 
-	provisioning, err := provisioning.NewFactoryFromConfigWithOptions(restConfig, opts)
-	if err != nil {
-		return nil, err
-	}
+	//provisioning, err := provisioning.NewFactoryFromConfigWithOptions(restConfig, opts)
+	//if err != nil {
+	//	return nil, err
+	//}
 
-	helm, err := catalog.NewFactoryFromConfigWithOptions(restConfig, opts)
-	if err != nil {
-		return nil, err
-	}
+	//helm, err := catalog.NewFactoryFromConfigWithOptions(restConfig, opts)
+	//if err != nil {
+	//	return nil, err
+	//}
 
-	batch, err := batch.NewFactoryFromConfigWithOptions(restConfig, opts)
-	if err != nil {
-		return nil, err
-	}
+	//batch, err := batch.NewFactoryFromConfigWithOptions(restConfig, opts)
+	//if err != nil {
+	//	return nil, err
+	//}
 
-	core, err := core.NewFactoryFromConfigWithOptions(restConfig, opts)
-	if err != nil {
-		return nil, err
-	}
+	//core, err := core.NewFactoryFromConfigWithOptions(restConfig, opts)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	k8s, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
 	}
-
-	asl := accesscontrol.NewAccessStore(ctx, true, rbac.Rbac().V1())
 
 	cache := memory.NewMemCacheClient(k8s.Discovery())
 	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(cache)
@@ -348,38 +326,38 @@ func NewContext(ctx context.Context, clientConfig clientcmd.ClientConfig, restCo
 		Apply:                   apply,
 		SharedControllerFactory: controllerFactory,
 		Dynamic:                 dynamic.New(k8s.Discovery()),
-		CAPI:                    capi.Cluster().V1beta1(),
-		RKE:                     rke.Rke().V1(),
-		Mgmt:                    mgmt.Management().V3(),
-		Apps:                    apps.Apps().V1(),
-		Admission:               adminReg.Admissionregistration().V1(),
-		Fleet:                   fleet.Fleet().V1alpha1(),
-		Provisioning:            provisioning.Provisioning().V1(),
-		Catalog:                 helm.Catalog().V1(),
-		Batch:                   batch.Batch().V1(),
-		RBAC:                    rbac.Rbac().V1(),
-		Core:                    core.Core().V1(),
-		K8s:                     k8s,
-		ControllerFactory:       controllerFactory,
-		ASL:                     asl,
-		ClientConfig:            clientConfig,
-		MultiClusterManager:     noopMCM{},
-		CachedDiscovery:         cache,
-		RESTMapper:              restMapper,
-		controllerLock:          &sync.Mutex{},
-		RESTClientGetter:        restClientGetter,
+		//CAPI:                    capi.Cluster().V1beta1(),
+		//RKE:                     rke.Rke().V1(),
+		Mgmt: mgmt.Management().V3(),
+		//Apps:                    apps.Apps().V1(),
+		//Admission:               adminReg.Admissionregistration().V1(),
+		//Fleet:                   fleet.Fleet().V1alpha1(),
+		//Provisioning:            provisioning.Provisioning().V1(),
+		//Catalog:                 helm.Catalog().V1(),
+		//Batch:                   batch.Batch().V1(),
+		//RBAC:                    rbac.Rbac().V1(),
+		//Core:                    core.Core().V1(),
+		K8s:                 k8s,
+		ControllerFactory:   controllerFactory,
+		ClientConfig:        clientConfig,
+		MultiClusterManager: noopMCM{},
+		CachedDiscovery:     cache,
+		RESTMapper:          restMapper,
+		controllerLock:      &sync.Mutex{},
+		RESTClientGetter:    restClientGetter,
 
-		mgmt:         mgmt,
-		apps:         apps,
-		adminReg:     adminReg,
-		fleet:        fleet,
-		provisioning: provisioning,
-		ctlg:         helm,
-		batch:        batch,
-		core:         core,
-		capi:         capi,
-		rke:          rke,
-		rbac:         rbac,
+		mgmt: mgmt,
+		//apps:         apps,
+		//adminReg:     adminReg,
+		//fleet:        fleet,
+		//provisioning: provisioning,
+		//ctlg:         helm,
+		//batch:        batch,
+		//core:         core,
+		//capi:         capi,
+		//rke:          rke,
+		//rbac:         rbac,
+		ts: ts,
 	}
 
 	return wContext, nil

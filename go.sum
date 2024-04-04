@@ -1264,8 +1264,6 @@ github.com/gorilla/handlers v0.0.0-20150720190736-60c7bfde3e33/go.mod h1:Qkdc/uu
 github.com/gorilla/mux v1.6.2/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
 github.com/gorilla/mux v1.7.2/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
 github.com/gorilla/mux v1.7.3/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
-github.com/gorilla/mux v1.8.1 h1:TuBL49tXwgrFYWhqrNgrUNEY92u81SPhu7sTdzQEiWY=
-github.com/gorilla/mux v1.8.1/go.mod h1:AKf9I4AEqPTmMytcMc0KkNouC66V3BtZ4qD5fmWSiMQ=
 github.com/gorilla/websocket v1.4.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
 github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/gorilla/websocket v1.5.1 h1:gmztn0JnHVt9JZquRuzLw3g4wouNVzKL15iLr/zn/QY=
@@ -1733,8 +1731,6 @@ github.com/rancher/remotedialer v0.3.1 h1:YQ/UZy3w1CtC8dZvR51/e0K9qNFKiPh5zLFlDg
 github.com/rancher/remotedialer v0.3.1/go.mod h1:Aa9TrMVN3uRAKIAxio93T/hAyqad+054Luceu7sVmsE=
 github.com/rancher/rke v1.5.0 h1:M/YryKnBs7IwzMGA2kh1EiypVQkme6o9KSg0hlllQa4=
 github.com/rancher/rke v1.5.0/go.mod h1:wZaVWzW46OTuGvyxgRHXGUyJ/QP0zOkKESO9hBOwTaY=
-github.com/rancher/steve v0.0.0-20240326191124-9b00eb3a7fc5 h1:w+nlbc3TlVMPVF5IIJmQ2qLTkFcHqu/cmIsFkVPQPKo=
-github.com/rancher/steve v0.0.0-20240326191124-9b00eb3a7fc5/go.mod h1:exh/dzUdCf84XoYeijA51LctX8dClyF0bb10d0MkirQ=
 github.com/rancher/system-upgrade-controller/pkg/apis v0.0.0-20210727200656-10b094e30007 h1:ru+mqGnxMmKeU0Q3XIDxkARvInDIqT1hH2amTcsjxI4=
 github.com/rancher/system-upgrade-controller/pkg/apis v0.0.0-20210727200656-10b094e30007/go.mod h1:Ja346o44aTPWADc/5Jm93+KgctT6KtftuOosgz0F2AM=
 github.com/rancher/types v0.0.0-20220328215343-4370ff10ecd5 h1:opSA5ZsjOLyyptm4MxU8g3ZVrL7XIiwzcBPAPhYT4mo=

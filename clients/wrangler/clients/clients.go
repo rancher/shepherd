@@ -44,19 +44,19 @@ func (c *Clients) OnClose(f func()) {
 // ForCluster retrieves the client configuration for a specific cluster.
 // It takes the namespace, name, and session parameters.
 // It returns a new instance of the Clients struct associated with the specified cluster and an error if any occurred.
-func (c *Clients) ForCluster(namespace, name string, ts *session.Session) (*Clients, error) {
-	secret, err := c.Core.Secret().Get(namespace, name+"-kubeconfig", metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	config, err := clientcmd.NewClientConfigFromBytes(secret.Data["value"])
-	if err != nil {
-		return nil, err
-	}
-
-	return NewForConfig(c.Ctx, config, ts)
-}
+//func (c *Clients) ForCluster(namespace, name string, ts *session.Session) (*Clients, error) {
+//	secret, err := c.Core.Secret().Get(namespace, name+"-kubeconfig", metav1.GetOptions{})
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	config, err := clientcmd.NewClientConfigFromBytes(secret.Data["value"])
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	return NewForConfig(c.Ctx, config, ts)
+//}
 
 // NewForConfig returns a new instance of Clients based on the provided information.
 //
@@ -83,7 +83,7 @@ func NewForConfig(ctx context.Context, config clientcmd.ClientConfig, ts *sessio
 	rest.Timeout = 30 * time.Minute
 	rest.RateLimiter = ratelimit.None
 
-	wranglerCtx, err := wrangler.NewContext(ctx, config, rest)
+	wranglerCtx, err := wrangler.NewContext(ctx, config, rest, ts)
 	if err != nil {
 		cancel()
 		return nil, err
