@@ -194,7 +194,7 @@ type NonNamespacedController[T RuntimeMetaObject, TList runtime.Object] struct {
 }
 
 // NewController creates a new controller for the given Object type and ObjectList type.
-func NewController[T RuntimeMetaObject, TList runtime.Object](gvk schema.GroupVersionKind, resource string, namespaced bool, controller controller.SharedControllerFactory, ts *session.Session) *Controller[T, TList] {
+func NewController[T RuntimeMetaObject, TList runtime.Object](gvk schema.GroupVersionKind, resource string, namespaced bool, controller controller.SharedControllerFactory, session2 *session.Session) *Controller[T, TList] {
 	sharedCtrl := controller.ForResourceKind(gvk.GroupVersion().WithResource(resource), gvk.Kind, namespaced)
 	var obj T
 	objPtrType := reflect.TypeOf(obj)
@@ -216,7 +216,7 @@ func NewController[T RuntimeMetaObject, TList runtime.Object](gvk schema.GroupVe
 		},
 		objType:     objPtrType.Elem(),
 		objListType: objListPtrType.Elem(),
-		ts:          ts,
+		ts: session2,
 	}
 }
 
@@ -367,9 +367,9 @@ func (c *Controller[T, TList]) WithImpersonation(impersonate rest.ImpersonationC
 // NewNonNamespacedController returns a Controller controller that is not namespaced.
 // NonNamespacedController redefines specific functions to no longer accept the namespace parameter.
 func NewNonNamespacedController[T RuntimeMetaObject, TList runtime.Object](gvk schema.GroupVersionKind, resource string,
-	controller controller.SharedControllerFactory, ts *session.Session,
+	controller controller.SharedControllerFactory, session2 *session.Session
 ) *NonNamespacedController[T, TList] {
-	ctrl := NewController[T, TList](gvk, resource, false, controller, ts)
+	ctrl := NewController[T, TList](gvk, resource, false, controller, session2)
 	return &NonNamespacedController[T, TList]{
 		Controller: ctrl,
 	}
