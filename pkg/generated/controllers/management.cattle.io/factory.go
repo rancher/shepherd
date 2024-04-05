@@ -64,9 +64,9 @@ func NewFactoryFromConfigWithOptionsOrDie(config *rest.Config, opts *FactoryOpti
 }
 
 func (c *Factory) Management() Interface {
-	return New(c.ControllerFactory())
+	return New(c.ControllerFactory(), c.Opts.TS)
 }
 
 func (c *Factory) WithAgent(userAgent string) Interface {
-	return New(controller.NewSharedControllerFactoryWithAgent(userAgent, c.ControllerFactory()))
+	return New(controller.NewSharedControllerFactoryWithAgent(userAgent, c.ControllerFactory()), c.Opts.TS)
 }

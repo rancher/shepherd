@@ -127,7 +127,6 @@ type Context struct {
 
 	started bool
 	//CAPI    v1beta1.Interface
-	ts *session.Session
 }
 
 type MultiClusterManager interface {
@@ -244,6 +243,7 @@ func NewContext(ctx context.Context, clientConfig clientcmd.ClientConfig, restCo
 	}
 
 	opts := &generic.FactoryOptions{
+		TS:                      ts,
 		SharedControllerFactory: controllerFactory,
 	}
 
@@ -257,51 +257,61 @@ func NewContext(ctx context.Context, clientConfig clientcmd.ClientConfig, restCo
 		return nil, err
 	}
 
+	//TODO: Generate this factory
 	//apps, err := apps.NewFactoryFromConfigWithOptions(restConfig, opts)
 	//if err != nil {
 	//	return nil, err
 	//}
 
+	//TODO: Generate this factory
 	//rbac, err := rbac.NewFactoryFromConfigWithOptions(restConfig, opts)
 	//if err != nil {
 	//	return nil, err
 	//}
 
+	//TODO: Generate this factory
 	//adminReg, err := admissionreg.NewFactoryFromConfigWithOptions(restConfig, opts)
 	//if err != nil {
 	//	return nil, err
 	//}
 
+	//TODO: Generate this factory
 	//capi, err := capi.NewFactoryFromConfigWithOptions(restConfig, opts)
 	//if err != nil {
 	//	return nil, err
 	//}
 
+	//TODO: Generate this factory
 	//rke, err := rke.NewFactoryFromConfigWithOptions(restConfig, opts)
 	//if err != nil {
 	//	return nil, err
 	//}
 
+	//TODO: Generate this factory
 	//fleet, err := fleet.NewFactoryFromConfigWithOptions(restConfig, opts)
 	//if err != nil {
 	//	return nil, err
 	//}
 
+	//TODO: Generate this factory
 	//provisioning, err := provisioning.NewFactoryFromConfigWithOptions(restConfig, opts)
 	//if err != nil {
 	//	return nil, err
 	//}
 
+	//TODO: Generate this factory
 	//helm, err := catalog.NewFactoryFromConfigWithOptions(restConfig, opts)
 	//if err != nil {
 	//	return nil, err
 	//}
 
+	//TODO: Generate this factory
 	//batch, err := batch.NewFactoryFromConfigWithOptions(restConfig, opts)
 	//if err != nil {
 	//	return nil, err
 	//}
 
+	//TODO: Generate this factory
 	//core, err := core.NewFactoryFromConfigWithOptions(restConfig, opts)
 	//if err != nil {
 	//	return nil, err
@@ -357,7 +367,6 @@ func NewContext(ctx context.Context, clientConfig clientcmd.ClientConfig, restCo
 		//capi:         capi,
 		//rke:          rke,
 		//rbac:         rbac,
-		ts: ts,
 	}
 
 	return wContext, nil

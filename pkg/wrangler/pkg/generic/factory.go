@@ -2,6 +2,7 @@ package generic
 
 import (
 	"context"
+	"github.com/rancher/lasso/pkg/cache"
 	"github.com/rancher/shepherd/pkg/session"
 	"sync"
 	"time"
@@ -9,7 +10,6 @@ import (
 	"github.com/rancher/lasso/pkg/log"
 	"github.com/sirupsen/logrus"
 
-	"github.com/rancher/lasso/pkg/cache"
 	"github.com/rancher/lasso/pkg/client"
 	"github.com/rancher/lasso/pkg/controller"
 	"github.com/rancher/wrangler/v2/pkg/schemes"
@@ -29,7 +29,7 @@ type Factory struct {
 	controllerFactory controller.SharedControllerFactory
 	threadiness       map[schema.GroupVersionKind]int
 	config            *rest.Config
-	opts              FactoryOptions
+	Opts              FactoryOptions
 }
 
 type FactoryOptions struct {
@@ -51,7 +51,7 @@ func NewFactoryFromConfigWithOptions(config *rest.Config, opts *FactoryOptions) 
 		threadiness:       map[schema.GroupVersionKind]int{},
 		cacheFactory:      opts.SharedCacheFactory,
 		controllerFactory: opts.SharedControllerFactory,
-		opts:              *opts,
+		Opts:              *opts,
 	}
 
 	if f.cacheFactory == nil && f.controllerFactory != nil {
@@ -89,9 +89,9 @@ func (c *Factory) setControllerFactoryWithLock() error {
 		}
 
 		cacheFactory = cache.NewSharedCachedFactory(client, &cache.SharedCacheFactoryOptions{
-			DefaultNamespace: c.opts.Namespace,
-			DefaultResync:    c.opts.Resync,
-			HealthCallback:   c.opts.HealthCallback,
+			DefaultNamespace: c.Opts.Namespace,
+			DefaultResync:    c.Opts.Resync,
+			HealthCallback:   c.Opts.HealthCallback,
 		})
 	}
 

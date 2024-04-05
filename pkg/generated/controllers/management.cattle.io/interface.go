@@ -21,6 +21,7 @@ package management
 import (
 	"github.com/rancher/lasso/pkg/controller"
 	v3 "github.com/rancher/shepherd/pkg/generated/controllers/management.cattle.io/v3"
+	"github.com/rancher/shepherd/pkg/session"
 )
 
 type Interface interface {
@@ -29,15 +30,17 @@ type Interface interface {
 
 type group struct {
 	controllerFactory controller.SharedControllerFactory
+	ts                *session.Session
 }
 
 // New returns a new Interface.
-func New(controllerFactory controller.SharedControllerFactory) Interface {
+func New(controllerFactory controller.SharedControllerFactory, ts *session.Session) Interface {
 	return &group{
 		controllerFactory: controllerFactory,
+		ts:                ts,
 	}
 }
 
 func (g *group) V3() v3.Interface {
-	return v3.New(g.controllerFactory)
+	return v3.New(g.controllerFactory, g.ts)
 }
