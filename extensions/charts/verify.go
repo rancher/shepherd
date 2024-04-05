@@ -2,6 +2,7 @@ package charts
 
 import (
 	"context"
+	"errors"
 
 	v1 "github.com/rancher/rancher/pkg/apis/catalog.cattle.io/v1"
 	"github.com/rancher/shepherd/clients/rancher/catalog"
@@ -27,6 +28,10 @@ func VerifyChartInstall(client *catalog.Client, chartNamespace, chartName string
 		state := app.Status.Summary.State
 		if state == string(v1.StatusDeployed) {
 			return true, nil
+		}
+
+		if state == string(v1.StatusFailed) {
+			return false, errors.New("chart install has failed")
 		}
 		return false, nil
 	})
