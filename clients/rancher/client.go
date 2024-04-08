@@ -17,6 +17,7 @@ import (
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 
 	kubeProvisioning "github.com/rancher/shepherd/clients/provisioning"
+	"github.com/rancher/shepherd/clients/ranchercli"
 	kubeRKE "github.com/rancher/shepherd/clients/rke"
 	"github.com/rancher/shepherd/pkg/clientbase"
 	"github.com/rancher/shepherd/pkg/config"
@@ -41,6 +42,8 @@ type Client struct {
 	Catalog *catalog.Client
 	// Config used to test against a rancher instance
 	RancherConfig *Config
+	// CLI is the client used to interact with the Rancher CLI
+	CLI *ranchercli.Client
 	// Session is the session object used by the client to track all the resources being created by the client.
 	Session *session.Session
 	// Flags is the environment flags used by the client to test selectively against a rancher instance.
@@ -85,6 +88,13 @@ func NewClient(bearerToken string, session *session.Session) (*Client, error) {
 	}
 
 	c.Steve.Ops.Session = session
+
+	if rancherConfig.RancherCLI {
+		c.CLI, err = ranchercli.NewClient(session, bearerToken, rancherConfig.Host, c.Management)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	catalogClient, err := catalog.NewForConfig(restConfig, session)
 	if err != nil {
