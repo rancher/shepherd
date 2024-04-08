@@ -14,4 +14,5 @@ type Config struct {
 	CACerts       string `yaml:"caCerts" json:"caCerts" default:""`
 	ClusterName   string `yaml:"clusterName" json:"clusterName" default:""`
 	ShellImage    string `yaml:"shellImage" json:"shellImage" default:""`
+	RancherCLI    bool   `yaml:"rancherCLI" json:"rancherCLI" default:"false"`
 }
