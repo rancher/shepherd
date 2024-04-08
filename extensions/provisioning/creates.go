@@ -44,9 +44,10 @@ import (
 )
 
 const (
-	active     = "active"
-	internalIP = "rke2.io/internal-ip"
-	namespace  = "fleet-default"
+	active         = "active"
+	internalIP     = "alpha.kubernetes.io/provided-node-ip"
+	rke1ExternalIP = "rke.cattle.io/external-ip"
+	namespace      = "fleet-default"
 
 	rke2k3sAirgapCustomCluster           = "rke2k3sairgapcustomcluster"
 	rke2k3sNodeCorralName                = "rke2k3sregisterNode"
@@ -805,13 +806,14 @@ func AddRKE2K3SCustomClusterNodes(client *rancher.Client, cluster *v1.SteveAPIOb
 		logrus.Infof(output)
 	}
 
-	err = kwait.Poll(500*time.Millisecond, defaults.TenMinuteTimeout, func() (done bool, err error) {
+	err = kwait.PollUntilContextTimeout(context.TODO(), 500*time.Millisecond, defaults.ThirtyMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
 		clusterResp, err := client.Steve.SteveType(clusters.ProvisioningSteveResourceType).ByID(cluster.ID)
 		if err != nil {
 			return false, err
 		}
 
-		if clusterResp.ObjectMeta.State.Name == active && nodestat.AllManagementNodeReady(client, cluster.ID, defaults.ThirtyMinuteTimeout) == nil {
+		if clusterResp.ObjectMeta.State.Name == active &&
+			nodestat.AllMachineReady(client, cluster.ID, defaults.ThirtyMinuteTimeout) == nil {
 			return true, nil
 		}
 		return false, nil
@@ -849,7 +851,7 @@ func DeleteRKE2K3SCustomClusterNodes(client *rancher.Client, clusterID string, c
 					return err
 				}
 
-				err = kwait.Poll(500*time.Millisecond, defaults.TenMinuteTimeout, func() (done bool, err error) {
+				err = kwait.PollUntilContextTimeout(context.TODO(), 500*time.Millisecond, defaults.ThirtyMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
 					_, err = client.Steve.SteveType(machineSteveResourceType).ByID(machine.ID)
 					if err != nil {
 						logrus.Infof("Node has successfully been deleted!")
@@ -887,13 +889,19 @@ func AddRKE1CustomClusterNodes(client *rancher.Client, cluster *management.Clust
 		logrus.Infof(output)
 	}
 
-	err = kwait.Poll(500*time.Millisecond, defaults.TenMinuteTimeout, func() (done bool, err error) {
+	err = kwait.PollUntilContextTimeout(context.TODO(), 500*time.Millisecond, defaults.ThirtyMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
+		client, err = client.ReLogin()
+		if err != nil {
+			return false, err
+		}
+
 		clusterResp, err := client.Management.Cluster.ByID(cluster.ID)
 		if err != nil {
 			return false, err
 		}
 
-		if clusterResp.State == active && nodestat.AllManagementNodeReady(client, cluster.ID, defaults.ThirtyMinuteTimeout) == nil {
+		if clusterResp.State == active &&
+			nodestat.AllManagementNodeReady(client, cluster.ID, defaults.ThirtyMinuteTimeout) == nil {
 			return true, nil
 		}
 		return false, nil
@@ -916,7 +924,7 @@ func DeleteRKE1CustomClusterNodes(client *rancher.Client, cluster *management.Cl
 
 	for _, nodeToDelete := range nodesToDelete {
 		for _, node := range nodes.Data {
-			if node.ExternalIPAddress == nodeToDelete.PublicIPAddress {
+			if node.Annotations[rke1ExternalIP] == nodeToDelete.PublicIPAddress {
 				machine, err := client.Management.Node.ByID(node.ID)
 				if err != nil {
 					return err
@@ -928,7 +936,7 @@ func DeleteRKE1CustomClusterNodes(client *rancher.Client, cluster *management.Cl
 					return err
 				}
 
-				err = kwait.Poll(500*time.Millisecond, defaults.TenMinuteTimeout, func() (done bool, err error) {
+				err = kwait.PollUntilContextTimeout(context.TODO(), 500*time.Millisecond, defaults.ThirtyMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
 					_, err = client.Management.Node.ByID(machine.ID)
 					if err != nil {
 						logrus.Infof("Node has successfully been deleted!")
