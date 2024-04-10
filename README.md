@@ -46,6 +46,9 @@ Sessions are used to track resources created by tests.  A session allows cleanup
 
 Configuration is loaded from the yaml or json file described in `CATTLE_TEST_CONFIG`.  Configuration objects are loaded from their associated key in the configuration file.  Default values can also be set on configuration objects.
 
+### Code Generation
+
+Controllers and clients can be generated on schema and api changes.  However, it is important to be careful when generating code as it generates a lot of code and the code generated may not be correct.  After generating code it is important to check the generated code for correctness and review any changes with previous versions of the code. 
 
 ## How to Write Tests
 
