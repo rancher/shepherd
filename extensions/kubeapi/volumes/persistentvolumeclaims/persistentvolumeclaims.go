@@ -14,24 +14,36 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// PersistentVolumeClaimGroupVersionResource is the required Group Version Resource for accessing persistent volume claims in a cluster,
-// using the dynamic client.
+const (
+	PersistentVolumeClaimType            = "persistentvolumeclaim"
+	PersistentVolumeBoundStatus          = "Bound"
+	StevePersistentVolumeClaimVolumeName = "volumeName"
+
+	AccessModeReadWriteOnce = "ReadWriteOnce"
+	AccessModeReadWriteMany = "ReadWriteMany"
+	AccessModeReadOnlyMany  = "ReadOnlyMany"
+)
+
+// PersistentVolumeClaimGroupVersionResource is the required Group Version Resource for accessing persistent
+// volume claims in a cluster, using the dynamic client.
 var PersistentVolumeClaimGroupVersionResource = schema.GroupVersionResource{
 	Group:    "",
 	Version:  "v1",
 	Resource: "persistentvolumeclaims",
 }
 
-// CreatePersistentVolumeClaim is a helper function that uses the dynamic client to create a persistent volume claim on a namespace for a specific cluster.
-// If you pass a PersistentVolume then `storageClass` and `storage` would be optional, otherwise `persistentVolume` would be optional and `storage` and` storageClass`
-// are needed.
+// CreatePersistentVolumeClaim is a helper function that uses the dynamic client to create a persistent
+// volume claim on a namespace for a specific cluster.
+// If you pass a PersistentVolume then `storageClass` and `storage` would be optional, otherwise `persistentVolume`
+// would be optional and `storage` and` storageClass` are needed.
 // The function registers a delete fuction.
 func CreatePersistentVolumeClaim(client *rancher.Client, clusterName, persistentVolumeClaimName, description, namespace string, storage int, accessModes []corev1.PersistentVolumeAccessMode, persistentVolume *corev1.PersistentVolume, storageClass *storagev1.StorageClass) (*corev1.PersistentVolumeClaim, error) {
 	var unstructuredVolumeClaim *metav1Unstructured.Unstructured
+
 	annotations := map[string]string{
 		"field.cattle.io/description": description,
 	}
-	// PersistentVolumeClaim object
+
 	persistentVolumeClaim := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        persistentVolumeClaimName,
@@ -80,9 +92,11 @@ func CreatePersistentVolumeClaim(client *rancher.Client, clusterName, persistent
 	}
 
 	newPersistentVolumeClaim := &corev1.PersistentVolumeClaim{}
+
 	err = scheme.Scheme.Convert(unstructuredResp, newPersistentVolumeClaim, unstructuredResp.GroupVersionKind())
 	if err != nil {
 		return nil, err
 	}
+
 	return newPersistentVolumeClaim, nil
 }

@@ -15,11 +15,12 @@ const (
 type VmwarevsphereMachineConfigs struct {
 	VmwarevsphereMachineConfig []VmwarevsphereMachineConfig `json:"vmwarevsphereMachineConfig" yaml:"vmwarevsphereMachineConfig"`
 
-	Hostsystem string `json:"hostsystem" yaml:"hostsystem"`
-	Datacenter string `json:"datacenter" yaml:"datacenter"`
-	Datastore  string `json:"datastore" yaml:"datastore"`
-	Folder     string `json:"folder" yaml:"folder"`
-	Pool       string `json:"pool" yaml:"pool"`
+	Hostsystem   string `json:"hostsystem" yaml:"hostsystem"`
+	Datacenter   string `json:"datacenter" yaml:"datacenter"`
+	Datastore    string `json:"datastore" yaml:"datastore"`
+	DatastoreURL string `json:"datastoreURL" yaml:"datastoreURL"`
+	Folder       string `json:"folder" yaml:"folder"`
+	Pool         string `json:"pool" yaml:"pool"`
 }
 
 // VsphereMachineConfig is configuration needed to create an rke-machine-config.cattle.io.vmwarevsphereconfig
@@ -77,6 +78,7 @@ func NewVSphereMachineConfig(generatedPoolName, namespace string) []unstructured
 		machineConfig.Object["datacenter"] = vmwarevsphereMachineConfigs.Datacenter
 		machineConfig.Object["datastore"] = vmwarevsphereMachineConfigs.Datastore
 		machineConfig.Object["datastoreCluster"] = vsphereMachineConfig.DatastoreCluster
+		machineConfig.Object["datastoreUrl"] = vmwarevsphereMachineConfigs.DatastoreURL
 		machineConfig.Object["diskSize"] = vsphereMachineConfig.DiskSize
 		machineConfig.Object["folder"] = vmwarevsphereMachineConfigs.Folder
 		machineConfig.Object["hostsystem"] = vmwarevsphereMachineConfigs.Hostsystem
