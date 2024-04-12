@@ -20,6 +20,7 @@ const (
 	chartsURL        = "v1/catalog.cattle.io.clusterrepos/"
 	link             = "link"
 	index            = "index"
+	info             = "info"
 	install          = "install"
 	RancherChartRepo = "rancher-charts"
 	rancherAppsURL   = "v1/catalog.cattle.io.apps/"
@@ -27,10 +28,35 @@ const (
 	uninstall        = "uninstall"
 	chartName        = "chartName"
 	icon             = "icon"
+	version          = "version"
+	values           = "values"
 )
 
-// FetchChartIcon - fetches the chart icon from the given repo, chart and version and validates the result
-func (c *Client) FetchChartIcon(repo, chart, version string) (int, error) {
+// GetChartValues - fetches the chart values from the given repo, chart and chartVersion and validates the result.
+func (c *Client) GetChartValues(repoName, chart, chartVersion string) (map[string]interface{}, error) {
+	result, err := c.RESTClient().Get().
+		AbsPath(chartsURL+repoName).Param(link, info).Param(chartName, chart).Param(version, chartVersion).
+		Do(context.Background()).Raw()
+
+	if err != nil {
+		return nil, err
+	}
+
+	var mapResponse map[string]interface{}
+	if err = json.Unmarshal(result, &mapResponse); err != nil {
+		return nil, err
+	}
+
+	values, ok := mapResponse[values].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("failed to convert values to map[string]interface{}")
+	}
+
+	return values, nil
+}
+
+// FetchChartIcon - fetches the chart icon from the given repo and chart and validates the result.
+func (c *Client) FetchChartIcon(repo, chart string) (int, error) {
 	resp := c.RESTClient().Get().
 		AbsPath(chartsURL+repo).
 		Param(chartName, chart).Param(link, icon).
@@ -38,6 +64,7 @@ func (c *Client) FetchChartIcon(repo, chart, version string) (int, error) {
 		Do(context.Background())
 
 	var contentType string
+
 	resp.ContentType(&contentType)
 
 	result, err := resp.Raw()
@@ -51,11 +78,13 @@ func (c *Client) FetchChartIcon(repo, chart, version string) (int, error) {
 
 	if contentType == "image/svg+xml" {
 		var xmlData interface{}
+
 		err = xml.Unmarshal(result, &xmlData)
 		if err != nil {
 			// If XML parsing fails, this is not a valid svg
 			return 0, err
 		}
+
 		return len(result), nil // Valid SVG
 	}
 
@@ -119,7 +148,7 @@ func (c *Client) GetListChartVersions(chartName, repoName string) ([]string, err
 	versionsList := []string{}
 	for _, entry := range specifiedChartEntries {
 		entryMap := entry.(map[string]interface{})
-		versionsList = append(versionsList, entryMap["version"].(string))
+		versionsList = append(versionsList, entryMap[version].(string))
 	}
 
 	return versionsList, nil
