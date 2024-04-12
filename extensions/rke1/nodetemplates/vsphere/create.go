@@ -14,6 +14,7 @@ const vmwarevsphereNodeTemplateNameBase = "vmwarevsphereNodeConfig"
 // an VSphere node template and returns the NodeTemplate response
 func CreateVSphereNodeTemplate(rancherClient *rancher.Client) (*nodetemplates.NodeTemplate, error) {
 	var vmwarevsphereNodeTemplateConfig nodetemplates.VmwareVsphereNodeTemplateConfig
+
 	config.LoadConfig(nodetemplates.VmwareVsphereNodeTemplateConfigurationFileKey, &vmwarevsphereNodeTemplateConfig)
 
 	nodeTemplate := nodetemplates.NodeTemplate{
@@ -32,8 +33,28 @@ func CreateVSphereNodeTemplate(rancherClient *rancher.Client) (*nodetemplates.No
 
 	resp := &nodetemplates.NodeTemplate{}
 	err = rancherClient.Management.APIBaseClient.Ops.DoCreate(management.NodeTemplateType, nodeTemplate, resp)
+
 	if err != nil {
 		return nil, err
 	}
+
 	return resp, nil
+}
+
+// GetVsphereDatastoreURL is a helper to get the datastoreURL from the cloud credential object as a string
+func GetVsphereDatastoreURL() string {
+	var vmwarevsphereNodeTemplateConfig nodetemplates.VmwareVsphereNodeTemplateConfig
+
+	config.LoadConfig(nodetemplates.VmwareVsphereNodeTemplateConfigurationFileKey, &vmwarevsphereNodeTemplateConfig)
+
+	return vmwarevsphereNodeTemplateConfig.DatastoreURL
+}
+
+// GetVspherePassword is a helper to get the password from the cloud credential object as a string
+func GetVspherePassword() string {
+	var vmwarevsphereNodeTemplateConfig nodetemplates.VmwareVsphereNodeTemplateConfig
+
+	config.LoadConfig(nodetemplates.VmwareVsphereNodeTemplateConfigurationFileKey, &vmwarevsphereNodeTemplateConfig)
+
+	return vmwarevsphereNodeTemplateConfig.Password
 }
