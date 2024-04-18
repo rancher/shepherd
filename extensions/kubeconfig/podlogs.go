@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	k8Scheme "k8s.io/client-go/kubernetes/scheme"
@@ -129,7 +130,7 @@ func GetPodLogsWithOpts(client *rancher.Client, clusterID string, podName string
 	var logs string
 	for reader.Scan() {
 		logs = logs + fmt.Sprintf("%s\n", reader.Text())
-		fmt.Println(reader.Text())
+		logrus.Info(reader.Text())
 	}
 
 	if err := reader.Err(); err != nil {
@@ -240,7 +241,7 @@ func readAndWriteLogsWithContext(ctx context.Context, stream io.ReadCloser, logF
 		default:
 			logLine := scanner.Text()
 			if !strings.Contains(strings.ToLower(logLine), "debug") && strings.TrimSpace(logLine) != "" {
-				fmt.Println(logLine) // Write log to stdout
+				logrus.Info(logLine) // Write log
 			}
 			fmt.Fprintln(logFile, logLine) // Write log to file
 			logs.WriteString(logLine + "\n")
