@@ -62,8 +62,15 @@ func ImportCluster(client *rancher.Client, cluster *apisV1.Cluster, rest *rest.C
 	ts := client.Session.NewSession()
 	defer ts.Cleanup()
 
+	backoff := kwait.Backoff{
+		Duration: 1 * time.Second,
+		Factor:   1.1,
+		Jitter:   0.1,
+		Steps:    20,
+	}
+
 	var token management.ClusterRegistrationToken
-	err := kwait.Poll(500*time.Millisecond, 2*time.Minute, func() (done bool, err error) {
+	err := kwait.ExponentialBackoff(backoff, func() (finished bool, err error) {
 		res, err := client.Management.ClusterRegistrationToken.List(&types.ListOpts{Filters: map[string]interface{}{
 			"clusterId": cluster.Status.ClusterName,
 		}})
@@ -92,6 +99,16 @@ func ImportCluster(client *rancher.Client, cluster *apisV1.Cluster, rest *rest.C
 			Name: "rancher-installer",
 		},
 	}
+
+	kwait.ExponentialBackoff(backoff, func() (finished bool, err error) {
+		_, err = downClient.Resource(corev1.SchemeGroupVersion.WithResource("serviceaccounts")).Namespace("kube-system").List(context.TODO(), metav1.ListOptions{})
+		if err != nil {
+			return false, nil
+		}
+
+		return true, nil
+	})
+
 	_, err = downClient.Resource(corev1.SchemeGroupVersion.WithResource("serviceaccounts")).Namespace("kube-system").Create(context.TODO(), ext_unstructured.MustToUnstructured(sa), metav1.CreateOptions{})
 	if err != nil {
 		return err
