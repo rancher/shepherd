@@ -13,8 +13,9 @@ type VmwareVsphereNodeTemplateConfig struct {
 	CPUCount              string   `json:"cpuCount" yaml:"cpuCount"`
 	CreationType          string   `json:"creationType" yaml:"creationType"`
 	CustomAttribute       []string `json:"customAttribute" yaml:"customAttribute"`
-	DataCenter            string   `json:"dataCenter" yaml:"dataCenter"`
-	DataStore             string   `json:"dataStore" yaml:"dataStore"`
+	Datacenter            string   `json:"datacenter" yaml:"datacenter"`
+	Datastore             string   `json:"datastore" yaml:"datastore"`
+	DatastoreURL          string   `json:"datatoreURL" yaml:"datastoreURL"`
 	DatastoreCluster      string   `json:"datastoreCluster" yaml:"datastoreCluster"`
 	DiskSize              string   `json:"diskSize" yaml:"diskSize"`
 	Folder                string   `json:"folder" yaml:"folder"`

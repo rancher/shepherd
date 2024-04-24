@@ -12,10 +12,12 @@ import (
 	"github.com/sirupsen/logrus"
 
 	apiv1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
+	rkev1 "github.com/rancher/rancher/pkg/apis/rke.cattle.io/v1"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/cloudcredentials/aws"
 	"github.com/rancher/shepherd/extensions/cloudcredentials/azure"
 	"github.com/rancher/shepherd/extensions/cloudcredentials/google"
+	"github.com/rancher/shepherd/extensions/cloudcredentials/vsphere"
 	"github.com/rancher/shepherd/extensions/clusters"
 	"github.com/rancher/shepherd/extensions/clusters/aks"
 	"github.com/rancher/shepherd/extensions/clusters/eks"
@@ -73,6 +75,7 @@ func CreateProvisioningCluster(client *rancher.Client, provider Provider, cluste
 	clusterName := namegen.AppendRandomString(provider.Name.String())
 	generatedPoolName := fmt.Sprintf("nc-%s-pool1-", clusterName)
 	machinePoolConfigs := provider.MachinePoolFunc(generatedPoolName, namespace)
+
 	var machinePoolResponses []v1.SteveAPIObject
 
 	for _, machinePoolConfig := range machinePoolConfigs {
@@ -92,6 +95,7 @@ func CreateProvisioningCluster(client *rancher.Client, provider Provider, cluste
 				if err != nil {
 					return nil, err
 				}
+
 				secretName := fmt.Sprintf("priv-reg-sec-%s", clusterName)
 				secretTemplate := secrets.NewSecretTemplate(secretName, namespace, map[string][]byte{
 					"password": []byte(clustersConfig.Registries.RKE2Password),
@@ -104,6 +108,7 @@ func CreateProvisioningCluster(client *rancher.Client, provider Provider, cluste
 				if err != nil {
 					return nil, err
 				}
+
 				for registryName, registry := range clustersConfig.Registries.RKE2Registries.Configs {
 					registry.AuthConfigSecretName = registrySecret.Name
 					clustersConfig.Registries.RKE2Registries.Configs[registryName] = registry
@@ -121,6 +126,32 @@ func CreateProvisioningCluster(client *rancher.Client, provider Provider, cluste
 
 	machinePools := machinepools.
 		CreateAllMachinePools(machineConfigs, pools, machinePoolResponses, provider.Roles, hostnameTruncation)
+
+	if clustersConfig.CloudProvider == provisioninginput.VsphereCloudProviderName.String() {
+
+		vcenterCredentials := map[string]interface{}{
+			"datacenters": machinePoolConfigs[0].Object["datacenter"],
+			"host":        cloudCredential.VmwareVsphereConfig.Vcenter,
+			"password":    vsphere.GetVspherePassword(),
+			"username":    cloudCredential.VmwareVsphereConfig.Username,
+		}
+		clustersConfig.AddOnConfig = &provisioninginput.AddOnConfig{
+			ChartValues: &rkev1.GenericMap{
+				Data: map[string]interface{}{
+					"rancher-vsphere-cpi": map[string]interface{}{
+						"vCenter": vcenterCredentials,
+					},
+					"rancher-vsphere-csi": map[string]interface{}{
+						"storageClass": map[string]interface{}{
+							"datastoreURL": machinePoolConfigs[0].Object["datastoreUrl"],
+						},
+						"vCenter": vcenterCredentials,
+					},
+				},
+			},
+		}
+	}
+
 	cluster := clusters.NewK3SRKE2ClusterConfig(clusterName, namespace, clustersConfig, machinePools, cloudCredential.ID)
 
 	for _, truncatedPool := range hostnameTruncation {
@@ -129,6 +160,7 @@ func CreateProvisioningCluster(client *rancher.Client, provider Provider, cluste
 			if truncatedPool.ClusterNameLengthLimit > 0 {
 				cluster.Spec.RKEConfig.MachinePoolDefaults.HostnameLengthLimit = truncatedPool.ClusterNameLengthLimit
 			}
+
 			break
 		}
 	}
@@ -150,6 +182,7 @@ func CreateProvisioningCluster(client *rancher.Client, provider Provider, cluste
 	createdCluster, err := adminClient.Steve.
 		SteveType(clusters.ProvisioningSteveResourceType).
 		ByID(namespace + "/" + clusterName)
+
 	return createdCluster, err
 }
 
