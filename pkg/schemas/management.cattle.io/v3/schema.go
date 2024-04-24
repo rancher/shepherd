@@ -5,8 +5,6 @@ import (
 
 	rketypes "github.com/rancher/rke/types"
 
-	eksv1 "github.com/rancher/eks-operator/pkg/apis/eks.cattle.io/v1"
-	gkev1 "github.com/rancher/gke-operator/pkg/apis/gke.cattle.io/v1"
 	"github.com/rancher/norman/types"
 	m "github.com/rancher/norman/types/mapper"
 	v3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
@@ -31,6 +29,7 @@ var (
 	Schemas = factory.Schemas(&Version).
 		Init(nativeNodeTypes).
 		Init(nodeTypes).
+		Init(podSecurityAdmissionTypes).
 		Init(authzTypes).
 		Init(clusterTypes).
 		Init(catalogTypes).
@@ -39,10 +38,8 @@ var (
 		Init(schemaTypes).
 		Init(userTypes).
 		Init(projectNetworkPolicyTypes).
-		Init(logTypes).
 		Init(globalTypes).
 		Init(rkeTypes).
-		Init(alertTypes).
 		Init(composeType).
 		Init(projectCatalogTypes).
 		Init(clusterCatalogTypes).
@@ -50,7 +47,6 @@ var (
 		Init(globalDNSTypes).
 		Init(kontainerTypes).
 		Init(etcdBackupTypes).
-		Init(monitorTypes).
 		Init(credTypes).
 		Init(mgmtSecretTypes).
 		Init(clusterTemplateTypes).
@@ -241,8 +237,6 @@ func clusterTypes(schemas *types.Schemas) *types.Schemas {
 		MustImport(&Version, v3.RotateEncryptionKeyOutput{}).
 		MustImport(&Version, v3.ImportYamlOutput{}).
 		MustImport(&Version, v3.ExportOutput{}).
-		MustImport(&Version, v3.MonitoringInput{}).
-		MustImport(&Version, v3.MonitoringOutput{}).
 		MustImport(&Version, v3.RestoreFromEtcdBackupInput{}).
 		MustImport(&Version, v3.SaveAsTemplateInput{}).
 		MustImport(&Version, v3.SaveAsTemplateOutput{}).
@@ -255,62 +249,7 @@ func clusterTypes(schemas *types.Schemas) *types.Schemas {
 			schema.MustCustomizeField("extraArgs", func(field types.Field) types.Field {
 				field.Default = map[string]interface{}{
 					"election-timeout":   "5000",
-					"heartbeat-interval": "500",
-				}
-				return field
-			})
-		}).
-		MustImportAndCustomize(&Version, gkev1.GKEClusterConfigSpec{}, func(schema *types.Schema) {
-			schema.MustCustomizeField("labels", func(field types.Field) types.Field {
-				field.Pointer = true
-				return field
-			})
-			schema.MustCustomizeField("locations", func(field types.Field) types.Field {
-				field.Pointer = true
-				return field
-			})
-		}).
-		MustImportAndCustomize(&Version, eksv1.EKSClusterConfigSpec{}, func(schema *types.Schema) {
-			schema.MustCustomizeField("publicAccessSources", func(field types.Field) types.Field {
-				field.Pointer = true
-				return field
-			})
-			schema.MustCustomizeField("loggingTypes", func(field types.Field) types.Field {
-				field.Pointer = true
-				return field
-			})
-			schema.MustCustomizeField("subnets", func(field types.Field) types.Field {
-				field.Pointer = true
-				return field
-			})
-			schema.MustCustomizeField("securityGroups", func(field types.Field) types.Field {
-				field.Pointer = true
-				return field
-			})
-			schema.MustCustomizeField("tags", func(field types.Field) types.Field {
-				field.Pointer = true
-				return field
-			})
-		}).
-		MustImportAndCustomize(&Version, eksv1.NodeGroup{}, func(schema *types.Schema) {
-			schema.MustCustomizeField("labels", func(field types.Field) types.Field {
-				field.Pointer = true
-				return field
-			})
-			schema.MustCustomizeField("resourceTags", func(field types.Field) types.Field {
-				field.Pointer = true
-				return field
-			})
-			schema.MustCustomizeField("subnets", func(field types.Field) types.Field {
-				field.Pointer = true
-				return field
-			})
-			schema.MustCustomizeField("spotInstanceTypes", func(field types.Field) types.Field {
-				field.Pointer = true
-				return field
-			})
-			schema.MustCustomizeField("tags", func(field types.Field) types.Field {
-				field.Pointer = true
+					"heartbeat-interval": "500"}
 				return field
 			})
 		}).
@@ -331,16 +270,6 @@ func clusterTypes(schemas *types.Schemas) *types.Schemas {
 			schema.ResourceActions[v3.ClusterActionExportYaml] = types.Action{
 				Output: "exportOutput",
 			}
-			schema.ResourceActions[v3.ClusterActionEnableMonitoring] = types.Action{
-				Input: "monitoringInput",
-			}
-			schema.ResourceActions[v3.ClusterActionDisableMonitoring] = types.Action{}
-			schema.ResourceActions[v3.ClusterActionViewMonitoring] = types.Action{
-				Output: "monitoringOutput",
-			}
-			schema.ResourceActions[v3.ClusterActionEditMonitoring] = types.Action{
-				Input: "monitoringInput",
-			}
 			schema.ResourceActions[v3.ClusterActionBackupEtcd] = types.Action{}
 			schema.ResourceActions[v3.ClusterActionRestoreFromEtcdBackup] = types.Action{
 				Input: "restoreFromEtcdBackupInput",
@@ -357,6 +286,10 @@ func clusterTypes(schemas *types.Schemas) *types.Schemas {
 				Output: "saveAsTemplateOutput",
 			}
 		})
+}
+
+func podSecurityAdmissionTypes(schemas *types.Schemas) *types.Schemas {
+	return schemas.MustImport(&Version, v3.PodSecurityAdmissionConfigurationTemplate{})
 }
 
 func authzTypes(schemas *types.Schemas) *types.Schemas {
@@ -376,8 +309,6 @@ func authzTypes(schemas *types.Schemas) *types.Schemas {
 		).
 		MustImport(&Version, v3.SetPodSecurityPolicyTemplateInput{}).
 		MustImport(&Version, v3.ImportYamlOutput{}).
-		MustImport(&Version, v3.MonitoringInput{}).
-		MustImport(&Version, v3.MonitoringOutput{}).
 		MustImportAndCustomize(&Version, v3.Project{}, func(schema *types.Schema) {
 			schema.ResourceActions = map[string]types.Action{
 				"setpodsecuritypolicytemplate": {
@@ -385,19 +316,14 @@ func authzTypes(schemas *types.Schemas) *types.Schemas {
 					Output: "project",
 				},
 				"exportYaml": {},
-				"enableMonitoring": {
-					Input: "monitoringInput",
-				},
-				"disableMonitoring": {},
-				"viewMonitoring": {
-					Output: "monitoringOutput",
-				},
-				"editMonitoring": {
-					Input: "monitoringInput",
-				},
 			}
 		}).
-		MustImport(&Version, v3.GlobalRole{}).
+		MustImportAndCustomize(&Version, v3.GlobalRole{}, func(s *types.Schema) {
+			s.MustCustomizeField("status", func(field types.Field) types.Field {
+				field.Nullable = false
+				return field
+			})
+		}).
 		MustImport(&Version, v3.GlobalRoleBinding{}).
 		MustImport(&Version, v3.RoleTemplate{}).
 		MustImport(&Version, v3.PodSecurityPolicyTemplate{}).
@@ -496,7 +422,7 @@ func tokens(schemas *types.Schemas) *types.Schemas {
 }
 
 func authnTypes(schemas *types.Schemas) *types.Schemas {
-	authConfig := "authConfig"
+	const authConfig = "authConfig"
 	return schemas.
 		AddMapperForType(&Version, v3.User{}, m.DisplayName{},
 			&m.Embed{Field: "status"}).
@@ -542,7 +468,7 @@ func authnTypes(schemas *types.Schemas) *types.Schemas {
 			schema.CollectionMethods = []string{}
 			schema.ResourceMethods = []string{http.MethodGet}
 		}).
-		// Github Config
+		//Github Config
 		MustImportAndCustomize(&Version, v3.GithubConfig{}, func(schema *types.Schema) {
 			schema.BaseType = authConfig
 			schema.ResourceActions = map[string]types.Action{
@@ -560,7 +486,7 @@ func authnTypes(schemas *types.Schemas) *types.Schemas {
 		}).
 		MustImport(&Version, v3.GithubConfigTestOutput{}).
 		MustImport(&Version, v3.GithubConfigApplyInput{}).
-		// AzureAD Config
+		//AzureAD Config
 		MustImportAndCustomize(&Version, v3.AzureADConfig{}, func(schema *types.Schema) {
 			schema.BaseType = authConfig
 			schema.ResourceActions = map[string]types.Action{
@@ -649,7 +575,7 @@ func authnTypes(schemas *types.Schemas) *types.Schemas {
 		MustImportAndCustomize(&Version, v3.ShibbolethConfig{}, configSchema).
 		MustImport(&Version, v3.SamlConfigTestInput{}).
 		MustImport(&Version, v3.SamlConfigTestOutput{}).
-		// GoogleOAuth Config
+		//GoogleOAuth Config
 		MustImportAndCustomize(&Version, v3.GoogleOauthConfig{}, func(schema *types.Schema) {
 			schema.BaseType = authConfig
 			schema.ResourceActions = map[string]types.Action{
@@ -667,7 +593,7 @@ func authnTypes(schemas *types.Schemas) *types.Schemas {
 		}).
 		MustImport(&Version, v3.GoogleOauthConfigApplyInput{}).
 		MustImport(&Version, v3.GoogleOauthConfigTestOutput{}).
-		// OIDC Config
+		//OIDC Config
 		MustImportAndCustomize(&Version, v3.OIDCConfig{}, func(schema *types.Schema) {
 			schema.BaseType = authConfig
 			schema.ResourceActions = map[string]types.Action{
@@ -685,7 +611,7 @@ func authnTypes(schemas *types.Schemas) *types.Schemas {
 		}).
 		MustImport(&Version, v3.OIDCApplyInput{}).
 		MustImport(&Version, v3.OIDCTestOutput{}).
-		// KeyCloakOIDC Config
+		//KeyCloakOIDC Config
 		MustImportAndCustomize(&Version, v3.KeyCloakOIDCConfig{}, func(schema *types.Schema) {
 			schema.BaseType = authConfig
 			schema.ResourceActions = map[string]types.Action{
@@ -742,37 +668,6 @@ func projectNetworkPolicyTypes(schema *types.Schemas) *types.Schemas {
 		})
 }
 
-func logTypes(schema *types.Schemas) *types.Schemas {
-	return schema.
-		AddMapperForType(&Version, v3.ClusterLogging{},
-			&m.Embed{Field: "status"},
-			m.DisplayName{}).
-		AddMapperForType(&Version, v3.ProjectLogging{},
-			m.DisplayName{}).
-		MustImport(&Version, v3.ClusterTestInput{}).
-		MustImport(&Version, v3.ProjectTestInput{}).
-		MustImportAndCustomize(&Version, v3.ClusterLogging{}, func(schema *types.Schema) {
-			schema.CollectionActions = map[string]types.Action{
-				"test": {
-					Input: "clusterTestInput",
-				},
-				"dryRun": {
-					Input: "clusterTestInput",
-				},
-			}
-		}).
-		MustImportAndCustomize(&Version, v3.ProjectLogging{}, func(schema *types.Schema) {
-			schema.CollectionActions = map[string]types.Action{
-				"test": {
-					Input: "projectTestInput",
-				},
-				"dryRun": {
-					Input: "projectTestInput",
-				},
-			}
-		})
-}
-
 func globalTypes(schema *types.Schemas) *types.Schemas {
 	return schema.
 		MustImportAndCustomize(&Version, v3.Setting{}, func(schema *types.Schema) {
@@ -786,59 +681,6 @@ func globalTypes(schema *types.Schemas) *types.Schemas {
 				f.Required = true
 				return f
 			})
-		})
-}
-
-func alertTypes(schema *types.Schemas) *types.Schemas {
-	return schema.
-		AddMapperForType(&Version, v3.Notifier{},
-			&m.Embed{Field: "status"},
-			m.DisplayName{}).
-		MustImport(&Version, v3.ClusterAlert{}).
-		MustImport(&Version, v3.ProjectAlert{}).
-		MustImport(&Version, v3.Notification{}).
-		MustImportAndCustomize(&Version, v3.Notifier{}, func(schema *types.Schema) {
-			schema.CollectionActions = map[string]types.Action{
-				"send": {
-					Input: "notification",
-				},
-			}
-			schema.ResourceActions = map[string]types.Action{
-				"send": {
-					Input: "notification",
-				},
-			}
-		}).
-		MustImport(&Version, v3.AlertStatus{}).
-		AddMapperForType(&Version, v3.ClusterAlertGroup{},
-			&m.Embed{Field: "status"},
-			m.DisplayName{}).
-		AddMapperForType(&Version, v3.ProjectAlertGroup{},
-			&m.Embed{Field: "status"},
-			m.DisplayName{}).
-		AddMapperForType(&Version, v3.ClusterAlertRule{},
-			&m.Embed{Field: "status"},
-			m.DisplayName{}).
-		AddMapperForType(&Version, v3.ProjectAlertRule{},
-			&m.Embed{Field: "status"},
-			m.DisplayName{}).
-		MustImport(&Version, v3.ClusterAlertGroup{}).
-		MustImport(&Version, v3.ProjectAlertGroup{}).
-		MustImportAndCustomize(&Version, v3.ClusterAlertRule{}, func(schema *types.Schema) {
-			schema.ResourceActions = map[string]types.Action{
-				"activate":   {},
-				"deactivate": {},
-				"mute":       {},
-				"unmute":     {},
-			}
-		}).
-		MustImportAndCustomize(&Version, v3.ProjectAlertRule{}, func(schema *types.Schema) {
-			schema.ResourceActions = map[string]types.Action{
-				"activate":   {},
-				"deactivate": {},
-				"mute":       {},
-				"unmute":     {},
-			}
 		})
 }
 
@@ -947,56 +789,6 @@ func kontainerTypes(schemas *types.Schemas) *types.Schemas {
 		})
 }
 
-func monitorTypes(schemas *types.Schemas) *types.Schemas {
-	return schemas.
-		MustImport(&Version, v3.QueryGraphInput{}).
-		MustImport(&Version, v3.QueryClusterGraphOutput{}).
-		MustImport(&Version, v3.QueryProjectGraphOutput{}).
-		MustImport(&Version, v3.QueryClusterMetricInput{}).
-		MustImport(&Version, v3.QueryProjectMetricInput{}).
-		MustImport(&Version, v3.QueryMetricOutput{}).
-		MustImport(&Version, v3.ClusterMetricNamesInput{}).
-		MustImport(&Version, v3.ProjectMetricNamesInput{}).
-		MustImport(&Version, v3.MetricNamesOutput{}).
-		MustImport(&Version, v3.TimeSeries{}).
-		MustImportAndCustomize(&Version, v3.MonitorMetric{}, func(schema *types.Schema) {
-			schema.CollectionActions = map[string]types.Action{
-				"querycluster": {
-					Input:  "queryClusterMetricInput",
-					Output: "queryMetricOutput",
-				},
-				"listclustermetricname": {
-					Input:  "clusterMetricNamesInput",
-					Output: "metricNamesOutput",
-				},
-				"queryproject": {
-					Input:  "queryProjectMetricInput",
-					Output: "queryMetricOutput",
-				},
-				"listprojectmetricname": {
-					Input:  "projectMetricNamesInput",
-					Output: "metricNamesOutput",
-				},
-			}
-		}).
-		MustImportAndCustomize(&Version, v3.ClusterMonitorGraph{}, func(schema *types.Schema) {
-			schema.CollectionActions = map[string]types.Action{
-				"query": {
-					Input:  "queryGraphInput",
-					Output: "queryClusterGraphOutput",
-				},
-			}
-		}).
-		MustImportAndCustomize(&Version, v3.ProjectMonitorGraph{}, func(schema *types.Schema) {
-			schema.CollectionActions = map[string]types.Action{
-				"query": {
-					Input:  "queryGraphInput",
-					Output: "queryProjectGraphOutput",
-				},
-			}
-		})
-}
-
 func etcdBackupTypes(schemas *types.Schemas) *types.Schemas {
 	return schemas.MustImport(&Version, v3.EtcdBackup{})
 }
@@ -1023,6 +815,7 @@ func clusterTemplateTypes(schemas *types.Schemas) *types.Schemas {
 				},
 			}
 		})
+
 }
 
 func encryptionTypes(schemas *types.Schemas) *types.Schemas {

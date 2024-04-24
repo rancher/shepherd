@@ -23,6 +23,7 @@ import (
 	"github.com/rancher/shepherd/pkg/config"
 	"github.com/rancher/shepherd/pkg/environmentflag"
 	"github.com/rancher/shepherd/pkg/session"
+	"github.com/rancher/shepherd/pkg/wrangler"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
@@ -42,6 +43,8 @@ type Client struct {
 	Catalog *catalog.Client
 	// Config used to test against a rancher instance
 	RancherConfig *Config
+	// Wrangler context to use to access management.cattle.io v3 API resources
+	WranglerContext *wrangler.Context
 	// CLI is the client used to interact with the Rancher CLI
 	CLI *ranchercli.Client
 	// Session is the session object used by the client to track all the resources being created by the client.
@@ -102,6 +105,13 @@ func NewClient(bearerToken string, session *session.Session) (*Client, error) {
 	}
 
 	c.Catalog = catalogClient
+
+	wranglerContext, err := wrangler.NewContext(context.TODO(), restConfig, session)
+	if err != nil {
+		return nil, err
+	}
+
+	c.WranglerContext = wranglerContext
 
 	return c, nil
 }
