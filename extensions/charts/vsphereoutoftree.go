@@ -1,6 +1,7 @@
 package charts
 
 import (
+	"github.com/rancher/shepherd/extensions/clusters"
 	"github.com/rancher/shepherd/extensions/projects"
 	"github.com/rancher/shepherd/extensions/rke1/nodetemplates"
 	"github.com/rancher/shepherd/pkg/api/steve/catalog/types"
@@ -28,9 +29,13 @@ const (
 )
 
 // InstallVsphereOutOfTreeCharts installs the CPI and CSI chart for aws cloud provider in a given cluster.
-func InstallVsphereOutOfTreeCharts(client *rancher.Client, vsphereTemplate *nodetemplates.NodeTemplate, repoName, clusterID string) error {
-
+func InstallVsphereOutOfTreeCharts(client *rancher.Client, vsphereTemplate *nodetemplates.NodeTemplate, repoName, clusterName string) error {
 	serverSetting, err := client.Management.Setting.ByID(serverURLSettingID)
+	if err != nil {
+		return err
+	}
+
+	cluster, err := clusters.NewClusterMeta(client, clusterName)
 	if err != nil {
 		return err
 	}
@@ -40,12 +45,12 @@ func InstallVsphereOutOfTreeCharts(client *rancher.Client, vsphereTemplate *node
 		return err
 	}
 
-	project, err := projects.GetProjectByName(client, clusterID, systemProject)
+	project, err := projects.GetProjectByName(client, cluster.ID, systemProject)
 	if err != nil {
 		return err
 	}
 
-	catalogClient, err := client.GetClusterCatalogClient(clusterID)
+	catalogClient, err := client.GetClusterCatalogClient(cluster.ID)
 	if err != nil {
 		return err
 	}
@@ -56,7 +61,7 @@ func InstallVsphereOutOfTreeCharts(client *rancher.Client, vsphereTemplate *node
 	}
 
 	installCPIOptions := &InstallOptions{
-		ClusterID: clusterID,
+		Cluster:   cluster,
 		Version:   latestCPIVersion,
 		ProjectID: project.ID,
 	}
@@ -91,7 +96,7 @@ func InstallVsphereOutOfTreeCharts(client *rancher.Client, vsphereTemplate *node
 	}
 
 	installCSIOptions := &InstallOptions{
-		ClusterID: clusterID,
+		Cluster:   cluster,
 		Version:   latestCSIVersion,
 		ProjectID: project.ID,
 	}
@@ -133,9 +138,9 @@ func vsphereCPIChartInstallAction(client *catalog.Client, chartInstallActionPayl
 
 	chartInstall := newChartInstall(
 		chartInstallActionPayload.Name,
-		chartInstallActionPayload.InstallOptions.Version,
-		chartInstallActionPayload.InstallOptions.ClusterID,
-		chartInstallActionPayload.InstallOptions.ClusterName,
+		chartInstallActionPayload.Version,
+		chartInstallActionPayload.Cluster.ID,
+		chartInstallActionPayload.Cluster.Name,
 		chartInstallActionPayload.Host,
 		repoName,
 		installOptions.ProjectID,
@@ -158,15 +163,15 @@ func vsphereCSIChartInstallAction(client *catalog.Client, chartInstallActionPayl
 	chartValues[vcenter].(map[string]interface{})[password] = r1vsphere.GetVspherePassword()
 	chartValues[vcenter].(map[string]interface{})[username] = vsphereTemplate.VmwareVsphereNodeTemplateConfig.Username
 	chartValues[vcenter].(map[string]interface{})[port] = vsphereTemplate.VmwareVsphereNodeTemplateConfig.VcenterPort
-	chartValues[vcenter].(map[string]interface{})[clusterid] = installOptions.ClusterID
+	chartValues[vcenter].(map[string]interface{})[clusterid] = installOptions.Cluster.ID
 
 	chartValues[storageclass].(map[string]interface{})[datastoreurl] = r1vsphere.GetVsphereDatastoreURL()
 
 	chartInstall := newChartInstall(
 		chartInstallActionPayload.Name,
-		chartInstallActionPayload.InstallOptions.Version,
-		chartInstallActionPayload.InstallOptions.ClusterID,
-		chartInstallActionPayload.InstallOptions.ClusterName,
+		chartInstallActionPayload.Version,
+		chartInstallActionPayload.Cluster.ID,
+		chartInstallActionPayload.Cluster.Name,
 		chartInstallActionPayload.Host,
 		repoName,
 		installOptions.ProjectID,
