@@ -552,7 +552,7 @@ func CreateProvisioningAirgapCustomCluster(client *rancher.Client, clustersConfi
 		if err != nil {
 			return nil, err
 		}
-		// environement vairables must be escaped inside origianl registration command
+		// environment variables must be escaped inside original registration command
 		temp := strings.Replace(token.InsecureNodeCommand, "\"", "\\\"", -1)
 		command := fmt.Sprintf("%s %s", temp, roles)
 		logrus.Infof("registration command is %s", command)
@@ -633,7 +633,7 @@ func CreateProvisioningRKE1AirgapCustomCluster(client *rancher.Client, clustersC
 			return nil, err
 		}
 
-		// environement vairables must be escaped inside origianl registration command
+		// environment variables must be escaped inside original registration command
 		temp := strings.Replace(token.NodeCommand, "\"", "\\\"", -1)
 		command := fmt.Sprintf("%s %s", temp, roles)
 		logrus.Infof("registration command is %s", command)
