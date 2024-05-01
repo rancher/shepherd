@@ -1252,7 +1252,7 @@ func logClusterInfoWithChanges(clusterID, clusterInfo string, summary summary.Su
 // WatchAndWaitForCluster is function that waits for a cluster to go unactive before checking its active state.
 func WatchAndWaitForCluster(client *rancher.Client, steveID string) error {
 	var clusterResp *v1.SteveAPIObject
-	err := kwait.Poll(500*time.Millisecond, 2*time.Minute, func() (done bool, err error) {
+	err := kwait.PollUntilContextTimeout(context.TODO(), 1*time.Second, defaults.FiveMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
 		clusterResp, err = client.Steve.SteveType(ProvisioningSteveResourceType).ByID(steveID)
 		if err != nil {
 			return false, err
@@ -1263,7 +1263,7 @@ func WatchAndWaitForCluster(client *rancher.Client, steveID string) error {
 	if err != nil {
 		return err
 	}
-	logrus.Infof("waiting for cluster to be up.............")
+	logrus.Infof("waiting for cluster to be up...")
 
 	adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
 	if err != nil {
