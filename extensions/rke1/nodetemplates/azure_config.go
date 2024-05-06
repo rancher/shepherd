@@ -19,6 +19,7 @@ type AzureNodeTemplateConfig struct {
 	ManagedDisks      bool     `json:"managedDisks" yaml:"managedDisks"`
 	NoPublicIP        bool     `json:"noPublicIp" yaml:"noPublicIp"`
 	OpenPort          []string `json:"openPort" yaml:"openPort"`
+	NSG               string   `json:"nsg" yaml:"nsg"`
 	Plan              string   `json:"plan" yaml:"plan"`
 	PrivateIPAddress  string   `json:"privateIpAddress" yaml:"privateIpAddress"`
 	ResourceGroup     string   `json:"resourceGroup" yaml:"resourceGroup"`
