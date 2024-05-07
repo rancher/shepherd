@@ -11,8 +11,13 @@ func main() {
 }
 
 func run() error {
-	if err := os.RemoveAll("../../clients/rancher/generated"); err != nil {
+	if err := os.RemoveAll("./pkg/generated"); err != nil {
 		return err
 	}
+
+	if err := os.RemoveAll("./clients/rancher/generated"); err != nil {
+		return err
+	}
+
 	return nil
 }

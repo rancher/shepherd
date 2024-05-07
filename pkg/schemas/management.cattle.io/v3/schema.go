@@ -249,7 +249,8 @@ func clusterTypes(schemas *types.Schemas) *types.Schemas {
 			schema.MustCustomizeField("extraArgs", func(field types.Field) types.Field {
 				field.Default = map[string]interface{}{
 					"election-timeout":   "5000",
-					"heartbeat-interval": "500"}
+					"heartbeat-interval": "500",
+				}
 				return field
 			})
 		}).
@@ -301,13 +302,13 @@ func authzTypes(schemas *types.Schemas) *types.Schemas {
 		).
 		AddMapperForType(&Version, v3.GlobalRole{}, m.DisplayName{}).
 		AddMapperForType(&Version, v3.RoleTemplate{}, m.DisplayName{}).
-		AddMapperForType(&Version,
-			v3.PodSecurityPolicyTemplateProjectBinding{},
-			&mapper.NamespaceIDMapper{}).
+		// AddMapperForType(&Version,
+		// 	v3.PodSecurityPolicyTemplateProjectBinding{},
+		// 	&mapper.NamespaceIDMapper{}).
 		AddMapperForType(&Version, v3.ProjectRoleTemplateBinding{},
 			&mapper.NamespaceIDMapper{},
 		).
-		MustImport(&Version, v3.SetPodSecurityPolicyTemplateInput{}).
+		// MustImport(&Version, v3.SetPodSecurityPolicyTemplateInput{}).
 		MustImport(&Version, v3.ImportYamlOutput{}).
 		MustImportAndCustomize(&Version, v3.Project{}, func(schema *types.Schema) {
 			schema.ResourceActions = map[string]types.Action{
@@ -326,11 +327,11 @@ func authzTypes(schemas *types.Schemas) *types.Schemas {
 		}).
 		MustImport(&Version, v3.GlobalRoleBinding{}).
 		MustImport(&Version, v3.RoleTemplate{}).
-		MustImport(&Version, v3.PodSecurityPolicyTemplate{}).
-		MustImportAndCustomize(&Version, v3.PodSecurityPolicyTemplateProjectBinding{}, func(schema *types.Schema) {
-			schema.CollectionMethods = []string{http.MethodGet, http.MethodPost}
-			schema.ResourceMethods = []string{}
-		}).
+		// MustImport(&Version, v3.PodSecurityPolicyTemplate{}).
+		// MustImportAndCustomize(&Version, v3.PodSecurityPolicyTemplateProjectBinding{}, func(schema *types.Schema) {
+		// 	schema.CollectionMethods = []string{http.MethodGet, http.MethodPost}
+		// 	schema.ResourceMethods = []string{}
+		// }).
 		MustImport(&Version, v3.ClusterRoleTemplateBinding{}).
 		MustImport(&Version, v3.ProjectRoleTemplateBinding{}).
 		MustImport(&Version, v3.GlobalRoleBinding{})
@@ -468,7 +469,7 @@ func authnTypes(schemas *types.Schemas) *types.Schemas {
 			schema.CollectionMethods = []string{}
 			schema.ResourceMethods = []string{http.MethodGet}
 		}).
-		//Github Config
+		// Github Config
 		MustImportAndCustomize(&Version, v3.GithubConfig{}, func(schema *types.Schema) {
 			schema.BaseType = authConfig
 			schema.ResourceActions = map[string]types.Action{
@@ -486,7 +487,7 @@ func authnTypes(schemas *types.Schemas) *types.Schemas {
 		}).
 		MustImport(&Version, v3.GithubConfigTestOutput{}).
 		MustImport(&Version, v3.GithubConfigApplyInput{}).
-		//AzureAD Config
+		// AzureAD Config
 		MustImportAndCustomize(&Version, v3.AzureADConfig{}, func(schema *types.Schema) {
 			schema.BaseType = authConfig
 			schema.ResourceActions = map[string]types.Action{
@@ -575,7 +576,7 @@ func authnTypes(schemas *types.Schemas) *types.Schemas {
 		MustImportAndCustomize(&Version, v3.ShibbolethConfig{}, configSchema).
 		MustImport(&Version, v3.SamlConfigTestInput{}).
 		MustImport(&Version, v3.SamlConfigTestOutput{}).
-		//GoogleOAuth Config
+		// GoogleOAuth Config
 		MustImportAndCustomize(&Version, v3.GoogleOauthConfig{}, func(schema *types.Schema) {
 			schema.BaseType = authConfig
 			schema.ResourceActions = map[string]types.Action{
@@ -593,7 +594,7 @@ func authnTypes(schemas *types.Schemas) *types.Schemas {
 		}).
 		MustImport(&Version, v3.GoogleOauthConfigApplyInput{}).
 		MustImport(&Version, v3.GoogleOauthConfigTestOutput{}).
-		//OIDC Config
+		// OIDC Config
 		MustImportAndCustomize(&Version, v3.OIDCConfig{}, func(schema *types.Schema) {
 			schema.BaseType = authConfig
 			schema.ResourceActions = map[string]types.Action{
@@ -611,7 +612,7 @@ func authnTypes(schemas *types.Schemas) *types.Schemas {
 		}).
 		MustImport(&Version, v3.OIDCApplyInput{}).
 		MustImport(&Version, v3.OIDCTestOutput{}).
-		//KeyCloakOIDC Config
+		// KeyCloakOIDC Config
 		MustImportAndCustomize(&Version, v3.KeyCloakOIDCConfig{}, func(schema *types.Schema) {
 			schema.BaseType = authConfig
 			schema.ResourceActions = map[string]types.Action{
@@ -815,7 +816,6 @@ func clusterTemplateTypes(schemas *types.Schemas) *types.Schemas {
 				},
 			}
 		})
-
 }
 
 func encryptionTypes(schemas *types.Schemas) *types.Schemas {

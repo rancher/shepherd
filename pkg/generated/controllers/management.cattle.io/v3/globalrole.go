@@ -24,9 +24,9 @@ import (
 	"time"
 
 	v3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
-	"github.com/rancher/shepherd/pkg/wrangler/pkg/generic"
 	"github.com/rancher/wrangler/v2/pkg/apply"
 	"github.com/rancher/wrangler/v2/pkg/condition"
+	"github.com/rancher/shepherd/pkg/wrangler/pkg/generic"
 	"github.com/rancher/wrangler/v2/pkg/kv"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
