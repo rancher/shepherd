@@ -28,6 +28,7 @@ const (
 	machineNameSteveLabel    = "rke.cattle.io/machine-name"
 	machinePlanSecretType    = "rke.cattle.io/machine-plan"
 	machineSteveResourceType = "cluster.x-k8s.io.machine"
+	clusterNameLabelKey      = "cluster.x-k8s.io/cluster-name"
 	pool                     = "pool"
 	True                     = "true"
 
@@ -303,8 +304,11 @@ func MatchRoleToPool(poolRole string, allRoles []Roles) int {
 // object for rke2/k3s clusters
 func GetInitMachine(client *rancher.Client, clusterID string) (*v1.SteveAPIObject, error) {
 	logrus.Info("Retrieving secret and identifying machine...")
+
+	clusterID = strings.Replace(clusterID, "fleet-default/", "", 1)
+
 	secret, err := secrets.ListSecrets(client, local, fleetNamespace, metav1.ListOptions{
-		LabelSelector: initNodeLabelKey + "=" + True,
+		LabelSelector: initNodeLabelKey + "=" + True + "," + clusterNameLabelKey + "=" + clusterID,
 	})
 	if err != nil {
 		return nil, err
