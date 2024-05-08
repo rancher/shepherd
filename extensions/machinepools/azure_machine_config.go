@@ -24,6 +24,7 @@ type AzureMachineConfig struct {
 	DiskSize          string   `json:"diskSize" yaml:"diskSize"`
 	DNS               string   `json:"dns,omitempty" yaml:"dns,omitempty"`
 	FaultDomainCount  string   `json:"faultDomainCount" yaml:"faultDomainCount"`
+	Location          string   `json:"location" yaml:"location"`
 	Image             string   `json:"image" yaml:"image"`
 	ManagedDisks      bool     `json:"managedDisks" yaml:"managedDisks"`
 	NoPublicIP        bool     `json:"noPublicIp" yaml:"noPublicIp"`
@@ -59,6 +60,7 @@ func NewAzureMachineConfig(generatedPoolName, namespace string) []unstructured.U
 		machineConfig.Object["availabilitySet"] = azureMachineConfig.AvailabilitySet
 		machineConfig.Object["diskSize"] = azureMachineConfig.DiskSize
 		machineConfig.Object["dns"] = azureMachineConfig.DNS
+		machineConfig.Object["location"] = azureMachineConfig.Location
 		machineConfig.Object["environment"] = azureMachineConfigs.Environment
 		machineConfig.Object["faultDomainCount"] = azureMachineConfig.FaultDomainCount
 		machineConfig.Object["image"] = azureMachineConfig.Image
