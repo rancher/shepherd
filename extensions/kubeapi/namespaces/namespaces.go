@@ -5,19 +5,11 @@ import (
 	"fmt"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
-
-// NamespaceGroupVersionResource is the required Group Version Resource for accessing namespaces in a cluster,
-// using the dynamic client.
-var NamespaceGroupVersionResource = schema.GroupVersionResource{
-	Group:    "",
-	Version:  "v1",
-	Resource: "namespaces",
-}
 
 // ContainerDefaultResourceLimit sets the container default resource limit in a string
 // limitsCPU and requestsCPU in form of "3m"
@@ -37,7 +29,7 @@ func GetNamespaceByName(client *rancher.Client, clusterID, namespaceName string)
 		return nil, err
 	}
 
-	namespaceResource := dynamicClient.Resource(NamespaceGroupVersionResource).Namespace("")
+	namespaceResource := dynamicClient.Resource(groupversionresources.Namespace()).Namespace("")
 	unstructuredNamespace, err := namespaceResource.Get(context.TODO(), namespaceName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err

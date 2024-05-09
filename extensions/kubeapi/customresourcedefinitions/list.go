@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -15,7 +16,7 @@ func ListCustomResourceDefinitions(client *rancher.Client, clusterID string, nam
 		return nil, err
 	}
 
-	customResourceDefinitionResource := dynamicClient.Resource(CustomResourceDefinitions).Namespace(namespace)
+	customResourceDefinitionResource := dynamicClient.Resource(groupversionresources.CustomResourceDefinition()).Namespace(namespace)
 	CRDs, err := customResourceDefinitionResource.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err

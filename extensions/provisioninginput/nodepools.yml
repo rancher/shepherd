@@ -1,0 +1,38 @@
+etcdControlPlaneWorker:
+  nodePools:
+    nodeRoles:
+      etcd: true
+      controlplane: true
+      worker: true
+      quantity: 1
+
+etcdControlPlane:
+  nodePools:
+    nodeRoles:
+      etcd: true
+      controlplane: true
+      quantity: 1
+
+etcd:
+  nodePools:
+    nodeRoles:
+      etcd: true
+      quantity: 1
+
+controlPlane:
+  nodePools:
+    nodeRoles:
+      controlplane: true
+      quantity: 1
+
+worker:
+  nodePools:
+    nodeRoles:
+      worker: true
+      quantity: 1
+
+windows:
+  nodePools:
+    nodeRoles:
+      windows: true
+      quantity: 1

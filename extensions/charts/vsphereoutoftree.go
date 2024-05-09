@@ -2,6 +2,7 @@ package charts
 
 import (
 	"github.com/rancher/shepherd/extensions/clusters"
+	"github.com/rancher/shepherd/extensions/defaults/namespaces"
 	"github.com/rancher/shepherd/extensions/projects"
 	"github.com/rancher/shepherd/extensions/rke1/nodetemplates"
 	"github.com/rancher/shepherd/pkg/api/steve/catalog/types"
@@ -69,13 +70,13 @@ func InstallVsphereOutOfTreeCharts(client *rancher.Client, vsphereTemplate *node
 	chartInstallActionPayload := &payloadOpts{
 		InstallOptions:  *installCPIOptions,
 		Name:            vsphereCPIchartName,
-		Namespace:       kubeSystemNamespace,
+		Namespace:       namespaces.KubeSystem,
 		Host:            serverSetting.Value,
 		DefaultRegistry: registrySetting.Value,
 	}
 
 	chartInstallAction, err := vsphereCPIChartInstallAction(catalogClient,
-		chartInstallActionPayload, vsphereTemplate, installCPIOptions, repoName, kubeSystemNamespace)
+		chartInstallActionPayload, vsphereTemplate, installCPIOptions, repoName, namespaces.KubeSystem)
 	if err != nil {
 		return err
 	}
@@ -85,7 +86,7 @@ func InstallVsphereOutOfTreeCharts(client *rancher.Client, vsphereTemplate *node
 		return err
 	}
 
-	err = VerifyChartInstall(catalogClient, kubeSystemNamespace, vsphereCPIchartName)
+	err = VerifyChartInstall(catalogClient, namespaces.KubeSystem, vsphereCPIchartName)
 	if err != nil {
 		return err
 	}
@@ -104,13 +105,13 @@ func InstallVsphereOutOfTreeCharts(client *rancher.Client, vsphereTemplate *node
 	chartInstallActionPayload = &payloadOpts{
 		InstallOptions:  *installCSIOptions,
 		Name:            vsphereCSIchartName,
-		Namespace:       kubeSystemNamespace,
+		Namespace:       namespaces.KubeSystem,
 		Host:            serverSetting.Value,
 		DefaultRegistry: registrySetting.Value,
 	}
 
 	chartInstallAction, err = vsphereCSIChartInstallAction(catalogClient, chartInstallActionPayload,
-		vsphereTemplate, installCSIOptions, repoName, kubeSystemNamespace)
+		vsphereTemplate, installCSIOptions, repoName, namespaces.KubeSystem)
 	if err != nil {
 		return err
 	}

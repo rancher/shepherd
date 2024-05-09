@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	appv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,7 +23,7 @@ func ListDeployments(client *rancher.Client, clusterID, namespace string, listOp
 	if err != nil {
 		return nil, err
 	}
-	deploymentResource := dynamicClient.Resource(DeploymentGroupVersionResource).Namespace(namespace)
+	deploymentResource := dynamicClient.Resource(groupversionresources.Deployment()).Namespace(namespace)
 	deployments, err := deploymentResource.List(context.TODO(), listOpts)
 	if err != nil {
 		return nil, err

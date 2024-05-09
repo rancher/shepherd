@@ -1,6 +1,6 @@
 module github.com/rancher/shepherd
 
-go 1.22
+go 1.22.0
 
 replace (
 	k8s.io/api => k8s.io/api v0.28.6

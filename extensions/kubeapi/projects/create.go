@@ -5,6 +5,7 @@ import (
 
 	v3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	"github.com/rancher/shepherd/extensions/unstructured"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,7 +18,7 @@ func CreateProject(client *rancher.Client, project *v3.Project) (*v3.Project, er
 		return nil, err
 	}
 
-	projectResource := dynamicClient.Resource(ProjectGroupVersionResource).Namespace(project.Namespace)
+	projectResource := dynamicClient.Resource(groupversionresources.Project()).Namespace(project.Namespace)
 	unstructuredResp, err := projectResource.Create(context.TODO(), unstructured.MustToUnstructured(project), metav1.CreateOptions{})
 	if err != nil {
 		return nil, err

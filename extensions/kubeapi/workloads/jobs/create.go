@@ -4,7 +4,8 @@ import (
 	"context"
 
 	"github.com/rancher/shepherd/clients/rancher"
-	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
+	"github.com/rancher/shepherd/extensions/defaults/timeouts"
 	"github.com/rancher/shepherd/extensions/unstructured"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	"github.com/rancher/shepherd/pkg/wait"
@@ -12,17 +13,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 )
-
-// JobGroupVersionResource is the required Group Version Resource for accessing jobs in a cluster,
-// using the dynamic client.
-var JobGroupVersionResource = schema.GroupVersionResource{
-	Group:    "batch",
-	Version:  "v1",
-	Resource: "jobs",
-}
 
 // CreateJob is a helper function that uses the dynamic client to create a batch job on a namespace for a specific cluster.
 // It registers a delete fuction a wait.WatchWait to ensure the job is deleted cleanly.
@@ -43,7 +35,7 @@ func CreateJob(client *rancher.Client, clusterName, jobName, namespace string, t
 		},
 	}
 
-	jobResource := dynamicClient.Resource(JobGroupVersionResource).Namespace(namespace)
+	jobResource := dynamicClient.Resource(groupversionresources.Job()).Namespace(namespace)
 
 	unstructuredResp, err := jobResource.Create(context.TODO(), unstructured.MustToUnstructured(job), metav1.CreateOptions{})
 	if err != nil {
@@ -61,7 +53,7 @@ func CreateJob(client *rancher.Client, clusterName, jobName, namespace string, t
 
 		watchInterface, err := jobResource.Watch(context.TODO(), metav1.ListOptions{
 			FieldSelector:  "metadata.name=" + unstructuredResp.GetName(),
-			TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+			TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 		})
 
 		if err != nil {

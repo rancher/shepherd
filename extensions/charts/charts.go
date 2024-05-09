@@ -8,9 +8,10 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	steveV1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/clusters"
-	"github.com/rancher/shepherd/extensions/defaults"
-	"github.com/rancher/shepherd/extensions/kubeapi/workloads/daemonsets"
-	"github.com/rancher/shepherd/extensions/kubeapi/workloads/deployments"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
+	"github.com/rancher/shepherd/extensions/defaults/states"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
+	"github.com/rancher/shepherd/extensions/defaults/timeouts"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	"github.com/rancher/shepherd/pkg/wait"
 	appv1 "k8s.io/api/apps/v1"
@@ -26,7 +27,6 @@ const (
 	// serverURLSettingID is a private constant string that contains the ID of server URL setting.
 	serverURLSettingID = "server-url"
 	rancherChartsName  = "rancher-charts"
-	active             = "active"
 )
 
 // InstallOptions is a struct of the required options to install a chart.
@@ -134,7 +134,7 @@ func WatchAndWaitDeployments(client *rancher.Client, clusterID, namespace string
 	if err != nil {
 		return err
 	}
-	adminDeploymentResource := adminDynamicClient.Resource(deployments.DeploymentGroupVersionResource).Namespace(namespace)
+	adminDeploymentResource := adminDynamicClient.Resource(groupversionresources.Deployment()).Namespace(namespace)
 
 	deployments, err := adminDeploymentResource.List(context.TODO(), listOptions)
 	if err != nil {
@@ -156,7 +156,7 @@ func WatchAndWaitDeployments(client *rancher.Client, clusterID, namespace string
 	for _, deployment := range deploymentList {
 		watchAppInterface, err := adminDeploymentResource.Watch(context.TODO(), metav1.ListOptions{
 			FieldSelector:  "metadata.name=" + deployment.Name,
-			TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+			TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 		})
 		if err != nil {
 			return err
@@ -192,11 +192,11 @@ func WatchAndWaitDeploymentForAnnotation(client *rancher.Client, clusterID, name
 	if err != nil {
 		return err
 	}
-	adminDeploymentResource := adminDynamicClient.Resource(deployments.DeploymentGroupVersionResource).Namespace(namespace)
+	adminDeploymentResource := adminDynamicClient.Resource(groupversionresources.Deployment()).Namespace(namespace)
 
 	watchAppInterface, err := adminDeploymentResource.Watch(context.TODO(), metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + deploymentName,
-		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+		TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 	})
 	if err != nil {
 		return err
@@ -234,7 +234,7 @@ func WatchAndWaitDaemonSets(client *rancher.Client, clusterID, namespace string,
 	if err != nil {
 		return err
 	}
-	adminDaemonSetResource := adminDynamicClient.Resource(daemonsets.DaemonSetGroupVersionResource).Namespace(namespace)
+	adminDaemonSetResource := adminDynamicClient.Resource(groupversionresources.Daemonset()).Namespace(namespace)
 
 	daemonSets, err := adminDaemonSetResource.List(context.TODO(), listOptions)
 	if err != nil {
@@ -256,7 +256,7 @@ func WatchAndWaitDaemonSets(client *rancher.Client, clusterID, namespace string,
 	for _, daemonSet := range daemonSetList {
 		watchAppInterface, err := adminDaemonSetResource.Watch(context.TODO(), metav1.ListOptions{
 			FieldSelector:  "metadata.name=" + daemonSet.Name,
-			TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+			TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 		})
 		if err != nil {
 			return err
@@ -314,7 +314,7 @@ func WatchAndWaitStatefulSets(client *rancher.Client, clusterID, namespace strin
 	for _, statefulSet := range statefulSetList {
 		watchAppInterface, err := adminStatefulSetResource.Watch(context.TODO(), metav1.ListOptions{
 			FieldSelector:  "metadata.name=" + statefulSet.Name,
-			TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+			TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 		})
 		if err != nil {
 			return err
@@ -351,20 +351,20 @@ func CreateChartRepoFromGithub(client *steveV1.Client, githubURL, githubBranch, 
 			InsecureSkipTLSverify: true,
 		},
 	}
-	_, err := client.SteveType(repoType).Create(repoObject)
+	_, err := client.SteveType(stevetypes.ClusterRepo).Create(repoObject)
 	if err != nil {
 		return err
 	}
 
 	err = kwait.Poll(1*time.Second, 2*time.Minute, func() (done bool, err error) {
-		res, err := client.SteveType(repoType).List(nil)
+		res, err := client.SteveType(stevetypes.ClusterRepo).List(nil)
 		if err != nil {
 			return false, err
 		}
 
 		for _, repo := range res.Data {
 			if repo.Name == repoName {
-				if repo.State.Name == active {
+				if repo.State.Name == states.Active {
 					return true, nil
 				}
 			}

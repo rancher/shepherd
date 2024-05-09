@@ -12,7 +12,6 @@ type PSACT string
 type SSHTestCase string
 
 const (
-	Namespace                       = "fleet-default"
 	defaultRandStringLength         = 5
 	ConfigurationFileKey            = "provisioningInput"
 	PSPKubeVersionLimit     Version = "v1.24.99"
@@ -35,101 +34,6 @@ const (
 	VsphereCloudProviderName ProviderName = "rancher-vsphere"
 	ExternalProviderName     ProviderName = "external"
 )
-
-var AllRolesMachinePool = MachinePools{
-	MachinePoolConfig: machinepools.MachinePoolConfig{
-		NodeRoles: machinepools.NodeRoles{
-			Etcd:         true,
-			ControlPlane: true,
-			Worker:       true,
-			Quantity:     1,
-		},
-	},
-}
-
-var EtcdControlPlaneMachinePool = MachinePools{
-	MachinePoolConfig: machinepools.MachinePoolConfig{
-		NodeRoles: machinepools.NodeRoles{
-			Etcd:         true,
-			ControlPlane: true,
-			Quantity:     1,
-		},
-	},
-}
-
-var EtcdMachinePool = MachinePools{
-	MachinePoolConfig: machinepools.MachinePoolConfig{
-		NodeRoles: machinepools.NodeRoles{
-			Etcd:     true,
-			Quantity: 1,
-		},
-	},
-}
-
-var ControlPlaneMachinePool = MachinePools{
-	MachinePoolConfig: machinepools.MachinePoolConfig{
-		NodeRoles: machinepools.NodeRoles{
-			ControlPlane: true,
-			Quantity:     1,
-		},
-	},
-}
-
-var WorkerMachinePool = MachinePools{
-	MachinePoolConfig: machinepools.MachinePoolConfig{
-		NodeRoles: machinepools.NodeRoles{
-			Worker:   true,
-			Quantity: 1,
-		},
-	},
-}
-
-var WindowsMachinePool = MachinePools{
-	MachinePoolConfig: machinepools.MachinePoolConfig{
-		NodeRoles: machinepools.NodeRoles{
-			Windows:  true,
-			Quantity: 1,
-		},
-	},
-}
-
-var AllRolesNodePool = NodePools{
-	NodeRoles: nodepools.NodeRoles{
-		Etcd:         true,
-		ControlPlane: true,
-		Worker:       true,
-		Quantity:     1,
-	},
-}
-
-var EtcdControlPlaneNodePool = NodePools{
-	NodeRoles: nodepools.NodeRoles{
-		Etcd:         true,
-		ControlPlane: true,
-		Quantity:     1,
-	},
-}
-
-var EtcdNodePool = NodePools{
-	NodeRoles: nodepools.NodeRoles{
-		Etcd:     true,
-		Quantity: 1,
-	},
-}
-
-var ControlPlaneNodePool = NodePools{
-	NodeRoles: nodepools.NodeRoles{
-		ControlPlane: true,
-		Quantity:     1,
-	},
-}
-
-var WorkerNodePool = NodePools{
-	NodeRoles: nodepools.NodeRoles{
-		Worker:   true,
-		Quantity: 1,
-	},
-}
 
 // String stringer for the ProviderName
 func (p ProviderName) String() string {
@@ -187,7 +91,7 @@ type Registries struct {
 
 type MachinePools struct {
 	machinepools.Pools
-	MachinePoolConfig machinepools.MachinePoolConfig `json:"machinePoolConfig,omitempty" yaml:"machinePoolConfig,omitempty" default:"[]"`
+	MachinePoolConfig machinepools.MachinePoolConfig `json:"machinePoolConfig,omitempty" yaml:"machinePoolConfig,omitempty" default:"{}"`
 	IsSecure          bool                           `json:"isSecure,omitempty" yaml:"isSecure,omitempty" default:"false"`
 }
 

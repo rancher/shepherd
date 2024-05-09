@@ -4,7 +4,8 @@ import (
 	"context"
 
 	"github.com/rancher/shepherd/clients/rancher"
-	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
+	"github.com/rancher/shepherd/extensions/defaults/timeouts"
 	"github.com/rancher/shepherd/extensions/unstructured"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	"github.com/rancher/shepherd/pkg/wait"
@@ -13,17 +14,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 )
-
-// CronJobGroupVersionResource is the required Group Version Resource for accessing cron jobs in a cluster,
-// using the dynamic client.
-var CronJobGroupVersionResource = schema.GroupVersionResource{
-	Group:    "batch",
-	Version:  "v1beta1",
-	Resource: "cronjobs",
-}
 
 // CreateCronJob is a helper function that uses the dynamic client to create a cronjob on a namespace for a specific cluster.
 // It registers a delete fuction a wait.WatchWait to ensure the cronjob is deleted cleanly.
@@ -49,7 +41,7 @@ func CreateCronJob(client *rancher.Client, clusterName, cronJobName, namespace, 
 		},
 	}
 
-	cronJobResource := dynamicClient.Resource(CronJobGroupVersionResource).Namespace(namespace)
+	cronJobResource := dynamicClient.Resource(groupversionresources.CronJob()).Namespace(namespace)
 
 	unstructuredResp, err := cronJobResource.Create(context.TODO(), unstructured.MustToUnstructured(cronJob), metav1.CreateOptions{})
 	if err != nil {
@@ -67,7 +59,7 @@ func CreateCronJob(client *rancher.Client, clusterName, cronJobName, namespace, 
 
 		watchInterface, err := cronJobResource.Watch(context.TODO(), metav1.ListOptions{
 			FieldSelector:  "metadata.name=" + unstructuredResp.GetName(),
-			TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+			TimeoutSeconds: timeouts.WatchTimeout(timeouts.ThirtyMinute),
 		})
 
 		if err != nil {

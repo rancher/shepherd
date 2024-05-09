@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-var NodeNotFound = "can not build dialer to"
+const NodeNotFound = "can not build dialer to"
 
 func IsNodeNotFound(err error) bool {
 	if err == nil {

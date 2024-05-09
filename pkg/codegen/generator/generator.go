@@ -8,7 +8,7 @@ import (
 	"github.com/rancher/norman/types"
 )
 
-var (
+const (
 	outputDir  = "./"
 	baseCattle = "clients/rancher/generated"
 )

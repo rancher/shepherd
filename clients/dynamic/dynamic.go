@@ -72,20 +72,18 @@ type ResourceClient struct {
 	ts *session.Session
 }
 
-var (
+func needsCleanup(obj *unstructured.Unstructured) bool {
 	// some GVKs are special and cannot be cleaned up because they do not exist
 	// after being created (eg: SelfSubjectAccessReview). We'll not register
 	// cleanup functions when creating objects of these kinds.
-	noCleanupGVKs = []schema.GroupVersionKind{
+	noCleanupGVKs := []schema.GroupVersionKind{
 		{
 			Group:   "authorization.k8s.io",
 			Version: "v1",
 			Kind:    "SelfSubjectAccessReview",
 		},
 	}
-)
 
-func needsCleanup(obj *unstructured.Unstructured) bool {
 	for _, gvk := range noCleanupGVKs {
 		if obj.GroupVersionKind() == gvk {
 			return false

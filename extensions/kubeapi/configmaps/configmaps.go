@@ -4,26 +4,19 @@ import (
 	"context"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	defaultAnnotations "github.com/rancher/shepherd/extensions/defaults/annotations"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	"github.com/rancher/shepherd/extensions/unstructured"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	coreV1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
-
-// ConfigMapGroupVersionResource is the required Group Version Resource for accessing config maps in a cluster,
-// using the dynamic client.
-var ConfigMapGroupVersionResource = schema.GroupVersionResource{
-	Group:    "",
-	Version:  "v1",
-	Resource: "configmaps",
-}
 
 // CreateConfigMap is a helper function that uses the dynamic client to create a config map on a namespace for a specific cluster.
 // It registers a delete fuction.
 func CreateConfigMap(client *rancher.Client, clusterName, configMapName, description, namespace string, data, labels, annotations map[string]string) (*coreV1.ConfigMap, error) {
 	// ConfigMap object for a namespace in a cluster
-	annotations["field.cattle.io/description"] = description
+	annotations[defaultAnnotations.Description] = description
 	configMap := &coreV1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        configMapName,
@@ -39,7 +32,7 @@ func CreateConfigMap(client *rancher.Client, clusterName, configMapName, descrip
 		return nil, err
 	}
 
-	configMapResource := dynamicClient.Resource(ConfigMapGroupVersionResource).Namespace(namespace)
+	configMapResource := dynamicClient.Resource(groupversionresources.ConfigMap()).Namespace(namespace)
 
 	unstructuredResp, err := configMapResource.Create(context.TODO(), unstructured.MustToUnstructured(configMap), metav1.CreateOptions{})
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 
 	v3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,7 +18,7 @@ func ListRoleBindings(client *rancher.Client, clusterName, namespace string, lis
 		return nil, err
 	}
 
-	unstructuredList, err := dynamicClient.Resource(RoleBindingGroupVersionResource).Namespace(namespace).List(context.Background(), listOpt)
+	unstructuredList, err := dynamicClient.Resource(groupversionresources.RoleBinding()).Namespace(namespace).List(context.Background(), listOpt)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +44,7 @@ func ListClusterRoleBindings(client *rancher.Client, clusterName string, listOpt
 		return nil, err
 	}
 
-	unstructuredList, err := dynamicClient.Resource(ClusterRoleBindingGroupVersionResource).Namespace("").List(context.Background(), listOpt)
+	unstructuredList, err := dynamicClient.Resource(groupversionresources.ClusterRoleBinding()).Namespace("").List(context.Background(), listOpt)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +70,7 @@ func ListGlobalRoleBindings(client *rancher.Client, listOpt metav1.ListOptions) 
 		return nil, err
 	}
 
-	unstructuredList, err := dynamicClient.Resource(GlobalRoleBindingGroupVersionResource).List(context.TODO(), listOpt)
+	unstructuredList, err := dynamicClient.Resource(groupversionresources.GlobalRoleBinding()).List(context.TODO(), listOpt)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +96,7 @@ func ListClusterRoleTemplateBindings(client *rancher.Client, listOpt metav1.List
 		return nil, err
 	}
 
-	unstructuredList, err := dynamicClient.Resource(ClusterRoleTemplateBindingGroupVersionResource).Namespace("").List(context.TODO(), listOpt)
+	unstructuredList, err := dynamicClient.Resource(groupversionresources.ClusterRoleTemplateBinding()).Namespace("").List(context.TODO(), listOpt)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +122,7 @@ func ListGlobalRoles(client *rancher.Client, listOpt metav1.ListOptions) (*v3.Gl
 		return nil, err
 	}
 
-	unstructuredList, err := dynamicClient.Resource(GlobalRoleGroupVersionResource).List(context.TODO(), listOpt)
+	unstructuredList, err := dynamicClient.Resource(groupversionresources.GlobalRole()).List(context.TODO(), listOpt)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +148,7 @@ func ListRoleTemplates(client *rancher.Client, listOpt metav1.ListOptions) (*v3.
 		return nil, err
 	}
 
-	unstructuredList, err := dynamicClient.Resource(RoleTemplateGroupVersionResource).List(context.TODO(), listOpt)
+	unstructuredList, err := dynamicClient.Resource(groupversionresources.RoleTemplate()).List(context.TODO(), listOpt)
 	if err != nil {
 		return nil, err
 	}

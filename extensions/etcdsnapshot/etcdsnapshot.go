@@ -14,8 +14,10 @@ import (
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	rancherv1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/clusters"
-	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/namespaces"
+	"github.com/rancher/shepherd/extensions/defaults/states"
 	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
+	"github.com/rancher/shepherd/extensions/defaults/timeouts"
 	"github.com/rancher/shepherd/extensions/kubeapi/nodes"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,10 +25,7 @@ import (
 )
 
 const (
-	ProvisioningSteveResouceType = "provisioning.cattle.io.cluster"
-	fleetNamespace               = "fleet-default"
-	localClusterName             = "local"
-	active                       = "active"
+	localClusterName = "local"
 )
 
 func MatchNodeToAnyEtcdRole(client *rancher.Client, clusterID string) (int, *management.Node) {
@@ -118,7 +117,7 @@ func CreateRKE1Snapshot(client *rancher.Client, clusterName string) error {
 		return err
 	}
 
-	err = wait.Poll(1*time.Second, defaults.FiveMinuteTimeout, func() (bool, error) {
+	err = wait.Poll(1*time.Second, timeouts.FiveMinute, func() (bool, error) {
 		snapshotSteveObjList, err := client.Management.EtcdBackup.ListAll(&types.ListOpts{
 			Filters: map[string]interface{}{
 				"clusterId": clusterID,
@@ -134,7 +133,7 @@ func CreateRKE1Snapshot(client *rancher.Client, clusterName string) error {
 				return false, nil
 			}
 
-			if snapshotObj.State != active {
+			if snapshotObj.State != states.Active {
 				return false, nil
 			}
 		}
@@ -151,7 +150,7 @@ func CreateRKE1Snapshot(client *rancher.Client, clusterName string) error {
 
 // CreateRKE2K3SSnapshot is a helper function to create a snapshot on an RKE2 or k3s cluster. Returns error if any.
 func CreateRKE2K3SSnapshot(client *rancher.Client, clusterName string) error {
-	clusterObject, clusterSteveObject, err := clusters.GetProvisioningClusterByName(client, clusterName, fleetNamespace)
+	clusterObject, clusterSteveObject, err := clusters.GetProvisioningClusterByName(client, clusterName, namespaces.Fleet)
 	if err != nil {
 		return err
 	}
@@ -175,29 +174,29 @@ func CreateRKE2K3SSnapshot(client *rancher.Client, clusterName string) error {
 	}
 
 	logrus.Infof("Creating snapshot...")
-	_, err = client.Steve.SteveType(clusters.ProvisioningSteveResourceType).Update(clusterSteveObject, clusterObject)
+	_, err = client.Steve.SteveType(stevetypes.Provisioning).Update(clusterSteveObject, clusterObject)
 	if err != nil {
 		return err
 	}
 
-	err = wait.Poll(1*time.Second, defaults.FiveMinuteTimeout, func() (bool, error) {
-		snapshotSteveObjList, err := client.Steve.SteveType("rke.cattle.io.etcdsnapshot").List(nil)
+	err = wait.Poll(1*time.Second, timeouts.FiveMinute, func() (bool, error) {
+		snapshotSteveObjList, err := client.Steve.SteveType(stevetypes.EtcdSnapshot).List(nil)
 		if err != nil {
 			return false, nil
 		}
 
-		_, clusterSteveObject, err := clusters.GetProvisioningClusterByName(client, clusterName, fleetNamespace)
+		_, clusterSteveObject, err := clusters.GetProvisioningClusterByName(client, clusterName, namespaces.Fleet)
 		if err != nil {
 			return false, nil
 		}
 
 		for _, snapshot := range snapshotSteveObjList.Data {
-			snapshotObj, err := client.Steve.SteveType("rke.cattle.io.etcdsnapshot").ByID(snapshot.ID)
+			snapshotObj, err := client.Steve.SteveType(stevetypes.EtcdSnapshot).ByID(snapshot.ID)
 			if err != nil {
 				return false, nil
 			}
 
-			if snapshotObj.ObjectMeta.State.Name == active && clusterSteveObject.ObjectMeta.State.Name == active {
+			if snapshotObj.ObjectMeta.State.Name == states.Active && clusterSteveObject.ObjectMeta.State.Name == states.Active {
 				logrus.Infof("All snapshots in the cluster are in an active state!")
 				return true, nil
 			}
@@ -240,13 +239,13 @@ func RestoreRKE1Snapshot(client *rancher.Client, clusterName string, snapshotRes
 		return err
 	}
 
-	err = wait.PollUntilContextTimeout(context.TODO(), 5*time.Second, defaults.ThirtyMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
+	err = wait.PollUntilContextTimeout(context.TODO(), 5*time.Second, timeouts.ThirtyMinute, true, func(ctx context.Context) (done bool, err error) {
 		clusterResp, err := client.Management.Cluster.ByID(clusterID)
 		if err != nil {
 			return false, nil
 		}
 
-		if clusterResp.State == active {
+		if clusterResp.State == states.Active {
 			return true, nil
 		}
 
@@ -261,7 +260,7 @@ func RestoreRKE1Snapshot(client *rancher.Client, clusterName string, snapshotRes
 
 // RestoreRKE2K3SSnapshot is a helper function to restore a snapshot on an RKE2 or k3s cluster. Returns error if any.
 func RestoreRKE2K3SSnapshot(client *rancher.Client, clusterName string, snapshotRestore *rkev1.ETCDSnapshotRestore, initialControlPlaneValue, initialWorkerValue string) error {
-	clusterObject, existingSteveAPIObject, err := clusters.GetProvisioningClusterByName(client, clusterName, fleetNamespace)
+	clusterObject, existingSteveAPIObject, err := clusters.GetProvisioningClusterByName(client, clusterName, namespaces.Fleet)
 	if err != nil {
 		return err
 	}
@@ -271,7 +270,7 @@ func RestoreRKE2K3SSnapshot(client *rancher.Client, clusterName string, snapshot
 	clusterObject.Spec.RKEConfig.UpgradeStrategy.WorkerConcurrency = initialWorkerValue
 
 	logrus.Infof("Restoring snapshot: %v", snapshotRestore.Name)
-	_, err = client.Steve.SteveType(ProvisioningSteveResouceType).Update(existingSteveAPIObject, clusterObject)
+	_, err = client.Steve.SteveType(stevetypes.Provisioning).Update(existingSteveAPIObject, clusterObject)
 	if err != nil {
 		return err
 	}

@@ -9,30 +9,28 @@ import (
 	apiv1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
 	"github.com/rancher/shepherd/clients/rancher"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
-	"github.com/rancher/shepherd/extensions/clusters"
+	"github.com/rancher/shepherd/extensions/defaults/namespaces"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/rancher/shepherd/extensions/kubeconfig"
 	"github.com/rancher/shepherd/pkg/killserver"
 	"github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
 )
 
-var podGroupVersionResource = corev1.SchemeGroupVersion.WithResource("pods")
-
 const (
-	cattleSystemNameSpace = "cattle-system"
-	localCluster          = "local"
-	rancherCoverFile      = "ranchercoverage"
-	agentCoverFile        = "agentcoverage"
-	outputDir             = "cover"
+	localCluster     = "local"
+	rancherCoverFile = "ranchercoverage"
+	agentCoverFile   = "agentcoverage"
+	outputDir        = "cover"
 )
 
 func checkServiceIsRunning(dynamicClient dynamic.Interface) error {
 	return kwait.Poll(500*time.Millisecond, 2*time.Minute, func() (done bool, err error) {
-		_, err = dynamicClient.Resource(podGroupVersionResource).Namespace(cattleSystemNameSpace).List(context.Background(), metav1.ListOptions{})
+		_, err = dynamicClient.Resource(groupversionresources.Pod()).Namespace(namespaces.CattleSystem).List(context.Background(), metav1.ListOptions{})
 		if k8sErrors.IsInternalError(err) || k8sErrors.IsServiceUnavailable(err) {
 			return false, nil
 		} else if err != nil {
@@ -60,7 +58,7 @@ func killTestServices(client *rancher.Client, clusterID string, podNames []strin
 	}
 
 	for _, podName := range podNames {
-		_, err := kubeconfig.KubectlExec(restConfig, podName, cattleSystemNameSpace, cmd)
+		_, err := kubeconfig.KubectlExec(restConfig, podName, namespaces.CattleSystem, cmd)
 		if err != nil {
 			logrus.Errorf("error killing pod container %v", err)
 		}
@@ -84,7 +82,7 @@ func retrieveCodeCoverageFile(client *rancher.Client, clusterID, coverageFilenam
 		fileName := fmt.Sprintf("%s%s", podName, coverageFilename)
 		dst := fmt.Sprintf("%s/%s", outputDir, fileName)
 
-		err := kubeconfig.CopyFileFromPod(restConfig, *kubeConfig, podName, cattleSystemNameSpace, coverageFilename, dst)
+		err := kubeconfig.CopyFileFromPod(restConfig, *kubeConfig, podName, namespaces.CattleSystem, coverageFilename, dst)
 		if err != nil {
 			return err
 		}
@@ -103,7 +101,7 @@ func KillRancherTestServicesRetrieveCoverage(client *rancher.Client) error {
 		return err
 	}
 
-	pods, err := dynamicClient.Resource(podGroupVersionResource).Namespace(cattleSystemNameSpace).List(context.Background(), metav1.ListOptions{})
+	pods, err := dynamicClient.Resource(groupversionresources.Pod()).Namespace(namespaces.CattleSystem).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -132,7 +130,7 @@ func KillRancherTestServicesRetrieveCoverage(client *rancher.Client) error {
 // inorder for the code coverage report to be written, and then copies over the coverage reports from the pods
 // to a local destination. The custom code coverage rancher-agent image must be running in the downstream cluster.
 func KillAgentTestServicesRetrieveCoverage(client *rancher.Client) error {
-	clusters, err := client.Steve.SteveType(clusters.ProvisioningSteveResourceType).ListAll(nil)
+	clusters, err := client.Steve.SteveType(stevetypes.Provisioning).ListAll(nil)
 	if err != nil {
 		return err
 	}
@@ -151,7 +149,7 @@ func KillAgentTestServicesRetrieveCoverage(client *rancher.Client) error {
 				continue
 			}
 
-			pods, err := dynamicClient.Resource(podGroupVersionResource).Namespace(cattleSystemNameSpace).List(context.Background(), metav1.ListOptions{})
+			pods, err := dynamicClient.Resource(groupversionresources.Pod()).Namespace(namespaces.CattleSystem).List(context.Background(), metav1.ListOptions{})
 			if err != nil {
 				logrus.Errorf("could not list pods")
 				continue

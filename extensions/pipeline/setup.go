@@ -10,6 +10,7 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/rancher/shepherd/extensions/kubeapi/cluster"
 	"github.com/rancher/shepherd/extensions/token"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -93,7 +94,7 @@ func UpdateEULA(adminClient *rancher.Client) error {
 			return false, err
 		}
 
-		urlSettingResp, err = steveClient.SteveType("management.cattle.io.setting").ByID("server-url")
+		urlSettingResp, err = steveClient.SteveType(stevetypes.ManagementSetting).ByID("server-url")
 		if err != nil {
 			serverURL = err
 			return false, nil
@@ -119,7 +120,7 @@ func UpdateEULA(adminClient *rancher.Client) error {
 
 	urlSetting.Value = fmt.Sprintf("https://%s", adminClient.RancherConfig.Host)
 
-	_, err = steveClient.SteveType("management.cattle.io.setting").Update(urlSettingResp, urlSetting)
+	_, err = steveClient.SteveType(stevetypes.ManagementSetting).Update(urlSettingResp, urlSetting)
 	if err != nil {
 		return err
 	}
@@ -135,7 +136,7 @@ func UpdateEULA(adminClient *rancher.Client) error {
 
 	var pollError error
 	err = kwait.Poll(500*time.Millisecond, 2*time.Minute, func() (done bool, err error) {
-		_, err = steveClient.SteveType("management.cattle.io.setting").Create(settingEULA)
+		_, err = steveClient.SteveType(stevetypes.ManagementSetting).Create(settingEULA)
 
 		if err != nil && !strings.Contains(err.Error(), "409 Conflict") {
 			pollError = err
@@ -143,7 +144,7 @@ func UpdateEULA(adminClient *rancher.Client) error {
 		}
 
 		urlSetting := &v3.Setting{}
-		urlSettingResp, err := steveClient.SteveType("management.cattle.io.setting").ByID("server-url")
+		urlSettingResp, err := steveClient.SteveType(stevetypes.ManagementSetting).ByID("server-url")
 		if err != nil {
 			return false, err
 		}

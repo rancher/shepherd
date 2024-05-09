@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,7 +24,7 @@ func ListNamespaces(client *rancher.Client, clusterID string, listOpts metav1.Li
 		return nil, err
 	}
 
-	namespaceResource := dynamicClient.Resource(NamespaceGroupVersionResource).Namespace("")
+	namespaceResource := dynamicClient.Resource(groupversionresources.Namespace()).Namespace("")
 	namespaces, err := namespaceResource.List(context.TODO(), listOpts)
 	if err != nil {
 		return nil, err

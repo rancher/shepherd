@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	coreV1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,7 +34,7 @@ func PatchSecret(client *rancher.Client, clusterID, secretName, namespace string
 		return nil, err
 	}
 
-	secretResource := dynamicClient.Resource(SecretGroupVersionResource).Namespace(namespace)
+	secretResource := dynamicClient.Resource(groupversionresources.Secret()).Namespace(namespace)
 
 	unstructuredResp, err := secretResource.Patch(context.TODO(), secretName, patchType, []byte(patchJSONOperation), patchOpts)
 	if err != nil {

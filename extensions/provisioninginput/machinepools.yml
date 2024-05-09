@@ -1,0 +1,38 @@
+etcdControlPlaneWorker:
+  machinePools:
+    machinePoolConfig:
+      etcd: true
+      controlplane: true
+      worker: true
+      quantity: 1
+
+etcdControlPlane:
+  machinePools:
+    machinePoolConfig:
+      etcd: true
+      controlplane: true
+      quantity: 1
+
+etcd:
+  machinePools:
+    machinePoolConfig:
+      etcd: true
+      quantity: 1
+
+controlPlane:
+  machinePools:
+    machinePoolConfig:
+      controlplane: true
+      quantity: 1
+
+worker:
+  machinePools:
+    machinePoolConfig:
+      worker: true
+      quantity: 1
+
+windows:
+  machinePools:
+    machinePoolConfig:
+      windows: true
+      quantity: 1

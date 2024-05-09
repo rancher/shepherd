@@ -7,6 +7,7 @@ import (
 
 	"github.com/rancher/shepherd/clients/rancher"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/rancher/shepherd/extensions/ingresses"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -27,7 +28,7 @@ func VerifyAWSLoadBalancer(t *testing.T, client *rancher.Client, serviceLB *v1.S
 
 	lbHostname := ""
 	err = kwait.Poll(5*time.Second, 1*time.Minute, func() (done bool, err error) {
-		updateService, err := steveclient.SteveType("service").ByID(serviceLB.ID)
+		updateService, err := steveclient.SteveType(stevetypes.Service).ByID(serviceLB.ID)
 		if err != nil {
 			return false, nil
 		}

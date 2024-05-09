@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,7 +24,7 @@ func ListResourceQuotas(client *rancher.Client, clusterID string, namespace stri
 		return nil, err
 	}
 
-	resourceQuotaResource := dynamicClient.Resource(ResourceQuotaGroupVersionResource).Namespace(namespace)
+	resourceQuotaResource := dynamicClient.Resource(groupversionresources.ResourceQuota()).Namespace(namespace)
 	quotas, err := resourceQuotaResource.List(context.TODO(), listOpts)
 	if err != nil {
 		return nil, err

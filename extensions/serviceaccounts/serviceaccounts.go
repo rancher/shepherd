@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/defaults/states"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -27,7 +28,7 @@ func IsServiceAccountReady(rancherClient *rancher.Client, clusterID, namespace, 
 				return false, nil
 			}
 			return false, err
-		} else if serviceAccount.State.Name == "active" {
+		} else if serviceAccount.State.Name == states.Active {
 			return true, nil
 		}
 

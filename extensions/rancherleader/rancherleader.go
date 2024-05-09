@@ -5,6 +5,8 @@ import (
 
 	"github.com/rancher/shepherd/clients/rancher"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
+	"github.com/rancher/shepherd/extensions/defaults/namespaces"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	coordinationv1 "k8s.io/api/coordination/v1"
 )
 
@@ -17,7 +19,7 @@ const (
 // GetRancherLeaderPodName is a helper function to retrieve the name of the rancher leader pod
 func GetRancherLeaderPodName(client *rancher.Client) (string, error) {
 	query := url.Values{"fieldSelector": {"metadata.name=" + LeaseName}}
-	lease, err := client.Steve.SteveType(LeaseSteveType).NamespacedSteveClient(KubeSystemNamespace).List(query)
+	lease, err := client.Steve.SteveType(stevetypes.CoordinationLease).NamespacedSteveClient(namespaces.KubeSystem).List(query)
 	if err != nil {
 		return "", err
 	}

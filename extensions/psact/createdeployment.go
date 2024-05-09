@@ -7,6 +7,8 @@ import (
 
 	"github.com/rancher/shepherd/clients/rancher"
 	steveV1 "github.com/rancher/shepherd/clients/rancher/v1"
+	defaultlabels "github.com/rancher/shepherd/extensions/defaults/labels"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/rancher/shepherd/extensions/provisioninginput"
 	"github.com/rancher/shepherd/extensions/workloads"
 	namegenerator "github.com/rancher/shepherd/pkg/namegenerator"
@@ -29,7 +31,7 @@ const (
 // deployment should successfully create. If the PSACT value is rancher-unprivileged, then the deployment should fail to create.
 func CreateNginxDeployment(client *rancher.Client, clusterID string, psact string) error {
 	labels := map[string]string{}
-	labels["workload.user.cattle.io/workloadselector"] = fmt.Sprintf("apps.deployment-%v-%v", namespace, workload)
+	labels[defaultlabels.WorkloadSelector] = fmt.Sprintf("apps.deployment-%v-%v", namespace, workload)
 
 	containerTemplate := workloads.NewContainer(containerName, imageName, v1.PullAlways, []v1.VolumeMount{}, []v1.EnvFromSource{}, nil, nil, nil)
 	podTemplate := workloads.NewPodTemplate([]v1.Container{containerTemplate}, []v1.Volume{}, []v1.LocalObjectReference{}, labels)
@@ -41,12 +43,12 @@ func CreateNginxDeployment(client *rancher.Client, clusterID string, psact strin
 	}
 
 	// If the deployment already exists, then create a new deployment with a different name to avoid a naming conflict.
-	if _, err := steveclient.SteveType(workloads.DeploymentSteveType).ByID(deploymentTemplate.Namespace + "/" + deploymentTemplate.Name); err == nil {
+	if _, err := steveclient.SteveType(stevetypes.Deployment).ByID(deploymentTemplate.Namespace + "/" + deploymentTemplate.Name); err == nil {
 		deploymentTemplate.Name = deploymentTemplate.Name + "-" + namegenerator.RandStringLower(5)
 	}
 
 	logrus.Infof("Creating deployment %s", deploymentTemplate.Name)
-	_, err = steveclient.SteveType(workloads.DeploymentSteveType).Create(deploymentTemplate)
+	_, err = steveclient.SteveType(stevetypes.Deployment).Create(deploymentTemplate)
 	if err != nil {
 		return err
 	}
@@ -57,7 +59,7 @@ func CreateNginxDeployment(client *rancher.Client, clusterID string, psact strin
 			return false, err
 		}
 
-		deploymentResp, err := steveclient.SteveType(workloads.DeploymentSteveType).ByID(deploymentTemplate.Namespace + "/" + deploymentTemplate.Name)
+		deploymentResp, err := steveclient.SteveType(stevetypes.Deployment).ByID(deploymentTemplate.Namespace + "/" + deploymentTemplate.Name)
 		if err != nil {
 			// We don't want to return the error so we don't exit the poll too soon.
 			// There could be delay of when the deployment is created.
@@ -88,13 +90,13 @@ func CreateNginxDeployment(client *rancher.Client, clusterID string, psact strin
 		return err
 	}
 
-	deploymentResp, err := steveclient.SteveType(workloads.DeploymentSteveType).ByID(deploymentTemplate.Namespace + "/" + deploymentTemplate.Name)
+	deploymentResp, err := steveclient.SteveType(stevetypes.Deployment).ByID(deploymentTemplate.Namespace + "/" + deploymentTemplate.Name)
 	if err != nil {
 		return err
 	}
 
 	logrus.Infof("Deleting deployment %s", deploymentResp.Name)
-	err = steveclient.SteveType(workloads.DeploymentSteveType).Delete(deploymentResp)
+	err = steveclient.SteveType(stevetypes.Deployment).Delete(deploymentResp)
 	if err != nil {
 		return err
 	}

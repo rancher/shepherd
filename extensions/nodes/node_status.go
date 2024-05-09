@@ -9,25 +9,20 @@ import (
 	rkev1 "github.com/rancher/rancher/pkg/apis/rke.cattle.io/v1"
 	"github.com/rancher/shepherd/clients/rancher"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
+	"github.com/rancher/shepherd/extensions/defaults/annotations"
+	"github.com/rancher/shepherd/extensions/defaults/namespaces"
+	"github.com/rancher/shepherd/extensions/defaults/states"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
+	"github.com/rancher/shepherd/extensions/defaults/timeouts"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
-	activeState              = "active"
-	runningState             = "running"
-	errorState               = "error"
-	machineSteveResourceType = "cluster.x-k8s.io.machine"
-	machineSteveAnnotation   = "cluster.x-k8s.io/machine"
-	fleetNamespace           = "fleet-default"
-	etcdLabel                = "rke.cattle.io/etcd-role"
-	clusterLabel             = "cluster.x-k8s.io/cluster-name"
-
 	PollInterval = time.Duration(5 * time.Second)
 	PollTimeout  = time.Duration(15 * time.Minute)
 
 	oneSecondInterval = time.Duration(1 * time.Second)
-	fiveMinuteTimeout = time.Duration(5 * time.Minute)
 
 	httpNotFound = "404 Not Found"
 )
@@ -53,13 +48,13 @@ func AllManagementNodeReady(client *rancher.Client, ClusterID string, timeout ti
 					return false, nil
 				}
 
-				if node.State == errorState {
+				if node.State == states.Error {
 					logrus.Warnf("node %s is in error state", node.Name)
 
 					return false, nil
 				}
 
-				if node.State != activeState {
+				if node.State != states.Active {
 					return false, nil
 				}
 			}
@@ -88,8 +83,8 @@ func AllMachineReady(client *rancher.Client, clusterID string, timeout time.Dura
 
 			for _, node := range nodes.Data {
 				machine, err := client.Steve.
-					SteveType(machineSteveResourceType).
-					ByID(fleetNamespace + "/" + node.Annotations[machineSteveAnnotation])
+					SteveType(stevetypes.Machine).
+					ByID(namespaces.Fleet + "/" + node.Annotations[annotations.Machine])
 				if err != nil {
 					return false, err
 				}
@@ -104,7 +99,7 @@ func AllMachineReady(client *rancher.Client, clusterID string, timeout time.Dura
 					return false, nil
 				}
 
-				if machine.State.Name != runningState {
+				if machine.State.Name != states.Running {
 					return false, nil
 				}
 			}
@@ -120,7 +115,7 @@ func AllMachineReady(client *rancher.Client, clusterID string, timeout time.Dura
 func AllNodeDeleted(client *rancher.Client, ClusterID string) error {
 	ctx := context.Background()
 	err := wait.PollUntilContextTimeout(
-		ctx, oneSecondInterval, fiveMinuteTimeout, true, func(ctx context.Context) (bool, error) {
+		ctx, oneSecondInterval, timeouts.FiveMinute, true, func(ctx context.Context) (bool, error) {
 			nodes, err := client.Management.Node.ListAll(&types.ListOpts{
 				Filters: map[string]interface{}{
 					"clusterId": ClusterID,
@@ -149,7 +144,7 @@ func IsNodeReplaced(client *rancher.Client, oldMachineID string, clusterID strin
 
 	ctx := context.Background()
 	err := wait.PollUntilContextTimeout(
-		ctx, oneSecondInterval, PollTimeout, true, func(ctx context.Context) (bool, error) {
+		ctx, oneSecondInterval, timeouts.FifteenMinute, true, func(ctx context.Context) (bool, error) {
 			machines, err := client.Management.Node.ListAll(&types.ListOpts{Filters: map[string]interface{}{
 				"clusterId": clusterID,
 			}})
@@ -188,7 +183,7 @@ func Isv1NodeConditionMet(client *rancher.Client, machineID, clusterID, conditio
 
 	ctx := context.Background()
 	err = wait.PollUntilContextTimeout(
-		ctx, PollInterval, PollTimeout, true, func(ctx context.Context) (bool, error) {
+		ctx, PollInterval, timeouts.FifteenMinute, true, func(ctx context.Context) (bool, error) {
 			refreshedMachine, err := steveclient.SteveType("node").ByID(machineID)
 			if err != nil {
 				if strings.Contains(err.Error(), httpNotFound) {

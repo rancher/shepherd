@@ -5,6 +5,7 @@ import (
 
 	v3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/defaults/schema/groupversionresources"
 	"github.com/rancher/shepherd/extensions/unstructured"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -18,7 +19,7 @@ func CreateRole(client *rancher.Client, clusterName string, role *rbacv1.Role) (
 		return nil, err
 	}
 
-	roleResource := dynamicClient.Resource(RoleGroupVersionResource).Namespace(role.Namespace)
+	roleResource := dynamicClient.Resource(groupversionresources.Role()).Namespace(role.Namespace)
 
 	unstructuredResp, err := roleResource.Create(context.Background(), unstructured.MustToUnstructured(role), metav1.CreateOptions{})
 	if err != nil {
@@ -54,7 +55,7 @@ func CreateRoleBinding(client *rancher.Client, clusterName, roleBindingName, nam
 		},
 	}
 
-	roleBindingResource := dynamicClient.Resource(RoleBindingGroupVersionResource).Namespace(namespace)
+	roleBindingResource := dynamicClient.Resource(groupversionresources.RoleBinding()).Namespace(namespace)
 
 	unstructuredResp, err := roleBindingResource.Create(context.Background(), unstructured.MustToUnstructured(roleBinding), metav1.CreateOptions{})
 	if err != nil {
@@ -77,7 +78,7 @@ func CreateGlobalRole(client *rancher.Client, globalRole *v3.GlobalRole) (*v3.Gl
 		return nil, err
 	}
 
-	globalRoleResource := dynamicClient.Resource(GlobalRoleGroupVersionResource)
+	globalRoleResource := dynamicClient.Resource(groupversionresources.GlobalRole())
 	unstructuredResp, err := globalRoleResource.Create(context.TODO(), unstructured.MustToUnstructured(globalRole), metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
@@ -99,7 +100,7 @@ func CreateGlobalRoleBinding(client *rancher.Client, globalRoleBinding *v3.Globa
 		return nil, err
 	}
 
-	globalRoleBindingResource := dynamicClient.Resource(GlobalRoleBindingGroupVersionResource)
+	globalRoleBindingResource := dynamicClient.Resource(groupversionresources.GlobalRoleBinding())
 	unstructuredResp, err := globalRoleBindingResource.Create(context.TODO(), unstructured.MustToUnstructured(globalRoleBinding), metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
@@ -121,7 +122,7 @@ func CreateRoleTemplate(client *rancher.Client, roleTemplate *v3.RoleTemplate) (
 		return nil, err
 	}
 
-	roleTemplateResource := dynamicClient.Resource(RoleTemplateGroupVersionResource)
+	roleTemplateResource := dynamicClient.Resource(groupversionresources.RoleTemplate())
 	unstructuredResp, err := roleTemplateResource.Create(context.Background(), unstructured.MustToUnstructured(roleTemplate), metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
@@ -143,7 +144,7 @@ func CreateProjectRoleTemplateBinding(client *rancher.Client, prtb *v3.ProjectRo
 		return nil, err
 	}
 
-	projectRoleTemplateBindingResource := dynamicClient.Resource(ProjectRoleTemplateBindingGroupVersionResource).Namespace(prtb.Namespace)
+	projectRoleTemplateBindingResource := dynamicClient.Resource(groupversionresources.ProjectRoleTemplateBinding()).Namespace(prtb.Namespace)
 	unstructuredResp, err := projectRoleTemplateBindingResource.Create(context.TODO(), unstructured.MustToUnstructured(prtb), metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
@@ -166,7 +167,7 @@ func CreateClusterRoleTemplateBinding(client *rancher.Client, crtb *v3.ClusterRo
 		return nil, err
 	}
 
-	clusterRoleTemplateBindingResource := dynamicClient.Resource(ClusterRoleTemplateBindingGroupVersionResource).Namespace(crtb.Namespace)
+	clusterRoleTemplateBindingResource := dynamicClient.Resource(groupversionresources.ClusterRoleTemplateBinding()).Namespace(crtb.Namespace)
 	unstructuredResp, err := clusterRoleTemplateBindingResource.Create(context.Background(), unstructured.MustToUnstructured(crtb), metav1.CreateOptions{})
 	if err != nil {
 		return nil, err

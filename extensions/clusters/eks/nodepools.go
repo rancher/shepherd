@@ -5,12 +5,9 @@ import (
 
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
+	"github.com/rancher/shepherd/extensions/defaults/states"
 	"github.com/sirupsen/logrus"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
-)
-
-const (
-	active = "active"
 )
 
 // updateNodePoolQuantity is a helper method that will update the node pool with the desired quantity.
@@ -46,7 +43,7 @@ func updateNodePoolQuantity(client *rancher.Client, cluster *management.Cluster,
 			return false, err
 		}
 
-		if clusterResp.State == active && clusterResp.NodeCount == *eksConfig.NodeGroups[0].DesiredSize {
+		if clusterResp.State == states.Active && clusterResp.NodeCount == *eksConfig.NodeGroups[0].DesiredSize {
 			return true, nil
 		}
 
