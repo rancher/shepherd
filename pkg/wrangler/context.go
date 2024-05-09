@@ -5,6 +5,7 @@ package wrangler
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -245,4 +246,17 @@ func syncOnlyChangedObjects(option controllerContextType) bool {
 		}
 	}
 	return false
+}
+
+// DownStreamClusterWranglerContext creates a wrangler context to interact with a specific cluster.
+func (w *Context) DownStreamClusterWranglerContext(clusterID string) (*Context, error) {
+	restConfig := *w.RESTConfig
+	restConfig.Host = fmt.Sprintf("https://%s/k8s/clusters/%s", w.RESTConfig.Host, clusterID)
+
+	clusterContext, err := NewContext(context.TODO(), &restConfig, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return clusterContext, nil
 }
