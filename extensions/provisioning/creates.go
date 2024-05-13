@@ -872,7 +872,9 @@ func DeleteRKE2K3SCustomClusterNodes(client *rancher.Client, clusterID string, c
 
 	for _, nodeToDelete := range nodesToDelete {
 		for _, node := range nodesSteveObjList.Data {
-			if node.Annotations[internalIP] == nodeToDelete.PrivateIPAddress {
+			snippedIP := strings.Split(node.Annotations[internalIP], ",")[0]
+
+			if snippedIP == nodeToDelete.PrivateIPAddress {
 				machine, err := client.Steve.SteveType(machineSteveResourceType).ByID(namespace + "/" + node.Annotations[machineNameAnnotation])
 				if err != nil {
 					return err
