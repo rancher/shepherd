@@ -1,6 +1,7 @@
 package provisioninginput
 
 import (
+	v1 "github.com/rancher/rancher/pkg/apis/catalog.cattle.io/v1"
 	rkev1 "github.com/rancher/rancher/pkg/apis/rke.cattle.io/v1"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	"github.com/rancher/shepherd/extensions/machinepools"
@@ -222,4 +223,10 @@ type Config struct {
 	Advanced               *Advanced                                `json:"advanced,omitempty" yaml:"advanced,omitempty"`
 	ClusterSSHTests        []SSHTestCase                            `json:"clusterSSHTests,omitempty" yaml:"clusterSSHTests,omitempty"`
 	CRIDockerd             bool                                     `json:"criDockerd,omitempty" yaml:"criDockerd,omitempty"`
+}
+
+type TemplateConfig struct {
+	Repo             *v1.ClusterRepo `json:"repo,omitempty" yaml:"repo,omitempty"`
+	TemplateName     string          `json:"templateName,omitempty" yaml:"templateName,omitempty"`
+	TemplateProvider string          `json:"templateProvider,omitempty" yaml:"templateProvider,omitempty"`
 }
