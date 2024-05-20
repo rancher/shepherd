@@ -4,6 +4,7 @@ import (
 	"dario.cat/mergo"
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
+	"github.com/rancher/shepherd/extensions/cloudcredentials/vsphere"
 	"github.com/rancher/shepherd/extensions/rke1/nodetemplates"
 	"github.com/rancher/shepherd/pkg/config"
 )
@@ -14,8 +15,12 @@ const vmwarevsphereNodeTemplateNameBase = "vmwarevsphereNodeConfig"
 // an VSphere node template and returns the NodeTemplate response
 func CreateVSphereNodeTemplate(rancherClient *rancher.Client) (*nodetemplates.NodeTemplate, error) {
 	var vmwarevsphereNodeTemplateConfig nodetemplates.VmwareVsphereNodeTemplateConfig
-
 	config.LoadConfig(nodetemplates.VmwareVsphereNodeTemplateConfigurationFileKey, &vmwarevsphereNodeTemplateConfig)
+
+	cloudCredential, err := vsphere.CreateVsphereCloudCredentials(rancherClient)
+	if err != nil {
+		return nil, err
+	}
 
 	nodeTemplate := nodetemplates.NodeTemplate{
 		EngineInstallURL:                "https://releases.rancher.com/install-docker/20.10.sh",
@@ -23,10 +28,13 @@ func CreateVSphereNodeTemplate(rancherClient *rancher.Client) (*nodetemplates.No
 		VmwareVsphereNodeTemplateConfig: &vmwarevsphereNodeTemplateConfig,
 	}
 
-	nodeTemplateConfig := &nodetemplates.NodeTemplate{}
+	nodeTemplateConfig := &nodetemplates.NodeTemplate{
+		CloudCredentialID: cloudCredential.ID,
+	}
+
 	config.LoadConfig(nodetemplates.NodeTemplateConfigurationFileKey, nodeTemplateConfig)
 
-	err := mergo.Merge(&nodeTemplate, nodeTemplateConfig, mergo.WithOverride)
+	err = mergo.Merge(&nodeTemplate, nodeTemplateConfig, mergo.WithOverride)
 	if err != nil {
 		return nil, err
 	}
