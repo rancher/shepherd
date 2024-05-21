@@ -3,6 +3,7 @@ package nodetemplates
 import (
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
+	"github.com/rancher/shepherd/extensions/cloudcredentials/linode"
 	"github.com/rancher/shepherd/extensions/rke1/nodetemplates"
 	"github.com/rancher/shepherd/pkg/config"
 )
@@ -15,13 +16,21 @@ func CreateLinodeNodeTemplate(rancherClient *rancher.Client) (*nodetemplates.Nod
 	var linodeNodeTemplateConfig nodetemplates.LinodeNodeTemplateConfig
 	config.LoadConfig(nodetemplates.LinodeNodeTemplateConfigurationFileKey, &linodeNodeTemplateConfig)
 
+	cloudCredential, err := linode.CreateLinodeCloudCredentials(rancherClient)
+	if err != nil {
+		return nil, err
+	}
+
 	nodeTemplate := nodetemplates.NodeTemplate{
 		EngineInstallURL:         "https://releases.rancher.com/install-docker/24.0.sh",
 		Name:                     linodeNodeTemplateNameBase,
 		LinodeNodeTemplateConfig: &linodeNodeTemplateConfig,
 	}
 
-	nodeTemplateConfig := &nodetemplates.NodeTemplate{}
+	nodeTemplateConfig := &nodetemplates.NodeTemplate{
+		CloudCredentialID: cloudCredential.ID,
+	}
+
 	config.LoadConfig(nodetemplates.NodeTemplateConfigurationFileKey, nodeTemplateConfig)
 
 	nodeTemplateFinal, err := nodeTemplate.MergeOverride(nodeTemplateConfig, nodetemplates.LinodeNodeTemplateConfigurationFileKey)

@@ -5,7 +5,6 @@ const AmazonEC2NodeTemplateConfigurationFileKey = "amazonec2Config"
 
 // AmazonNodeTemplateConfig is configuration need to create a Amazon node template
 type AmazonEC2NodeTemplateConfig struct {
-	AccessKey               string   `json:"accessKey" yaml:"accessKey"`
 	AMI                     string   `json:"ami" yaml:"ami"`
 	BlockDurationMinutes    string   `json:"blockDurationMinutes" yaml:"blockDurationMinutes"`
 	DeviceName              string   `json:"deviceName" yaml:"deviceName"`
@@ -24,7 +23,6 @@ type AmazonEC2NodeTemplateConfig struct {
 	RequestSpotInstance     bool     `json:"requestSpotInstance" yaml:"requestSpotInstance"`
 	Retries                 string   `json:"retries" yaml:"retries"`
 	RootSize                string   `json:"rootSize" yaml:"rootSize"`
-	SecretKey               string   `json:"secretKey" yaml:"secretKey"`
 	SecurityGroup           []string `json:"securityGroup" yaml:"securityGroup"`
 	SecurityGroupReadonly   bool     `json:"securityGroupReadonly" yaml:"securityGroupReadonly"`
 	SessionToken            string   `json:"sessionToken" yaml:"sessionToken"`

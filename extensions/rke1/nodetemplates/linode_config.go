@@ -19,7 +19,6 @@ type LinodeNodeTemplateConfig struct {
 	StackscriptData string `json:"stackscriptData" yaml:"stackscriptData"`
 	SwapSize        string `json:"swapSize" yaml:"swapSize"`
 	Tags            string `json:"tags" yaml:"tags"`
-	Token           string `json:"token" yaml:"token"`
 	Type            string `json:"type" yaml:"type"`
 	UAPrefix        string `json:"uaPrefix" yaml:"uaPrefix"`
 }
