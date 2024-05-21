@@ -4,6 +4,7 @@ import (
 	"dario.cat/mergo"
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
+	"github.com/rancher/shepherd/extensions/cloudcredentials/harvester"
 	"github.com/rancher/shepherd/extensions/rke1/nodetemplates"
 	"github.com/rancher/shepherd/pkg/config"
 )
@@ -16,16 +17,24 @@ func CreateHarvesterNodeTemplate(rancherClient *rancher.Client) (*nodetemplates.
 	var harvesterNodeTemplateConfig nodetemplates.HarvesterNodeTemplateConfig
 	config.LoadConfig(nodetemplates.HarvesterNodeTemplateConfigurationFileKey, &harvesterNodeTemplateConfig)
 
+	cloudCredential, err := harvester.CreateHarvesterCloudCredentials(rancherClient)
+	if err != nil {
+		return nil, err
+	}
+
 	nodeTemplate := nodetemplates.NodeTemplate{
 		EngineInstallURL:            "https://releases.rancher.com/install-docker/24.0.sh",
 		Name:                        harvesterNodeTemplateNameBase,
 		HarvesterNodeTemplateConfig: &harvesterNodeTemplateConfig,
 	}
 
-	nodeTemplateConfig := &nodetemplates.NodeTemplate{}
+	nodeTemplateConfig := &nodetemplates.NodeTemplate{
+		CloudCredentialID: cloudCredential.ID,
+	}
+
 	config.LoadConfig(nodetemplates.NodeTemplateConfigurationFileKey, nodeTemplateConfig)
 
-	err := mergo.Merge(&nodeTemplate, nodeTemplateConfig, mergo.WithOverride)
+	err = mergo.Merge(&nodeTemplate, nodeTemplateConfig, mergo.WithOverride)
 	if err != nil {
 		return nil, err
 	}
