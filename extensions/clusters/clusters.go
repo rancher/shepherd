@@ -50,10 +50,14 @@ const (
 	protectKernelDefaults        = "protect-kernel-defaults"
 	localcluster                 = "fleet-local/local"
 	ErrMsgListDownstreamClusters = "Couldn't list downstream clusters"
+	rancherRestricted            = "rancher-restricted"
 
 	clusterStateUpgrading    = "upgrading" // For imported RKE2 and K3s clusters
 	clusterStateUpdating     = "updating"  // For all clusters except imported K3s and RKE2
 	clusterErrorStateMessage = "cluster is in error state"
+
+	rke1HardenedGID = 52034
+	rke1HardenedUID = 52034
 )
 
 // GetV1ProvisioningClusterByName is a helper function that returns the cluster ID by name
@@ -824,32 +828,19 @@ func AgentAffinityConfigHelper(advancedClusterAffinity *management.Affinity) *co
 	return agentAffinity
 }
 
-// HardenK3SClusterConfig is a constructor for a apisV1.Cluster object, to be used by the rancher.Client.Provisioning client.
+// HardenK3SClusterConfig is a function that modifies the cluster configuration to be hardened according to the CIS benchmark.
 func HardenK3SClusterConfig(clusterName, namespace string, clustersConfig *ClusterConfig, machinePools []apisV1.RKEMachinePool, cloudCredentialSecretName string) *apisV1.Cluster {
 	v1Cluster := NewK3SRKE2ClusterConfig(clusterName, namespace, clustersConfig, machinePools, cloudCredentialSecretName)
+	v1Cluster.Spec.DefaultPodSecurityAdmissionConfigurationTemplateName = rancherRestricted
 
-	if clustersConfig.KubernetesVersion <= string(provisioninginput.PSPKubeVersionLimit) {
-		v1Cluster.Spec.RKEConfig.MachineGlobalConfig.Data["kube-apiserver-arg"] = []string{
-			"enable-admission-plugins=NodeRestriction,PodSecurityPolicy,ServiceAccount",
-			"audit-policy-file=/var/lib/rancher/k3s/server/audit.yaml",
-			"audit-log-path=/var/lib/rancher/k3s/server/logs/audit.log",
-			"audit-log-maxage=30",
-			"audit-log-maxbackup=10",
-			"audit-log-maxsize=100",
-			"request-timeout=300s",
-			"service-account-lookup=true",
-		}
-	} else {
-		v1Cluster.Spec.RKEConfig.MachineGlobalConfig.Data["kube-apiserver-arg"] = []string{
-			"admission-control-config-file=/var/lib/rancher/k3s/server/psa.yaml",
-			"audit-policy-file=/var/lib/rancher/k3s/server/audit.yaml",
-			"audit-log-path=/var/lib/rancher/k3s/server/logs/audit.log",
-			"audit-log-maxage=30",
-			"audit-log-maxbackup=10",
-			"audit-log-maxsize=100",
-			"request-timeout=300s",
-			"service-account-lookup=true",
-		}
+	v1Cluster.Spec.RKEConfig.MachineGlobalConfig.Data["kube-apiserver-arg"] = []string{
+		"audit-policy-file=/var/lib/rancher/k3s/server/audit.yaml",
+		"audit-log-path=/var/lib/rancher/k3s/server/logs/audit.log",
+		"audit-log-maxage=30",
+		"audit-log-maxbackup=10",
+		"audit-log-maxsize=100",
+		"request-timeout=300s",
+		"service-account-lookup=true",
 	}
 
 	v1Cluster.Spec.RKEConfig.MachineSelectorConfig = []rkev1.RKESystemConfig{
@@ -868,32 +859,31 @@ func HardenK3SClusterConfig(clusterName, namespace string, clustersConfig *Clust
 	return v1Cluster
 }
 
-// HardenRKE2ClusterConfig is a constructor for a apisV1.Cluster object, to be used by the rancher.Client.Provisioning client.
+// HardenRKE1ClusterConfig is a function that modifies the cluster configuration to be hardened according to the CIS benchmark.
+func HardenRKE1ClusterConfig(client *rancher.Client, clusterName string, clustersConfig *ClusterConfig) *management.Cluster {
+	cluster := NewRKE1ClusterConfig(clusterName, client, clustersConfig)
+
+	cluster.DefaultPodSecurityAdmissionConfigurationTemplateName = rancherRestricted
+	cluster.RancherKubernetesEngineConfig.Services.Etcd.GID = rke1HardenedGID
+	cluster.RancherKubernetesEngineConfig.Services.Etcd.UID = rke1HardenedUID
+
+	return cluster
+}
+
+// HardenRKE2ClusterConfig is a function that modifies the cluster configuration to be hardened according to the CIS benchmark.
 func HardenRKE2ClusterConfig(clusterName, namespace string, clustersConfig *ClusterConfig, machinePools []apisV1.RKEMachinePool, cloudCredentialSecretName string) *apisV1.Cluster {
 	v1Cluster := NewK3SRKE2ClusterConfig(clusterName, namespace, clustersConfig, machinePools, cloudCredentialSecretName)
+	v1Cluster.Spec.DefaultPodSecurityAdmissionConfigurationTemplateName = rancherRestricted
 
-	if clustersConfig.KubernetesVersion <= string(provisioninginput.PSPKubeVersionLimit) {
-		v1Cluster.Spec.RKEConfig.MachineSelectorConfig = []rkev1.RKESystemConfig{
-			{
-				Config: rkev1.GenericMap{
-					Data: map[string]interface{}{
-						"profile":             "cis-1.6",
-						protectKernelDefaults: true,
-					},
+	v1Cluster.Spec.RKEConfig.MachineSelectorConfig = []rkev1.RKESystemConfig{
+		{
+			Config: rkev1.GenericMap{
+				Data: map[string]interface{}{
+					"profile":             "cis",
+					protectKernelDefaults: true,
 				},
 			},
-		}
-	} else {
-		v1Cluster.Spec.RKEConfig.MachineSelectorConfig = []rkev1.RKESystemConfig{
-			{
-				Config: rkev1.GenericMap{
-					Data: map[string]interface{}{
-						"profile":                 "cis-1.23",
-						"protect-kernel-defaults": true,
-					},
-				},
-			},
-		}
+		},
 	}
 
 	return v1Cluster
@@ -1081,12 +1071,13 @@ func UpdateK3SRKE2Cluster(client *rancher.Client, cluster *v1.SteveAPIObject, up
 
 	updatedCluster.ObjectMeta.ResourceVersion = updateCluster.ObjectMeta.ResourceVersion
 
+	logrus.Infof("Updating cluster...")
 	cluster, err = client.Steve.SteveType(ProvisioningSteveResourceType).Update(cluster, updatedCluster)
 	if err != nil {
 		return nil, err
 	}
 
-	err = kwait.Poll(500*time.Millisecond, 5*time.Minute, func() (done bool, err error) {
+	err = kwait.PollUntilContextTimeout(context.TODO(), 500*time.Millisecond, defaults.ThirtyMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
 		client, err = client.ReLogin()
 		if err != nil {
 			return false, err
@@ -1113,9 +1104,12 @@ func UpdateK3SRKE2Cluster(client *rancher.Client, cluster *v1.SteveAPIObject, up
 			if err != nil {
 				return false, nil
 			}
+
 			logrus.Infof("Cluster has been successfully updated!")
+
 			return true, nil
 		}
+
 		return false, nil
 	})
 
