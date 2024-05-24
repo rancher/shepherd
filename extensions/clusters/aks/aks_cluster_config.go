@@ -2,7 +2,6 @@ package aks
 
 import (
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
-	"github.com/rancher/shepherd/pkg/config"
 )
 
 const (
@@ -78,10 +77,7 @@ func aksNodePoolConstructor(aksNodePoolConfigs *[]NodePool, kubernetesVersion st
 	return aksNodePools
 }
 
-func HostClusterConfig(displayName, cloudCredentialID string) *management.AKSClusterConfigSpec {
-	var aksClusterConfig ClusterConfig
-	config.LoadConfig(AKSClusterConfigConfigurationFileKey, &aksClusterConfig)
-
+func HostClusterConfig(displayName, cloudCredentialID string, aksClusterConfig ClusterConfig) *management.AKSClusterConfigSpec {
 	return &management.AKSClusterConfigSpec{
 		AzureCredentialSecret: cloudCredentialID,
 		ClusterName:           displayName,
