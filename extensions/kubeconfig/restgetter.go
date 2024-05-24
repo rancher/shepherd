@@ -1,9 +1,12 @@
 package kubeconfig
 
 import (
+	"os"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
@@ -14,7 +17,7 @@ type RestGetter struct {
 	genericclioptions.RESTClientGetter
 	restConfig   *rest.Config
 	clientConfig clientcmd.ClientConfig
-	cache        noCacheDiscoveryClient
+	cache        discovery.CachedDiscoveryInterface
 }
 type noCacheDiscoveryClient struct {
 	discovery.DiscoveryInterface
@@ -34,6 +37,35 @@ func NewRestGetter(restConfig *rest.Config, clientConfig clientcmd.ClientConfig)
 		restConfig:   restConfig,
 		clientConfig: clientConfig,
 		cache:        noCacheDiscoveryClient{clientSet.Discovery()},
+	}, nil
+}
+
+func NewRestGetterFromPath(kubeconfigPath string) (*RestGetter, error) {
+	kubeConfigContent, err := os.ReadFile(kubeconfigPath) //read the content of file
+	if err != nil {
+		return nil, err
+	}
+
+	clientConfig, err := clientcmd.NewClientConfigFromBytes(kubeConfigContent)
+	if err != nil {
+		return nil, err
+	}
+
+	restConfig, err := clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(restConfig)
+	if err != nil {
+		return nil, err
+	}
+	cache := memory.NewMemCacheClient(discoveryClient)
+
+	return &RestGetter{
+		restConfig:   restConfig,
+		clientConfig: clientConfig,
+		cache:        cache,
 	}, nil
 }
 
