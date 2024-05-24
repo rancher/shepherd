@@ -2,7 +2,6 @@ package gke
 
 import (
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
-	"github.com/rancher/shepherd/pkg/config"
 )
 
 const (
@@ -228,10 +227,7 @@ func privateClusterConfigBuilder(privateClusterConfig *PrivateClusterConfig) *ma
 	}
 }
 
-func gkeHostClusterConfig(clusterName, cloudCredentialID string) *management.GKEClusterConfigSpec {
-	var gkeClusterConfig ClusterConfig
-	config.LoadConfig(GKEClusterConfigConfigurationFileKey, &gkeClusterConfig)
-
+func gkeHostClusterConfig(clusterName, cloudCredentialID string, gkeClusterConfig ClusterConfig) *management.GKEClusterConfigSpec {
 	return &management.GKEClusterConfigSpec{
 		ClusterAddons:                  clusterAddonsBuilder(gkeClusterConfig.ClusterAddons),
 		ClusterIpv4CidrBlock:           gkeClusterConfig.ClusterIpv4CidrBlock,

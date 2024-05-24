@@ -6,8 +6,8 @@ import (
 )
 
 // CreateGKEHostedCluster is a helper function that creates an GKE hosted cluster
-func CreateGKEHostedCluster(client *rancher.Client, displayName, cloudCredentialID string, enableClusterAlerting, enableClusterMonitoring, enableNetworkPolicy, windowsPreferedCluster bool, labels map[string]string) (*management.Cluster, error) {
-	gkeHostCluster := gkeHostClusterConfig(displayName, cloudCredentialID)
+func CreateGKEHostedCluster(client *rancher.Client, displayName, cloudCredentialID string, gkeClusterConfig ClusterConfig, enableClusterAlerting, enableClusterMonitoring, enableNetworkPolicy, windowsPreferedCluster bool, labels map[string]string) (*management.Cluster, error) {
+	gkeHostCluster := gkeHostClusterConfig(displayName, cloudCredentialID, gkeClusterConfig)
 	cluster := &management.Cluster{
 		DockerRootDir:           "/var/lib/docker",
 		GKEConfig:               gkeHostCluster,

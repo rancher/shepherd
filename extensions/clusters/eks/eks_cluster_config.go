@@ -2,7 +2,6 @@ package eks
 
 import (
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
-	"github.com/rancher/shepherd/pkg/config"
 )
 
 const (
@@ -91,10 +90,7 @@ func nodeGroupsConstructor(nodeGroupsConfig *[]NodeGroupConfig, kubernetesVersio
 	return nodeGroups
 }
 
-func eksHostClusterConfig(displayName, cloudCredentialID string) *management.EKSClusterConfigSpec {
-	var eksClusterConfig ClusterConfig
-	config.LoadConfig(EKSClusterConfigConfigurationFileKey, &eksClusterConfig)
-
+func eksHostClusterConfig(displayName, cloudCredentialID string, eksClusterConfig ClusterConfig) *management.EKSClusterConfigSpec {
 	return &management.EKSClusterConfigSpec{
 		AmazonCredentialSecret: cloudCredentialID,
 		DisplayName:            displayName,
