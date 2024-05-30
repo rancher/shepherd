@@ -67,7 +67,7 @@ var RoleTemplateGroupVersionResource = schema.GroupVersionResource{
 	Resource: "roletemplates",
 }
 
-// ProjectRoleTemplateBindingGroupVersionResource is the required Group Version Resource for accessing project role template bindings in a cluster, using the dynamic client.
+// ProjectRoleTemplateBindingGroupVersionResource is the required Group Version Resource for accessing projectroletemplatebindings in a cluster, using the dynamic client.
 var ProjectRoleTemplateBindingGroupVersionResource = schema.GroupVersionResource{
 	Group:    GroupName,
 	Version:  Version,
