@@ -28,6 +28,7 @@ import (
 	"github.com/rancher/shepherd/extensions/defaults"
 	"github.com/rancher/shepherd/extensions/etcdsnapshot"
 	k3sHardening "github.com/rancher/shepherd/extensions/hardening/k3s"
+	rke1Hardening "github.com/rancher/shepherd/extensions/hardening/rke1"
 	rke2Hardening "github.com/rancher/shepherd/extensions/hardening/rke2"
 	"github.com/rancher/shepherd/extensions/machinepools"
 	nodestat "github.com/rancher/shepherd/extensions/nodes"
@@ -237,6 +238,15 @@ func CreateProvisioningCustomCluster(client *rancher.Client, externalNodeProvide
 
 	cluster := clusters.NewK3SRKE2ClusterConfig(clusterName, namespace, clustersConfig, nil, "")
 
+	if clustersConfig.Hardened && strings.Contains(clustersConfig.KubernetesVersion, clusters.RKE2ClusterType.String()) {
+		err = rke2Hardening.HardenRKE2Nodes(nodes, rolesPerNode)
+		if err != nil {
+			return nil, err
+		}
+
+		cluster = clusters.HardenRKE2ClusterConfig(clusterName, namespace, clustersConfig, nil, "")
+	}
+
 	clusterResp, err := clusters.CreateK3SRKE2Cluster(client, cluster)
 	if err != nil {
 		return nil, err
@@ -340,29 +350,24 @@ func CreateProvisioningCustomCluster(client *rancher.Client, externalNodeProvide
 	}
 
 	if clustersConfig.Hardened {
-		var hardenCluster *apiv1.Cluster
 		if strings.Contains(clustersConfig.KubernetesVersion, clusters.K3SClusterType.String()) {
-			err = k3sHardening.HardenNodes(nodes, rolesPerNode, clustersConfig.KubernetesVersion)
+			err = k3sHardening.HardenK3SNodes(nodes, rolesPerNode, clustersConfig.KubernetesVersion)
 			if err != nil {
 				return nil, err
 			}
 
-			hardenCluster = clusters.HardenK3SClusterConfig(clusterName, namespace, clustersConfig, nil, "")
+			hardenCluster := clusters.HardenK3SClusterConfig(clusterName, namespace, clustersConfig, nil, "")
+
+			_, err := clusters.UpdateK3SRKE2Cluster(client, clusterResp, hardenCluster)
+			if err != nil {
+				return nil, err
+			}
 		} else {
-			err = rke2Hardening.HardenNodes(nodes, rolesPerNode)
+			err = rke2Hardening.PostRKE2HardeningConfig(nodes, rolesPerNode)
 			if err != nil {
 				return nil, err
 			}
-
-			hardenCluster = clusters.HardenRKE2ClusterConfig(clusterName, namespace, clustersConfig, nil, "")
 		}
-
-		_, err := clusters.UpdateK3SRKE2Cluster(client, clusterResp, hardenCluster)
-		if err != nil {
-			return nil, err
-		}
-
-		logrus.Infof("Cluster has been successfully hardened!")
 	}
 
 	createdCluster, err := client.Steve.
@@ -440,6 +445,16 @@ func CreateProvisioningRKE1CustomCluster(client *rancher.Client, externalNodePro
 	clusterName := namegen.AppendRandomString(externalNodeProvider.Name)
 
 	cluster := clusters.NewRKE1ClusterConfig(clusterName, client, clustersConfig)
+
+	if clustersConfig.Hardened {
+		err = rke1Hardening.HardenRKE1Nodes(nodes, rolesPerPool)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		cluster = clusters.HardenRKE1ClusterConfig(client, clusterName, clustersConfig)
+	}
+
 	clusterResp, err := clusters.CreateRKE1Cluster(client, cluster)
 	if err != nil {
 		return nil, nil, err
@@ -464,6 +479,21 @@ func CreateProvisioningRKE1CustomCluster(client *rancher.Client, externalNodePro
 		return nil, nil, err
 	}
 
+	adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	result, err := adminClient.GetManagementWatchInterface(management.ClusterType, metav1.ListOptions{
+		FieldSelector:  "metadata.name=" + customCluster.ID,
+		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	checkFunc := clusters.IsHostedProvisioningClusterReady
+
 	var command string
 	totalNodesObserved := 0
 	for poolIndex, poolRole := range rolesPerPool {
@@ -484,6 +514,18 @@ func CreateProvisioningRKE1CustomCluster(client *rancher.Client, externalNodePro
 			logrus.Infof(output)
 		}
 		totalNodesObserved += int(quantityPerPool[poolIndex])
+	}
+
+	err = wait.WatchWait(result, checkFunc)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if clustersConfig.Hardened {
+		err = rke1Hardening.PostRKE1HardeningConfig(nodes, rolesPerPool)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	createdCluster, err := client.Management.Cluster.ByID(clusterResp.ID)
