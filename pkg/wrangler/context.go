@@ -21,6 +21,8 @@ import (
 	"github.com/rancher/shepherd/pkg/session"
 	"github.com/rancher/shepherd/pkg/wrangler/pkg/generic"
 	"github.com/rancher/wrangler/v2/pkg/apply"
+	"github.com/rancher/wrangler/v2/pkg/generated/controllers/apps"
+	appsv1 "github.com/rancher/wrangler/v2/pkg/generated/controllers/apps/v1"
 	"github.com/rancher/wrangler/v2/pkg/generated/controllers/core"
 	corev1 "github.com/rancher/wrangler/v2/pkg/generated/controllers/core/v1"
 	genericwrangler "github.com/rancher/wrangler/v2/pkg/generic"
@@ -65,6 +67,7 @@ type Context struct {
 	Mgmt                managementv3.Interface
 	ControllerFactory   controller.SharedControllerFactory
 	MultiClusterManager MultiClusterManager
+	Apps                appsv1.Interface
 	Core                corev1.Interface
 
 	CachedDiscovery         discovery.CachedDiscoveryInterface
@@ -76,6 +79,7 @@ type Context struct {
 	RESTClientGetter genericclioptions.RESTClientGetter
 
 	mgmt *management.Factory
+	apps *apps.Factory
 	core *core.Factory
 
 	started bool
@@ -176,6 +180,11 @@ func NewContext(ctx context.Context, restConfig *rest.Config, ts *session.Sessio
 		return nil, err
 	}
 
+	apps, err := apps.NewFactoryFromConfigWithOptions(restConfig, opt)
+	if err != nil {
+		return nil, err
+	}
+
 	core, err := core.NewFactoryFromConfigWithOptions(restConfig, opt)
 	if err != nil {
 		return nil, err
@@ -186,11 +195,13 @@ func NewContext(ctx context.Context, restConfig *rest.Config, ts *session.Sessio
 		Apply:                   apply,
 		SharedControllerFactory: controllerFactory,
 		Mgmt:                    mgmt.Management().V3(),
+		Apps:                    apps.Apps().V1(),
 		Core:                    core.Core().V1(),
 		ControllerFactory:       controllerFactory,
 		controllerLock:          &sync.Mutex{},
 
 		mgmt: mgmt,
+		apps: apps,
 		core: core,
 	}
 
