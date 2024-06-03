@@ -31,6 +31,7 @@ const (
 	fleetNamespace               = "fleet-default"
 	localClusterName             = "local"
 	active                       = "active"
+	readyStatus                  = "Resource is ready"
 )
 
 func MatchNodeToAnyEtcdRole(client *rancher.Client, clusterID string) (int, *management.Node) {
@@ -230,41 +231,42 @@ func CreateRKE2K3SSnapshot(client *rancher.Client, clusterName string) error {
 }
 
 // RestoreRKE1Snapshot is a helper function to restore a snapshot on an RKE1 cluster. Returns error if any.
-func RestoreRKE1Snapshot(client *rancher.Client, clusterName string, snapshotRestore *management.RestoreFromEtcdBackupInput, initialControlPlaneValue, initialWorkerValue string) error {
-	clusterID, err := clusters.GetClusterIDByName(client, clusterName)
+func RestoreRKE1Snapshot(client *rancher.Client, cluster *management.Cluster, snapshotRestore *management.RestoreFromEtcdBackupInput) error {
+	clusterID, err := clusters.GetClusterIDByName(client, cluster.Name)
 	if err != nil {
 		return err
 	}
 
-	cluster, err := client.Management.Cluster.ByID(clusterID)
-	if err != nil {
-		return err
-	}
-
-	updatedCluster := cluster
-
-	updatedCluster.RancherKubernetesEngineConfig.UpgradeStrategy.MaxUnavailableControlplane = initialControlPlaneValue
-	updatedCluster.RancherKubernetesEngineConfig.UpgradeStrategy.MaxUnavailableWorker = initialWorkerValue
-
-	updatedClusterResp, err := client.Management.Cluster.Update(cluster, updatedCluster)
-	if err != nil {
-		return err
-	}
-
-	cluster, err = client.Management.Cluster.ByID(updatedClusterResp.ID)
+	oldCluster, err := client.Management.Cluster.ByID(clusterID)
 	if err != nil {
 		return err
 	}
 
 	logrus.Infof("Restoring snapshot: %v", snapshotRestore.EtcdBackupID)
-	err = client.Management.Cluster.ActionRestoreFromEtcdBackup(cluster, snapshotRestore)
+	err = client.Management.Cluster.ActionRestoreFromEtcdBackup(oldCluster, snapshotRestore)
+	if err != nil {
+		return err
+	}
+
+	err = wait.PollUntilContextTimeout(context.TODO(), 1*time.Second, defaults.OneMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
+		clusterResp, err := client.Management.Cluster.ByID(oldCluster.ID)
+		if err != nil {
+			return false, nil
+		}
+
+		if clusterResp.State != active {
+			return true, nil
+		}
+
+		return false, nil
+	})
 	if err != nil {
 		return err
 	}
 
 	// Timeout is specifically set to 30 minutes due to expected behavior with RKE1 nodes.
 	err = wait.PollUntilContextTimeout(context.TODO(), 5*time.Second, defaults.ThirtyMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
-		clusterResp, err := client.Management.Cluster.ByID(clusterID)
+		clusterResp, err := client.Management.Cluster.ByID(oldCluster.ID)
 		if err != nil {
 			return false, nil
 		}
@@ -283,15 +285,13 @@ func RestoreRKE1Snapshot(client *rancher.Client, clusterName string, snapshotRes
 }
 
 // RestoreRKE2K3SSnapshot is a helper function to restore a snapshot on an RKE2 or k3s cluster. Returns error if any.
-func RestoreRKE2K3SSnapshot(client *rancher.Client, snapshotRestore *rkev1.ETCDSnapshotRestore, cluster *apisV1.Cluster) error {
-	clusterObject, existingSteveAPIObject, err := clusters.GetProvisioningClusterByName(client, cluster.Name, fleetNamespace)
+func RestoreRKE2K3SSnapshot(client *rancher.Client, snapshotRestore *rkev1.ETCDSnapshotRestore, clusterName string) error {
+	clusterObject, existingSteveAPIObject, err := clusters.GetProvisioningClusterByName(client, clusterName, fleetNamespace)
 	if err != nil {
 		return err
 	}
 
 	clusterObject.Spec.RKEConfig.ETCDSnapshotRestore = snapshotRestore
-	clusterObject.Spec.RKEConfig.UpgradeStrategy.ControlPlaneConcurrency = cluster.Spec.RKEConfig.UpgradeStrategy.ControlPlaneConcurrency
-	clusterObject.Spec.RKEConfig.UpgradeStrategy.WorkerConcurrency = cluster.Spec.RKEConfig.UpgradeStrategy.WorkerConcurrency
 
 	logrus.Infof("Restoring snapshot: %v", snapshotRestore.Name)
 	updatedCluster, err := client.Steve.SteveType(ProvisioningSteveResouceType).Update(existingSteveAPIObject, clusterObject)

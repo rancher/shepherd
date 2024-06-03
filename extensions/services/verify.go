@@ -1,21 +1,49 @@
 package services
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	steveV1 "github.com/rancher/shepherd/clients/rancher/v1"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
+	"github.com/rancher/shepherd/extensions/defaults"
 	"github.com/rancher/shepherd/extensions/ingresses"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
+	active              = "active"
 	noSuchHostSubString = "no such host"
 )
+
+// VerifyService waits for a service to be ready in the downstream cluster
+func VerifyService(steveclient *steveV1.Client, serviceResp *steveV1.SteveAPIObject) error {
+	err := kwait.PollUntilContextTimeout(context.TODO(), 500*time.Millisecond, defaults.OneMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
+		service, err := steveclient.SteveType(ServiceSteveType).ByID(serviceResp.ID)
+		if err != nil {
+			return false, nil
+		}
+
+		if service.State.Name == active {
+			logrus.Infof("Successfully created service: %s", service.Name)
+
+			return true, nil
+		}
+
+		return false, nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return err
+}
 
 // VerifyAWSLoadBalancer validates that an AWS loadbalancer service is created and working properly
 func VerifyAWSLoadBalancer(t *testing.T, client *rancher.Client, serviceLB *v1.SteveAPIObject, clusterName string) {
