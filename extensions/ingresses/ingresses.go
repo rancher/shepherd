@@ -105,11 +105,23 @@ func CreateIngress(client *v1.Client, ingressName string, ingressTemplate networ
 	logrus.Infof("Create Ingress: %v", ingressName)
 	ingressResp, err := client.SteveType(IngressSteveType).Create(ingressTemplate)
 	if err != nil {
-		logrus.Errorf("Failed to create ingress: %v", err)
 		return nil, err
 	}
 
-	logrus.Infof("Successfully created ingress: %v", ingressName)
+	err = kwait.PollUntilContextTimeout(context.TODO(), 500*time.Millisecond, defaults.OneMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
+		ingress, err := client.SteveType(IngressSteveType).ByID(ingressResp.ID)
+		if err != nil {
+			return false, nil
+		}
+
+		if ingress.State.Name == "active" {
+			logrus.Infof("Successfully created ingress: %v", ingressName)
+
+			return true, nil
+		}
+
+		return false, nil
+	})
 
 	return ingressResp, err
 }
