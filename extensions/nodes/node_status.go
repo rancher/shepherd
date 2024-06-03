@@ -9,6 +9,7 @@ import (
 	rkev1 "github.com/rancher/rancher/pkg/apis/rke.cattle.io/v1"
 	"github.com/rancher/shepherd/clients/rancher"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
+	"github.com/rancher/shepherd/extensions/defaults"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
@@ -116,11 +117,11 @@ func AllMachineReady(client *rancher.Client, clusterID string, timeout time.Dura
 	return err
 }
 
-// AllNodeDeleted is a helper method that will loop and check if the node is deleted in the cluster.
+// AllNodeDeleted is a helper method that will loop and check if all of the node is deleted in the cluster.
 func AllNodeDeleted(client *rancher.Client, ClusterID string) error {
 	ctx := context.Background()
 	err := wait.PollUntilContextTimeout(
-		ctx, oneSecondInterval, fiveMinuteTimeout, true, func(ctx context.Context) (bool, error) {
+		ctx, oneSecondInterval, defaults.TenMinuteTimeout, true, func(ctx context.Context) (bool, error) {
 			nodes, err := client.Management.Node.ListAll(&types.ListOpts{
 				Filters: map[string]interface{}{
 					"clusterId": ClusterID,
@@ -132,6 +133,7 @@ func AllNodeDeleted(client *rancher.Client, ClusterID string) error {
 
 			if len(nodes.Data) == 0 {
 				logrus.Infof("All nodes in the cluster are deleted!")
+
 				return true, nil
 			}
 
@@ -141,39 +143,31 @@ func AllNodeDeleted(client *rancher.Client, ClusterID string) error {
 	return err
 }
 
-// IsNodeReplaced is a helper method that will loop and check if the node matching its type is replaced in a cluster.
-// It will return an error if the node is not replaced after set amount of time.
-func IsNodeReplaced(client *rancher.Client, oldMachineID string, clusterID string, numOfNodesBeforeDeletion int) (bool, error) {
-	numOfNodesAfterDeletion := 0
-	isOldMachineDeleted := true
-
+// IsNodeDeleted is a helper method that will loop and check if the node is deleted in the cluster.
+func IsNodeDeleted(client *rancher.Client, nodeName, ClusterID string) error {
 	ctx := context.Background()
 	err := wait.PollUntilContextTimeout(
-		ctx, oneSecondInterval, PollTimeout, true, func(ctx context.Context) (bool, error) {
-			machines, err := client.Management.Node.ListAll(&types.ListOpts{Filters: map[string]interface{}{
-				"clusterId": clusterID,
-			}})
+		ctx, oneSecondInterval, defaults.TenMinuteTimeout, true, func(ctx context.Context) (bool, error) {
+			node, err := client.Management.Node.List(&types.ListOpts{
+				Filters: map[string]interface{}{
+					"clusterId": ClusterID,
+					"nodeName":  nodeName,
+				},
+			})
 			if err != nil {
 				return false, err
 			}
 
-			numOfNodesAfterDeletion = 0
+			if len(node.Data) == 0 {
+				logrus.Infof("Node %s has been deleted!", nodeName)
 
-			for _, machine := range machines.Data {
-				if machine.ID == oldMachineID {
-					isOldMachineDeleted = false
-					return false, nil
-				}
-
-				numOfNodesAfterDeletion++
+				return true, nil
 			}
 
-			return isOldMachineDeleted, nil
+			return false, nil
 		})
 
-	logrus.Infof("Node has been successfully replaced!")
-
-	return numOfNodesAfterDeletion == numOfNodesBeforeDeletion, err
+	return err
 }
 
 // Isv1NodeConditionMet checks the condition reasons of a given machine in a cluster and waits for it to be true.
