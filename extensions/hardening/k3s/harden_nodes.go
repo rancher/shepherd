@@ -15,7 +15,7 @@ const (
 func HardenK3SNodes(nodes []*nodes.Node, nodeRoles []string, kubeVersion string) error {
 	for key, node := range nodes {
 		logrus.Infof("Setting kernel parameters on node: %s", node.NodeID)
-		_, err := node.ExecuteCommand("sudo bash -c 'echo vm.panic_on_oom=0 >> + " + sysctlConf + "'")
+		_, err := node.ExecuteCommand("sudo bash -c 'echo vm.panic_on_oom=0 >> " + sysctlConf + "'")
 		if err != nil {
 			return err
 		}
