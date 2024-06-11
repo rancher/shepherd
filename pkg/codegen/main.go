@@ -18,6 +18,8 @@ import (
 	"github.com/rancher/types/factory"
 	controllergen "github.com/rancher/wrangler/v2/pkg/controller-gen"
 	"github.com/rancher/wrangler/v2/pkg/controller-gen/args"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -32,6 +34,32 @@ func main() {
 		OutputPackage: "github.com/rancher/shepherd/pkg/generated",
 		Boilerplate:   "pkg/codegen/boilerplate.go.txt",
 		Groups: map[string]args.Group{
+			appsv1.GroupName: {
+				Types: []interface{}{
+					appsv1.ControllerRevision{},
+					appsv1.Deployment{},
+					appsv1.DaemonSet{},
+					appsv1.ReplicaSet{},
+					appsv1.StatefulSet{},
+				},
+			},
+			corev1.GroupName: {
+				Types: []interface{}{
+					corev1.Event{},
+					corev1.Node{},
+					corev1.Namespace{},
+					corev1.LimitRange{},
+					corev1.ResourceQuota{},
+					corev1.Secret{},
+					corev1.Service{},
+					corev1.ServiceAccount{},
+					corev1.Endpoints{},
+					corev1.ConfigMap{},
+					corev1.PersistentVolume{},
+					corev1.PersistentVolumeClaim{},
+					corev1.Pod{},
+				},
+			},
 			"management.cattle.io": {
 				PackageName: "management.cattle.io",
 				Types: []interface{}{
@@ -166,7 +194,7 @@ func replaceManagementControllerImports() error {
 			if err != nil {
 				return err
 			}
-			replacement = bytes.Replace(input, []byte("c.ControllerFactory())"), []byte("c.ControllerFactory(),c.Opts.TS)"), -1)
+			replacement = bytes.Replace(input, []byte("c.ControllerFactory())"), []byte("c.ControllerFactory(), c.Opts.TS)"), -1)
 			if err = os.WriteFile(path, replacement, 0666); err != nil {
 				return err
 			}
