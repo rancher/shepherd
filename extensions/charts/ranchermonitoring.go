@@ -332,8 +332,8 @@ func newMonitoringChartUpgradeAction(p *payloadOpts, rancherMonitoringOpts *Ranc
 		monitoringValues[k] = v
 	}
 
-	chartUpgrade := newChartUpgrade(p.Name, p.Version, p.Cluster.ID, p.Cluster.Name, p.Host, p.DefaultRegistry, monitoringValues)
-	chartUpgradeCRD := newChartUpgrade(p.Name+"-crd", p.Version, p.Cluster.ID, p.Cluster.Name, p.Host, p.DefaultRegistry, monitoringValues)
+	chartUpgrade := newChartUpgrade(p.Name, p.Name, p.Version, p.Cluster.ID, p.Cluster.Name, p.Host, p.DefaultRegistry, monitoringValues)
+	chartUpgradeCRD := newChartUpgrade(p.Name+"-crd", p.Name+"-crd", p.Version, p.Cluster.ID, p.Cluster.Name, p.Host, p.DefaultRegistry, monitoringValues)
 	chartUpgrades := []types.ChartUpgrade{*chartUpgradeCRD, *chartUpgrade}
 
 	chartUpgradeAction := newChartUpgradeAction(p.Namespace, chartUpgrades)
