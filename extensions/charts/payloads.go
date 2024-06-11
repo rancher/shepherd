@@ -80,14 +80,14 @@ func newChartInstall(name, version, clusterID, clusterName, url, repoName, proje
 }
 
 // newChartUpgradeAction is a private constructor that creates a chart upgrade with given chart values that can be used for chart upgrade action.
-func newChartUpgrade(name, version, clusterID, clusterName, url, defaultRegistry string, chartValues map[string]interface{}) *types.ChartUpgrade {
+func newChartUpgrade(chartName, releaseName, version, clusterID, clusterName, url, defaultRegistry string, chartValues map[string]interface{}) *types.ChartUpgrade {
 	chartUpgrade := types.ChartUpgrade{
 		Annotations: map[string]string{
 			"catalog.cattle.io/ui-source-repo":      "rancher-charts",
 			"catalog.cattle.io/ui-source-repo-type": "cluster",
 		},
-		ChartName:   name,
-		ReleaseName: name,
+		ChartName:   chartName,
+		ReleaseName: releaseName,
 		Version:     version,
 		Values: v3.MapStringInterface{
 			"global": map[string]interface{}{
