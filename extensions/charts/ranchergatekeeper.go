@@ -289,8 +289,8 @@ func UpgradeRancherGatekeeperChart(client *rancher.Client, installOptions *Insta
 
 // newGatekeeperChartUpgradeAction is a private helper function that returns chart upgrade action.
 func newGatekeeperChartUpgradeAction(p *payloadOpts) *types.ChartUpgradeAction {
-	chartUpgrade := newChartUpgrade(p.Name, p.Version, p.Cluster.ID, p.Cluster.Name, p.Host, p.DefaultRegistry, nil)
-	chartUpgradeCRD := newChartUpgrade(p.Name+"-crd", p.Version, p.Cluster.ID, p.Cluster.Name, p.Host, p.DefaultRegistry, nil)
+	chartUpgrade := newChartUpgrade(p.Name, p.Name, p.Version, p.Cluster.ID, p.Cluster.Name, p.Host, p.DefaultRegistry, nil)
+	chartUpgradeCRD := newChartUpgrade(p.Name+"-crd", p.Name+"-crd", p.Version, p.Cluster.ID, p.Cluster.Name, p.Host, p.DefaultRegistry, nil)
 	chartUpgrades := []types.ChartUpgrade{*chartUpgradeCRD, *chartUpgrade}
 
 	chartUpgradeAction := newChartUpgradeAction(p.Namespace, chartUpgrades)
