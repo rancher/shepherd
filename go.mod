@@ -32,7 +32,6 @@ require (
 	github.com/rancher/rancher/pkg/apis v0.0.0-20240529155832-64dbde013b4c
 	github.com/rancher/rke v1.6.0-rc4
 	github.com/rancher/system-upgrade-controller/pkg/apis v0.0.0-20210727200656-10b094e30007
-	github.com/rancher/types v0.0.0-20220328215343-4370ff10ecd5
 	github.com/rancher/wrangler v1.1.1
 	github.com/rancher/wrangler/v2 v2.2.0-rc6
 	github.com/sirupsen/logrus v1.9.3
