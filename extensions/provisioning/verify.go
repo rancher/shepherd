@@ -165,8 +165,10 @@ func VerifyCluster(t *testing.T, client *rancher.Client, clustersConfig *cluster
 	podErrors := pods.StatusPods(client, status.ClusterName)
 	assert.Empty(t, podErrors)
 
-	if clustersConfig.ClusterSSHTests != nil {
-		VerifySSHTests(t, client, cluster, clustersConfig.ClusterSSHTests, status.ClusterName)
+	if clustersConfig != nil {
+		if clustersConfig.ClusterSSHTests != nil {
+			VerifySSHTests(t, client, cluster, clustersConfig.ClusterSSHTests, status.ClusterName)
+		}
 	}
 }
 
