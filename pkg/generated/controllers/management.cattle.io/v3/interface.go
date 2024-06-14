@@ -23,7 +23,7 @@ import (
 	v3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
 	"github.com/rancher/shepherd/pkg/session"
 	"github.com/rancher/shepherd/pkg/wrangler/pkg/generic"
-	"github.com/rancher/wrangler/v2/pkg/schemes"
+	"github.com/rancher/wrangler/v3/pkg/schemes"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -56,6 +56,7 @@ type Interface interface {
 	Feature() FeatureController
 	FleetWorkspace() FleetWorkspaceController
 	FreeIpaProvider() FreeIpaProviderController
+	GenericOIDCProvider() GenericOIDCProviderController
 	GithubProvider() GithubProviderController
 	GlobalDns() GlobalDnsController
 	GlobalDnsProvider() GlobalDnsProviderController
@@ -205,6 +206,10 @@ func (v *version) FleetWorkspace() FleetWorkspaceController {
 
 func (v *version) FreeIpaProvider() FreeIpaProviderController {
 	return generic.NewNonNamespacedController[*v3.FreeIpaProvider, *v3.FreeIpaProviderList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "FreeIpaProvider"}, "freeipaproviders", v.controllerFactory, v.ts)
+}
+
+func (v *version) GenericOIDCProvider() GenericOIDCProviderController {
+	return generic.NewNonNamespacedController[*v3.GenericOIDCProvider, *v3.GenericOIDCProviderList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "GenericOIDCProvider"}, "genericoidcproviders", v.controllerFactory, v.ts)
 }
 
 func (v *version) GithubProvider() GithubProviderController {

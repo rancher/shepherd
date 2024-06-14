@@ -1,6 +1,8 @@
 package kubeconfig
 
 import (
+	"errors"
+
 	"github.com/rancher/shepherd/clients/rancher"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -24,5 +26,10 @@ func GetKubeconfig(client *rancher.Client, clusterID string) (*clientcmd.ClientC
 		return nil, err
 	}
 
-	return &clientConfig, nil
+	cfg, ok := clientConfig.(clientcmd.ClientConfig)
+	if !ok {
+		return nil, errors.New("error converting OverridingClientConfig to ClientConfig")
+	}
+
+	return &cfg, nil
 }
