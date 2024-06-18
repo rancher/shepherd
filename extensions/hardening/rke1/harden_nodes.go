@@ -17,7 +17,7 @@ const (
 func HardenRKE1Nodes(nodes []*nodes.Node, nodeRoles []string) error {
 	for _, node := range nodes {
 		logrus.Infof("Setting kernel parameters on node: %s", node.NodeID)
-		_, err := node.ExecuteCommand("sudo bash -c 'echo vm.panic_on_oom=0 >> + " + kubeletConf + "'")
+		_, err := node.ExecuteCommand("sudo bash -c 'echo vm.panic_on_oom=0 >> " + kubeletConf + "'")
 		if err != nil {
 			return err
 		}
