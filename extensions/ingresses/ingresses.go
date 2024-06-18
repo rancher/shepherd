@@ -19,6 +19,7 @@ import (
 )
 
 const (
+	active           = "active"
 	IngressSteveType = "networking.k8s.io.ingress"
 	pod              = "pod"
 	IngressNginx     = "ingress-nginx"
@@ -106,10 +107,9 @@ func CreateIngress(client *v1.Client, ingressName string, ingressTemplate networ
 	ingressResp, err := client.SteveType(IngressSteveType).Create(ingressTemplate)
 	if err != nil {
 		logrus.Errorf("Failed to create ingress: %v", err)
+
 		return nil, err
 	}
-
-	logrus.Infof("Successfully created ingress: %v", ingressName)
 
 	return ingressResp, err
 }
