@@ -16,6 +16,7 @@ import (
 	"github.com/rancher/shepherd/extensions/clusters"
 	"github.com/rancher/shepherd/extensions/clusters/bundledclusters"
 	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/rancher/shepherd/extensions/etcdsnapshot"
 	"github.com/rancher/shepherd/extensions/kubeconfig"
 	nodestat "github.com/rancher/shepherd/extensions/nodes"
@@ -38,11 +39,14 @@ import (
 )
 
 const (
+	local                       = "local"
 	logMessageKubernetesVersion = "Validating the current version is the upgraded one"
 	hostnameLimit               = 63
+	etcdSnapshotAnnotation      = "etcdsnapshot.rke.io/storage"
 	machineNameAnnotation       = "cluster.x-k8s.io/machine"
 	machineSteveResourceType    = "cluster.x-k8s.io.machine"
 	onDemandPrefix              = "on-demand-"
+	s3                          = "s3"
 )
 
 // VerifyRKE1Cluster validates that the RKE1 cluster and its resources are in a good state, matching a given config.
@@ -394,7 +398,7 @@ func VerifyUpgrade(t *testing.T, updatedCluster *bundledclusters.BundledCluster,
 }
 
 // VerifySnapshots waits for a cluster's snapshots to be ready and validates that the correct number of snapshots have been taken
-func VerifySnapshots(client *rancher.Client, localclusterID string, clusterName string, expectedSnapshotLength int, isRKE1 bool) (string, error) {
+func VerifySnapshots(client *rancher.Client, clusterName string, expectedSnapshotLength int, isRKE1 bool) (string, error) {
 	client, err := client.ReLogin()
 	if err != nil {
 		return "", err
@@ -414,7 +418,7 @@ func VerifySnapshots(client *rancher.Client, localclusterID string, clusterName 
 				snapshotNameList = append(snapshotNameList, snapshot.ID)
 			}
 		} else {
-			snapshotObjectList, err := etcdsnapshot.GetRKE2K3SSnapshots(client, localclusterID, clusterName)
+			snapshotObjectList, err := etcdsnapshot.GetRKE2K3SSnapshots(client, clusterName)
 			if err != nil {
 				return false, err
 			}
@@ -428,25 +432,30 @@ func VerifySnapshots(client *rancher.Client, localclusterID string, clusterName 
 			return false, fmt.Errorf("no snapshots found")
 		}
 
-		// Indexed from 0 for S3 checks to ensure that the local backup location does not have the s3Prefix.
-		// Needed to ensure that the correct S3 snapshot is restored.
-		if strings.Contains(snapshotNameList[0], s3Prefix) {
-			snapshotToBeRestored = snapshotNameList[len(snapshotNameList)-1]
-			return true, nil
+		if strings.Contains(fmt.Sprintf("%v", snapshotNameList), s3Prefix) {
+			snapshotSteveObjList, err := client.Steve.SteveType(stevetypes.EtcdSnapshot).List(nil)
+			if err != nil {
+				return false, err
+			}
+
+			for _, snapshot := range snapshotSteveObjList.Data {
+				if snapshot.Annotations[etcdSnapshotAnnotation] == s3 {
+					snapshotToBeRestored = snapshot.Name
+
+					return true, nil
+				} else if snapshot.Annotations[etcdSnapshotAnnotation] == local {
+					snapshotToBeRestored = snapshotNameList[len(snapshotNameList)-1]
+
+					return true, nil
+				}
+			}
+
+			return false, nil
 		}
 
-		if len(snapshotNameList) == expectedSnapshotLength {
+		if len(snapshotNameList) == expectedSnapshotLength || len(snapshotNameList) > expectedSnapshotLength {
 			snapshotToBeRestored = snapshotNameList[0]
 			return true, nil
-		}
-
-		if len(snapshotNameList) > expectedSnapshotLength && isRKE1 {
-			snapshotToBeRestored = snapshotNameList[0]
-			return true, nil
-		}
-
-		if len(snapshotNameList) > expectedSnapshotLength && !isRKE1 {
-			return false, fmt.Errorf("more snapshots than expected")
 		}
 
 		return false, nil
