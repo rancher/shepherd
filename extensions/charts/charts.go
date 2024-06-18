@@ -27,6 +27,7 @@ const (
 	serverURLSettingID = "server-url"
 	rancherChartsName  = "rancher-charts"
 	active             = "active"
+	metadataName       = "metadata.name="
 )
 
 // InstallOptions is a struct of the required options to install a chart.
@@ -75,6 +76,18 @@ type RancherLoggingOpts struct {
 type RancherAlertingOpts struct {
 	SMS   bool
 	Teams bool
+}
+
+// RancherBackupOpts is a struct of the required options to install Rancher Backups with desired chart values.
+type RancherBackupOpts struct {
+	VolumeName                string
+	BucketName                string
+	CredentialSecretName      string
+	CredentialSecretNamespace string
+	Enabled                   bool
+	Endpoint                  string
+	Folder                    string
+	Region                    string
 }
 
 // GetChartCaseEndpointResult is a struct that GetChartCaseEndpoint helper function returns.
@@ -155,7 +168,7 @@ func WatchAndWaitDeployments(client *rancher.Client, clusterID, namespace string
 
 	for _, deployment := range deploymentList {
 		watchAppInterface, err := adminDeploymentResource.Watch(context.TODO(), metav1.ListOptions{
-			FieldSelector:  "metadata.name=" + deployment.Name,
+			FieldSelector:  metadataName + deployment.Name,
 			TimeoutSeconds: &defaults.WatchTimeoutSeconds,
 		})
 		if err != nil {
@@ -195,7 +208,7 @@ func WatchAndWaitDeploymentForAnnotation(client *rancher.Client, clusterID, name
 	adminDeploymentResource := adminDynamicClient.Resource(deployments.DeploymentGroupVersionResource).Namespace(namespace)
 
 	watchAppInterface, err := adminDeploymentResource.Watch(context.TODO(), metav1.ListOptions{
-		FieldSelector:  "metadata.name=" + deploymentName,
+		FieldSelector:  metadataName + deploymentName,
 		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
 	})
 	if err != nil {
@@ -255,7 +268,7 @@ func WatchAndWaitDaemonSets(client *rancher.Client, clusterID, namespace string,
 
 	for _, daemonSet := range daemonSetList {
 		watchAppInterface, err := adminDaemonSetResource.Watch(context.TODO(), metav1.ListOptions{
-			FieldSelector:  "metadata.name=" + daemonSet.Name,
+			FieldSelector:  metadataName + daemonSet.Name,
 			TimeoutSeconds: &defaults.WatchTimeoutSeconds,
 		})
 		if err != nil {
@@ -313,7 +326,7 @@ func WatchAndWaitStatefulSets(client *rancher.Client, clusterID, namespace strin
 
 	for _, statefulSet := range statefulSetList {
 		watchAppInterface, err := adminStatefulSetResource.Watch(context.TODO(), metav1.ListOptions{
-			FieldSelector:  "metadata.name=" + statefulSet.Name,
+			FieldSelector:  metadataName + statefulSet.Name,
 			TimeoutSeconds: &defaults.WatchTimeoutSeconds,
 		})
 		if err != nil {
