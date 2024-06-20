@@ -33,15 +33,13 @@ func CreateVSphereNodeTemplate(rancherClient *rancher.Client) (*nodetemplates.No
 
 	config.LoadConfig(nodetemplates.NodeTemplateConfigurationFileKey, nodeTemplateConfig)
 
-	nodeTemplateFinal, err := nodeTemplate.
-		MergeOverride(nodeTemplateConfig, nodetemplates.VmwareVsphereNodeTemplateConfigurationFileKey)
+	nodeTemplateFinal, err := nodeTemplate.MergeOverride(nodeTemplateConfig, nodetemplates.VmwareVsphereNodeTemplateConfigurationFileKey)
 	if err != nil {
 		return nil, err
 	}
 
 	resp := &nodetemplates.NodeTemplate{}
 	err = rancherClient.Management.APIBaseClient.Ops.DoCreate(management.NodeTemplateType, *nodeTemplateFinal, resp)
-
 	if err != nil {
 		return nil, err
 	}
