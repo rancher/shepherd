@@ -9,14 +9,12 @@ import (
 func CreateGKEHostedCluster(client *rancher.Client, displayName, cloudCredentialID string, gkeClusterConfig ClusterConfig, enableClusterAlerting, enableClusterMonitoring, enableNetworkPolicy, windowsPreferedCluster bool, labels map[string]string) (*management.Cluster, error) {
 	gkeHostCluster := gkeHostClusterConfig(displayName, cloudCredentialID, gkeClusterConfig)
 	cluster := &management.Cluster{
-		DockerRootDir:           "/var/lib/docker",
-		GKEConfig:               gkeHostCluster,
-		Name:                    displayName,
-		EnableClusterAlerting:   enableClusterAlerting,
-		EnableClusterMonitoring: enableClusterMonitoring,
-		EnableNetworkPolicy:     &enableNetworkPolicy,
-		Labels:                  labels,
-		WindowsPreferedCluster:  windowsPreferedCluster,
+		DockerRootDir:          "/var/lib/docker",
+		GKEConfig:              gkeHostCluster,
+		Name:                   displayName,
+		EnableNetworkPolicy:    &enableNetworkPolicy,
+		Labels:                 labels,
+		WindowsPreferedCluster: windowsPreferedCluster,
 	}
 
 	clusterResp, err := client.Management.Cluster.Create(cluster)

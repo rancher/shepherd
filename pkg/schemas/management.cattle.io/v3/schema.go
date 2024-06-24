@@ -11,7 +11,7 @@ import (
 	"github.com/rancher/shepherd/pkg/schemas/factory"
 	"github.com/rancher/shepherd/pkg/schemas/mapper"
 	v1 "k8s.io/api/core/v1"
-	apiserverconfig "k8s.io/apiserver/pkg/apis/config"
+	apiserver "k8s.io/apiserver/pkg/apis/apiserver"
 )
 
 var (
@@ -311,13 +311,13 @@ func authzTypes(schemas *types.Schemas) *types.Schemas {
 		// MustImport(&Version, v3.SetPodSecurityPolicyTemplateInput{}).
 		MustImport(&Version, v3.ImportYamlOutput{}).
 		MustImportAndCustomize(&Version, v3.Project{}, func(schema *types.Schema) {
-			schema.ResourceActions = map[string]types.Action{
-				"setpodsecuritypolicytemplate": {
-					Input:  "setPodSecurityPolicyTemplateInput",
-					Output: "project",
-				},
-				"exportYaml": {},
-			}
+			// schema.ResourceActions = map[string]types.Action{
+			// 	"setpodsecuritypolicytemplate": {
+			// 		Input:  "setPodSecurityPolicyTemplateInput",
+			// 		Output: "project",
+			// 	},
+			// 	"exportYaml": {},
+			// }
 		}).
 		MustImportAndCustomize(&Version, v3.GlobalRole{}, func(s *types.Schema) {
 			s.MustCustomizeField("status", func(field types.Field) types.Field {
@@ -820,9 +820,9 @@ func clusterTemplateTypes(schemas *types.Schemas) *types.Schemas {
 
 func encryptionTypes(schemas *types.Schemas) *types.Schemas {
 	return schemas.MustImport(&Version, rketypes.SecretsEncryptionConfig{}).
-		MustImport(&Version, apiserverconfig.Key{}, struct {
+		MustImport(&Version, apiserver.Key{}, struct {
 			Secret string `norman:"type=password"`
-		}{}).MustImport(&Version, apiserverconfig.KMSConfiguration{}, struct {
+		}{}).MustImport(&Version, apiserver.KMSConfiguration{}, struct {
 		Timeout string
 	}{})
 }
