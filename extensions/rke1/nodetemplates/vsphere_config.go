@@ -15,7 +15,7 @@ type VmwareVsphereNodeTemplateConfig struct {
 	CustomAttribute       []string `json:"customAttribute" yaml:"customAttribute"`
 	Datacenter            string   `json:"datacenter" yaml:"datacenter"`
 	Datastore             string   `json:"datastore" yaml:"datastore"`
-	DatastoreURL          string   `json:"datatoreURL" yaml:"datastoreURL"`
+	DatastoreURL          string   `json:"datastoreURL" yaml:"datastoreURL"`
 	DatastoreCluster      string   `json:"datastoreCluster" yaml:"datastoreCluster"`
 	DiskSize              string   `json:"diskSize" yaml:"diskSize"`
 	Folder                string   `json:"folder" yaml:"folder"`
