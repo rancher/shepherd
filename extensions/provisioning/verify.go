@@ -153,8 +153,7 @@ func VerifyCluster(t *testing.T, client *rancher.Client, clustersConfig *cluster
 	reports.TimeoutClusterReport(cluster, err)
 	require.NoError(t, err)
 
-	configKubeVersion := clusterSpec.KubernetesVersion
-	require.Equal(t, configKubeVersion, clusterSpec.KubernetesVersion)
+	require.Equal(t, clustersConfig.KubernetesVersion, clusterSpec.KubernetesVersion)
 
 	if clusterSpec.DefaultPodSecurityAdmissionConfigurationTemplateName == string(provisioninginput.RancherPrivileged) ||
 		clusterSpec.DefaultPodSecurityAdmissionConfigurationTemplateName == string(provisioninginput.RancherRestricted) ||
