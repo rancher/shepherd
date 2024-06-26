@@ -2,9 +2,17 @@ package main
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
+
+	"go/ast"
+	"go/parser"
+	"go/printer"
+	"go/token"
 
 	fleet "github.com/rancher/fleet/pkg/apis/fleet.cattle.io/v1alpha1"
 	"github.com/rancher/norman/types"
@@ -24,10 +32,21 @@ import (
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
+// main initializes the code generation for controllers and clients.
+// It generates clients for various API groups using controllergen.Run.
+// It also generates clients for specific schemas using generator.GenerateClient.
+// Then, it calls replaceClientBasePackages to replace imports in the generated clients.
+// Finally, it replaces imports and adds controller test session for generated
 func main() {
 	err := os.Unsetenv("GOPATH")
 	if err != nil {
 		return
+	}
+
+	generatedControllerPaths := map[string]string{
+		"AppsControllerPath":       "./pkg/generated/controllers/apps",
+		"CoreControllerPath":       "./pkg/generated/controllers/core",
+		"ManagementControllerPath": "./pkg/generated/controllers/management.cattle.io",
 	}
 
 	controllergen.Run(args.Options{
@@ -135,17 +154,16 @@ func main() {
 		panic(err)
 	}
 
-	// Comment out this function to avoid replacing the imports in the management controllers
-	if err := replaceManagementControllerImports(); err != nil {
-		panic(err)
-	}
-	// Comment out this function to avoid replacing the imports in the apps controllers
-	if err := replaceAppsControllerImports(); err != nil {
-		panic(err)
-	}
-	// Comment out this function to avoid replacing the imports in the core controllers
-	if err := replaceCoreControllerImports(); err != nil {
-		panic(err)
+	// Loop through all generated controller paths and replace imports and
+	// and add test session
+	for _, path := range generatedControllerPaths {
+		if err := replaceImports(path); err != nil {
+			panic(err)
+		}
+
+		if err := addControllerTestSession(path); err != nil {
+			panic(err)
+		}
 	}
 }
 
@@ -175,19 +193,27 @@ func replaceClientBasePackages() error {
 	})
 }
 
-func replaceManagementControllerImports() error {
-	return replaceImports("./pkg/generated/controllers/management.cattle.io")
+// Walk through the generated controllers and add test session
+// to necessary functions and structs
+func addControllerTestSession(root string) error {
+	err := filepath.Walk(root, processInterfaceFile)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func replaceAppsControllerImports() error {
-	return replaceImports("./pkg/generated/controllers/apps")
-}
-
-func replaceCoreControllerImports() error {
-	return replaceImports("./pkg/generated/controllers/core")
-}
-
-// NOTE: Comment out this function to avoid replacing the imports in the management controllers
+// replaceImports walks through the specified directory and replaces certain imports in Go files.
+// It replaces the import "github.com/rancher/wrangler/v3/pkg/generic" with "github.com/rancher/shepherd/pkg/wrangler/pkg/generic"
+// in all files ending with ".go".
+// It also replaces specific function calls in files starting with "factory", and "interface".
+// The replaced function calls are:
+// - "New(c.ControllerFactory())" with "New(c.ControllerFactory(), c.Opts.TS)"
+// - "controller.NewSharedControllerFactoryWithAgent(userAgent, c.ControllerFactory())" with "controller.NewSharedControllerFactoryWithAgent(userAgent, c.ControllerFactory()), c.Opts.TS"
+// - "controller.SharedControllerFactory)" with "controller.SharedControllerFactory, ts *session.Session)"
+// - "g.controllerFactory)" with "g.controllerFactory, g.ts)"
+// - "v.controllerFactory)" with "v.controllerFactory, v.ts)"
+// The function returns an error if there was a problem reading or writing files.
 func replaceImports(dir string) error {
 	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -206,7 +232,6 @@ func replaceImports(dir string) error {
 			if err = os.WriteFile(path, replacement, 0666); err != nil {
 				return err
 			}
-
 		}
 
 		if strings.HasPrefix(info.Name(), "factory") {
@@ -214,11 +239,21 @@ func replaceImports(dir string) error {
 			if err != nil {
 				return err
 			}
-			replacement = bytes.Replace(input, []byte("c.ControllerFactory())"), []byte("c.ControllerFactory(), c.Opts.TS)"), -1)
+			replacement = bytes.Replace(input, []byte("New(c.ControllerFactory())"), []byte("New(c.ControllerFactory(), c.Opts.TS)"), -1)
 			if err = os.WriteFile(path, replacement, 0666); err != nil {
 				return err
 			}
+		}
 
+		if strings.HasPrefix(info.Name(), "factory") {
+			input, err := os.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			replacement = bytes.Replace(input, []byte("controller.NewSharedControllerFactoryWithAgent(userAgent, c.ControllerFactory())"), []byte("controller.NewSharedControllerFactoryWithAgent(userAgent, c.ControllerFactory()), c.Opts.TS"), -1)
+			if err = os.WriteFile(path, replacement, 0666); err != nil {
+				return err
+			}
 		}
 
 		if strings.HasPrefix(info.Name(), "interface") {
@@ -249,4 +284,166 @@ func replaceImports(dir string) error {
 		}
 		return nil
 	})
+}
+
+// Check if import already exists
+func addImport(fset *token.FileSet, filename string, importPath string) error {
+	if importPath == "" {
+		return errors.New("empty import path")
+	}
+
+	node, err := parser.ParseFile(fset, filename, nil, parser.ParseComments)
+	if err != nil {
+		return err
+	}
+
+	// Check if session import is there and do nothing
+	for _, i := range node.Imports {
+		if i.Path.Value == importPath {
+			println("Import already included in file:", filename)
+			return nil
+		}
+	}
+
+	// Create a new import spec
+	newImport := &ast.ImportSpec{
+		Path: &ast.BasicLit{
+			Kind:  token.STRING,
+			Value: importPath,
+		},
+	}
+
+	// Insert the new import spec in the right place
+	found := false
+	for _, decl := range node.Decls {
+		if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.IMPORT {
+			genDecl.Specs = append(genDecl.Specs, newImport)
+			found = true
+			break
+		}
+	}
+
+	// If no import declaration was found, create a new one
+	if !found {
+		node.Decls = append([]ast.Decl{
+			&ast.GenDecl{
+				Tok: token.IMPORT,
+				Specs: []ast.Spec{
+					newImport,
+				},
+			},
+		}, node.Decls...)
+	}
+
+	var buf bytes.Buffer
+	err = printer.Fprint(&buf, fset, node)
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(filename, buf.Bytes(), 0666)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// processInterfaceFile processes the specified file and adds import, new struct line,
+// and new function line to the specified blocks within the file.
+func processInterfaceFile(path string, info os.FileInfo, err error) error {
+	const importPath = `"github.com/rancher/shepherd/pkg/session"`
+	const newStructLine = "\tts                *session.Session"
+	const newFuncLine = "\t\tts:                ts,"
+
+	if !info.IsDir() && strings.HasSuffix(info.Name(), "interface.go") {
+		fset := token.NewFileSet()
+		err := addImport(fset, path, importPath)
+		if err != nil {
+			return err
+		}
+
+		err = appendNewlineToBlockInFile(path, "group", newStructLine)
+		if err != nil {
+			return err
+		}
+
+		err = appendNewlineToBlockInFile(path, "&group", newFuncLine)
+		if err != nil {
+			return err
+		}
+
+		err = appendNewlineToBlockInFile(path, "version", newStructLine)
+		if err != nil {
+			return err
+		}
+
+		err = appendNewlineToBlockInFile(path, "&version", newFuncLine)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// appendNewlineToBlockInFile takes a path to a file, a code block(struct,return) in a file to update
+// and the string to insert in a new line within the block
+func appendNewlineToBlockInFile(filePath, blockName, newLine string) error {
+	// Read the file contents
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("error reading file: %v", err)
+	}
+
+	// Convert content to string and split into lines
+	input := string(content)
+	lines := strings.Split(input, "\n")
+	blockStart := -1
+	blockEnd := -1
+	braceCount := 0
+
+	// Create a regex for matching function declaration
+	var re *regexp.Regexp
+	re = regexp.MustCompile(fmt.Sprintf(`(?m)(type\s+%s\s+struct|\s*return\s*%s)\s*{\s*`, blockName, blockName))
+
+	// Find the start and end of the specified function
+	for i, line := range lines {
+		if blockStart == -1 {
+			if re.MatchString(line) {
+				blockStart = i
+				braceCount = 1
+			}
+		} else {
+			braceCount += strings.Count(line, "{") - strings.Count(line, "}")
+			if braceCount == 0 {
+				blockEnd = i
+				break
+			}
+		}
+	}
+
+	// If the target is found, insert the new line before the closing brace
+	if blockStart != -1 && blockEnd != -1 {
+		// Find the last non-empty line before the closing brace
+		insertPos := blockEnd
+		for i := blockEnd - 1; i > blockStart; i-- {
+			if strings.TrimSpace(lines[i]) != "" {
+				insertPos = i + 1
+				break
+			}
+		}
+
+		// Insert the new line
+		lines = append(lines[:insertPos], append([]string{newLine}, lines[insertPos:]...)...)
+
+		// Join the lines back together
+		modifiedContent := strings.Join(lines, "\n")
+
+		// Write the modified content back to the file
+		err = os.WriteFile(filePath, []byte(modifiedContent), 0644)
+		if err != nil {
+			return fmt.Errorf("error writing to file: %v", err)
+		}
+	}
+
+	return nil
 }
