@@ -6,6 +6,11 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 )
 
+var (
+	TimeoutError         = "timeout waiting on condition"
+	WatchConnectionError = "error with watch connection"
+)
+
 // WatchCheckFunc is the function type of `check` needed for WatchWait e.g.
 //
 //	 checkFunc := func(event watch.Event) (ready bool, err error) {
@@ -33,10 +38,10 @@ func WatchWait(watchInterface watch.Interface, check WatchCheckFunc) error {
 		select {
 		case event, open := <-watchInterface.ResultChan():
 			if !open {
-				return fmt.Errorf("timeout waiting on condition")
+				return fmt.Errorf(TimeoutError)
 			}
 			if event.Type == watch.Error {
-				return fmt.Errorf("error with watch connection")
+				return fmt.Errorf(WatchConnectionError)
 			}
 
 			done, err := check(event)
