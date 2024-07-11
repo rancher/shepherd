@@ -10,9 +10,11 @@ import (
 	"github.com/rancher/norman/types"
 	v3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
 	apisV1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
+	provv1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
 	rkev1 "github.com/rancher/rancher/pkg/apis/rke.cattle.io/v1"
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
+	steveV1 "github.com/rancher/shepherd/clients/rancher/v1"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/defaults"
 	"github.com/rancher/shepherd/extensions/provisioninginput"
@@ -221,7 +223,7 @@ func CreateRancherBaselinePSACT(client *rancher.Client, psact string) error {
 	return nil
 }
 
-// NewRKE1lusterConfig is a constructor for a v3.Cluster object, to be used by the rancher.Client.Provisioning client.
+// NewRKE1ClusterConfig is a constructor for a v3.Cluster object, to be used by the rancher.Client.Provisioning client.
 func NewRKE1ClusterConfig(clusterName string, client *rancher.Client, clustersConfig *ClusterConfig) *management.Cluster {
 	backupConfigEnabled := true
 	criDockerBool := false
@@ -285,6 +287,62 @@ func NewRKE1ClusterConfig(clusterName string, client *rancher.Client, clustersCo
 							ExtraEnv: extraEnv,
 						},
 					}
+					break
+				}
+			}
+		}
+	}
+
+	if clustersConfig.CloudProvider != "" {
+		newConfig.RancherKubernetesEngineConfig.CloudProvider = &management.CloudProvider{
+			Name: clustersConfig.CloudProvider,
+		}
+		if clustersConfig.CloudProvider == externalAws {
+			trueBoolean := true
+			newConfig.RancherKubernetesEngineConfig.CloudProvider.UseInstanceMetadataHostname = &trueBoolean
+		}
+	}
+
+	if clustersConfig.ETCDRKE1 != nil {
+		newConfig.RancherKubernetesEngineConfig.Services.Etcd = clustersConfig.ETCDRKE1
+	}
+
+	if clustersConfig.PSACT != "" {
+		newConfig.DefaultPodSecurityAdmissionConfigurationTemplateName = clustersConfig.PSACT
+	}
+
+	return newConfig
+}
+
+// UpdateRKE1ClusterConfig is a constructor for a v3.Cluster object, to be used by the rancher.Client.Provisioning client.
+func UpdateRKE1ClusterConfig(clusterName string, client *rancher.Client, clustersConfig *ClusterConfig) *management.Cluster {
+	newConfig := &management.Cluster{
+		Name: clusterName,
+		RancherKubernetesEngineConfig: &management.RancherKubernetesEngineConfig{
+			Network: &management.NetworkConfig{
+				Plugin: clustersConfig.CNI,
+			},
+			Version: clustersConfig.KubernetesVersion,
+		},
+	}
+
+	newConfig.ClusterAgentDeploymentCustomization = clustersConfig.ClusterAgent
+	newConfig.FleetAgentDeploymentCustomization = clustersConfig.FleetAgent
+
+	if clustersConfig.Registries != nil {
+		if clustersConfig.Registries.RKE1Registries != nil {
+			newConfig.RancherKubernetesEngineConfig.PrivateRegistries = clustersConfig.Registries.RKE1Registries
+			for _, registry := range clustersConfig.Registries.RKE1Registries {
+				if registry.ECRCredentialPlugin != nil {
+					awsAccessKeyID := fmt.Sprintf("AWS_ACCESS_KEY_ID=%s", registry.ECRCredentialPlugin.AwsAccessKeyID)
+					awsSecretAccessKey := fmt.Sprintf("AWS_SECRET_ACCESS_KEY=%s", registry.ECRCredentialPlugin.AwsSecretAccessKey)
+					extraEnv := []string{awsAccessKeyID, awsSecretAccessKey}
+					newConfig.RancherKubernetesEngineConfig.Services = &management.RKEConfigServices{
+						Kubelet: &management.KubeletService{
+							ExtraEnv: extraEnv,
+						},
+					}
+
 					break
 				}
 			}
@@ -474,6 +532,116 @@ func NewK3SRKE2ClusterConfig(clusterName, namespace string, clustersConfig *Clus
 	}
 
 	return v1Cluster
+}
+
+// UpdateK3SRKE2ClusterConfig is a constructor for a apisV1.Cluster object, to be used by the rancher.Client.Provisioning client.
+func UpdateK3SRKE2ClusterConfig(cluster *v1.SteveAPIObject, clustersConfig *ClusterConfig) *v1.SteveAPIObject {
+	clusterSpec := &provv1.ClusterSpec{}
+	err := steveV1.ConvertToK8sType(cluster.Spec, clusterSpec)
+	if err != nil {
+		return nil
+	}
+
+	if clustersConfig.ETCD != nil {
+		clusterSpec.RKEConfig.ETCD = clustersConfig.ETCD
+	}
+
+	if clustersConfig.KubernetesVersion != "" {
+		clusterSpec.KubernetesVersion = clustersConfig.KubernetesVersion
+	}
+
+	if clustersConfig.CNI != "" {
+		clusterSpec.RKEConfig.MachineGlobalConfig.Data["cni"] = clustersConfig.CNI
+	}
+
+	if clustersConfig.AddOnConfig != nil {
+		if clustersConfig.AddOnConfig.ChartValues != nil {
+			clusterSpec.RKEConfig.ChartValues = *clustersConfig.AddOnConfig.ChartValues
+		}
+		clusterSpec.RKEConfig.AdditionalManifest = clustersConfig.AddOnConfig.AdditionalManifest
+	}
+
+	if clustersConfig.Advanced != nil {
+		if clustersConfig.Advanced.MachineGlobalConfig != nil {
+			for k, v := range clustersConfig.Advanced.MachineGlobalConfig.Data {
+				clusterSpec.RKEConfig.MachineGlobalConfig.Data[k] = v
+			}
+		}
+
+		if clustersConfig.Advanced.MachineSelectors != nil {
+			clusterSpec.RKEConfig.MachineSelectorConfig = *clustersConfig.Advanced.MachineSelectors
+		}
+	}
+
+	if clustersConfig.Networking != nil {
+		if clustersConfig.Networking.LocalClusterAuthEndpoint != nil {
+			clusterSpec.LocalClusterAuthEndpoint = *clustersConfig.Networking.LocalClusterAuthEndpoint
+		}
+	}
+
+	if clustersConfig.UpgradeStrategy != nil {
+		clusterSpec.RKEConfig.UpgradeStrategy = *clustersConfig.UpgradeStrategy
+	}
+
+	if clustersConfig.ClusterAgent != nil {
+		clusterAgentOverrides := ResourceConfigHelper(clustersConfig.ClusterAgent.OverrideResourceRequirements)
+		clusterSpec.ClusterAgentDeploymentCustomization.OverrideResourceRequirements = clusterAgentOverrides
+		v1ClusterTolerations := []corev1.Toleration{}
+		for _, t := range clustersConfig.ClusterAgent.AppendTolerations {
+			v1ClusterTolerations = append(v1ClusterTolerations, corev1.Toleration{
+				Key:      t.Key,
+				Operator: corev1.TolerationOperator(t.Operator),
+				Value:    t.Value,
+				Effect:   corev1.TaintEffect(t.Effect),
+			})
+		}
+		clusterSpec.ClusterAgentDeploymentCustomization.AppendTolerations = v1ClusterTolerations
+		clusterSpec.ClusterAgentDeploymentCustomization.OverrideAffinity = AgentAffinityConfigHelper(clustersConfig.ClusterAgent.OverrideAffinity)
+	}
+
+	if clustersConfig.FleetAgent != nil {
+		fleetAgentOverrides := ResourceConfigHelper(clustersConfig.FleetAgent.OverrideResourceRequirements)
+		clusterSpec.ClusterAgentDeploymentCustomization.OverrideResourceRequirements = fleetAgentOverrides
+		v1FleetTolerations := []corev1.Toleration{}
+		for _, t := range clustersConfig.FleetAgent.AppendTolerations {
+			v1FleetTolerations = append(v1FleetTolerations, corev1.Toleration{
+				Key:      t.Key,
+				Operator: corev1.TolerationOperator(t.Operator),
+				Value:    t.Value,
+				Effect:   corev1.TaintEffect(t.Effect),
+			})
+		}
+		clusterSpec.FleetAgentDeploymentCustomization.AppendTolerations = v1FleetTolerations
+		clusterSpec.FleetAgentDeploymentCustomization.OverrideAffinity = AgentAffinityConfigHelper(clustersConfig.FleetAgent.OverrideAffinity)
+	}
+
+	if clustersConfig.Registries != nil {
+		clusterSpec.RKEConfig.Registries = clustersConfig.Registries.RKE2Registries
+	}
+
+	if clustersConfig.CloudProvider == provisioninginput.AWSProviderName.String() {
+		clusterSpec.RKEConfig.MachineSelectorConfig = append(clusterSpec.RKEConfig.MachineSelectorConfig, OutOfTreeSystemConfig(clustersConfig.CloudProvider)...)
+	} else if strings.Contains(clustersConfig.CloudProvider, "-in-tree") {
+		clusterSpec.RKEConfig.MachineSelectorConfig = append(clusterSpec.RKEConfig.MachineSelectorConfig, InTreeSystemConfig(strings.Split(clustersConfig.CloudProvider, "-in-tree")[0])...)
+	}
+
+	if clustersConfig.CloudProvider == provisioninginput.VsphereCloudProviderName.String() {
+		clusterSpec.RKEConfig.MachineSelectorConfig = append(clusterSpec.RKEConfig.MachineSelectorConfig,
+			RKESystemConfigTemplate(map[string]interface{}{
+				cloudProviderAnnotationName: provisioninginput.VsphereCloudProviderName.String(),
+				protectKernelDefaults:       false,
+			},
+				nil),
+		)
+	}
+
+	if clustersConfig.PSACT != "" {
+		clusterSpec.DefaultPodSecurityAdmissionConfigurationTemplateName = clustersConfig.PSACT
+	}
+
+	cluster.Spec = clusterSpec
+
+	return cluster
 }
 
 // OutOfTreeSystemConfig constructs the proper rkeSystemConfig slice for enabling the aws cloud provider
@@ -1060,6 +1228,38 @@ func DeleteK3SRKE2Cluster(client *rancher.Client, clusterID string) error {
 	}
 
 	return nil
+}
+
+// UpdateRKE1Cluster is a "helper" functions that takes a rancher client, old rke1 cluster config, and the new rke1 cluster config as parameters.
+func UpdateRKE1Cluster(client *rancher.Client, cluster, updatedCluster *management.Cluster) (*management.Cluster, error) {
+	logrus.Infof("Updating cluster...")
+	newCluster, err := client.Management.Cluster.Update(cluster, updatedCluster)
+	if err != nil {
+		return nil, err
+	}
+
+	err = kwait.PollUntilContextTimeout(context.TODO(), 500*time.Millisecond, defaults.ThirtyMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
+		client, err = client.ReLogin()
+		if err != nil {
+			return false, err
+		}
+
+		clusterResp, err := client.Management.Cluster.ByID(newCluster.ID)
+		if err != nil {
+			return false, err
+		}
+
+		if clusterResp.State == active {
+			return true, nil
+		}
+
+		return false, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return cluster, nil
 }
 
 // UpdateK3SRKE2Cluster is a "helper" functions that takes a rancher client, old rke2/k3s cluster config, and the new rke2/k3s cluster config as parameters.
