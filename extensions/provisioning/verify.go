@@ -23,6 +23,7 @@ import (
 	"github.com/rancher/shepherd/extensions/provisioninginput"
 	psadeploy "github.com/rancher/shepherd/extensions/psact"
 	"github.com/rancher/shepherd/extensions/registries"
+	"github.com/rancher/shepherd/extensions/reports"
 	"github.com/rancher/shepherd/extensions/sshkeys"
 	"github.com/rancher/shepherd/extensions/workloads/pods"
 	"github.com/rancher/shepherd/pkg/wait"
@@ -61,31 +62,37 @@ func VerifyRKE1Cluster(t *testing.T, client *rancher.Client, clustersConfig *clu
 		FieldSelector:  "metadata.name=" + cluster.ID,
 		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
 	})
+	reports.TimeoutRKEReport(cluster, err)
 	require.NoError(t, err)
 
 	checkFunc := clusters.IsHostedProvisioningClusterReady
 	err = wait.WatchWait(watchInterface, checkFunc)
+	reports.TimeoutRKEReport(cluster, err)
 	require.NoError(t, err)
 
 	assert.Equal(t, clustersConfig.KubernetesVersion, cluster.RancherKubernetesEngineConfig.Version)
 
 	clusterToken, err := clusters.CheckServiceAccountTokenSecret(client, cluster.Name)
+	reports.TimeoutRKEReport(cluster, err)
 	require.NoError(t, err)
 	assert.NotEmpty(t, clusterToken)
 
 	err = nodestat.AllManagementNodeReady(client, cluster.ID, defaults.ThirtyMinuteTimeout)
+	reports.TimeoutRKEReport(cluster, err)
 	require.NoError(t, err)
 
 	if clustersConfig.PSACT == string(provisioninginput.RancherPrivileged) || clustersConfig.PSACT == string(provisioninginput.RancherRestricted) || clustersConfig.PSACT == string(provisioninginput.RancherBaseline) {
 		require.NotEmpty(t, cluster.DefaultPodSecurityAdmissionConfigurationTemplateName)
 
 		err := psadeploy.CreateNginxDeployment(client, cluster.ID, clustersConfig.PSACT)
+		reports.TimeoutRKEReport(cluster, err)
 		require.NoError(t, err)
 	}
 	if clustersConfig.Registries != nil {
 		if clustersConfig.Registries.RKE1Registries != nil {
 			for _, registry := range clustersConfig.Registries.RKE1Registries {
 				havePrefix, err := registries.CheckAllClusterPodsForRegistryPrefix(client, cluster.ID, registry.URL)
+				reports.TimeoutRKEReport(cluster, err)
 				require.NoError(t, err)
 				assert.True(t, havePrefix)
 			}
@@ -112,31 +119,38 @@ func VerifyCluster(t *testing.T, client *rancher.Client, clustersConfig *cluster
 	require.NoError(t, err)
 
 	kubeProvisioningClient, err := adminClient.GetKubeAPIProvisioningClient()
+	reports.TimeoutClusterReport(cluster, err)
 	require.NoError(t, err)
 
 	watchInterface, err := kubeProvisioningClient.Clusters(namespace).Watch(context.TODO(), metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + cluster.Name,
 		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
 	})
+	reports.TimeoutClusterReport(cluster, err)
 	require.NoError(t, err)
 
 	checkFunc := clusters.IsProvisioningClusterReady
 	err = wait.WatchWait(watchInterface, checkFunc)
+	reports.TimeoutClusterReport(cluster, err)
 	require.NoError(t, err)
 
 	clusterToken, err := clusters.CheckServiceAccountTokenSecret(client, cluster.Name)
+	reports.TimeoutClusterReport(cluster, err)
 	require.NoError(t, err)
 	assert.NotEmpty(t, clusterToken)
 
 	err = nodestat.AllMachineReady(client, cluster.ID, defaults.ThirtyMinuteTimeout)
+	reports.TimeoutClusterReport(cluster, err)
 	require.NoError(t, err)
 
 	status := &provv1.ClusterStatus{}
 	err = steveV1.ConvertToK8sType(cluster.Status, status)
+	reports.TimeoutClusterReport(cluster, err)
 	require.NoError(t, err)
 
 	clusterSpec := &provv1.ClusterSpec{}
 	err = steveV1.ConvertToK8sType(cluster.Spec, clusterSpec)
+	reports.TimeoutClusterReport(cluster, err)
 	require.NoError(t, err)
 
 	configKubeVersion := clusterSpec.KubernetesVersion
@@ -149,12 +163,14 @@ func VerifyCluster(t *testing.T, client *rancher.Client, clustersConfig *cluster
 		require.NotEmpty(t, clusterSpec.DefaultPodSecurityAdmissionConfigurationTemplateName)
 
 		err := psadeploy.CreateNginxDeployment(client, status.ClusterName, clusterSpec.DefaultPodSecurityAdmissionConfigurationTemplateName)
+		reports.TimeoutClusterReport(cluster, err)
 		require.NoError(t, err)
 	}
 
 	if clusterSpec.RKEConfig.Registries != nil {
 		for registryName := range clusterSpec.RKEConfig.Registries.Configs {
 			havePrefix, err := registries.CheckAllClusterPodsForRegistryPrefix(client, status.ClusterName, registryName)
+			reports.TimeoutClusterReport(cluster, err)
 			require.NoError(t, err)
 			assert.True(t, havePrefix)
 		}
@@ -162,6 +178,7 @@ func VerifyCluster(t *testing.T, client *rancher.Client, clustersConfig *cluster
 
 	if clusterSpec.LocalClusterAuthEndpoint.Enabled {
 		mgmtClusterObject, err := adminClient.Management.Cluster.ByID(status.ClusterName)
+		reports.TimeoutClusterReport(cluster, err)
 		require.NoError(t, err)
 		VerifyACE(t, adminClient, mgmtClusterObject)
 	}
@@ -188,18 +205,22 @@ func VerifyHostedCluster(t *testing.T, client *rancher.Client, cluster *manageme
 		FieldSelector:  "metadata.name=" + cluster.ID,
 		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
 	})
+	reports.TimeoutRKEReport(cluster, err)
 	require.NoError(t, err)
 
 	checkFunc := clusters.IsHostedProvisioningClusterReady
 
 	err = wait.WatchWait(watchInterface, checkFunc)
+	reports.TimeoutRKEReport(cluster, err)
 	require.NoError(t, err)
 
 	clusterToken, err := clusters.CheckServiceAccountTokenSecret(client, cluster.Name)
+	reports.TimeoutRKEReport(cluster, err)
 	require.NoError(t, err)
 	assert.NotEmpty(t, clusterToken)
 
 	err = nodestat.AllManagementNodeReady(client, cluster.ID, defaults.ThirtyMinuteTimeout)
+	reports.TimeoutRKEReport(cluster, err)
 	require.NoError(t, err)
 
 	podErrors := pods.StatusPods(client, cluster.ID)
