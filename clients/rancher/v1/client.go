@@ -96,9 +96,38 @@ type Client struct {
 }
 
 func NewClient(opts *clientbase.ClientOpts) (*Client, error) {
-	baseClient, err := clientbase.NewAPIClient(opts)
+	// sometimes it is necessary to retry the GetCollectionURL due to the schema not being updated
+	// fast enough after a cluster has been provisioned
+	var backoff = wait.Backoff{
+		Duration: duration,
+		Factor:   factor,
+		Jitter:   0,
+		Steps:    steps,
+	}
+
+	var baseClient clientbase.APIBaseClient
+	var previousTypesLength int
+	var count int
+	err := wait.ExponentialBackoff(backoff, func() (done bool, err error) {
+		baseClient, err = clientbase.NewAPIClient(opts)
+		if err != nil {
+			return false, err
+		}
+
+		typesLength := len(baseClient.Types)
+		if previousTypesLength == typesLength {
+			count += 1
+		}
+		if count > 5 {
+			return true, nil
+		}
+
+		previousTypesLength = typesLength
+		return false, nil
+	})
+
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed creating Client. Backoff error: %v", err)
 	}
 
 	client := &Client{
@@ -126,15 +155,6 @@ func (c *SteveClient) NamespacedSteveClient(namespace string) *NamespacedSteveCl
 // ProxyDownstream is a function that sets the URL to a proxy URL
 // to be able to make Steve API calls to a downstream cluster
 func (c *Client) ProxyDownstream(clusterID string) (*Client, error) {
-	// sometimes it is necessary to retry the GetCollectionURL due to the schema not being updated
-	// fast enough after a cluster has been provisioned
-	var backoff = wait.Backoff{
-		Duration: duration,
-		Factor:   factor,
-		Jitter:   0,
-		Steps:    steps,
-	}
-
 	hostRegexp := regexp.MustCompile(hostRegex)
 
 	matches := hostRegexp.FindStringSubmatch(c.Opts.URL)
@@ -144,20 +164,10 @@ func (c *Client) ProxyDownstream(clusterID string) (*Client, error) {
 	proxyHost := fmt.Sprintf("https://%s/k8s/clusters/%s/v1", host, clusterID)
 	updatedOpts.URL = proxyHost
 
-	var baseClient clientbase.APIBaseClient
-	err := wait.ExponentialBackoff(backoff, func() (done bool, err error) {
-		baseClient, err = clientbase.NewAPIClient(&updatedOpts)
-		if err != nil {
-			return false, err
-		}
-
-		typesLength := len(baseClient.Types)
-		if typesLength > 0 {
-			return true, nil
-		}
-
-		return false, nil
-	})
+	baseClient, err := clientbase.NewAPIClient(&updatedOpts)
+	if err != nil {
+		return nil, err
+	}
 
 	if err != nil {
 		return nil, fmt.Errorf("failed creating Proxy Client. Backoff error: %v", err)
