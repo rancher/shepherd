@@ -2,28 +2,45 @@ package google
 
 import (
 	"github.com/rancher/shepherd/clients/rancher"
-	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
+	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/cloudcredentials"
-	"github.com/rancher/shepherd/pkg/config"
+	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/namespaces"
+	"github.com/rancher/shepherd/extensions/defaults/providers"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
+	"github.com/rancher/shepherd/extensions/steve"
+	"github.com/rancher/shepherd/pkg/namegenerator"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const googleCloudCredNameBase = "googleCloudCredNameBase"
+const (
+	googleProvider = "gcp"
+)
 
-// CreateGoogleCloudCredentials is a helper function that takes the rancher Client as a parameter and creates
-// a Google cloud credential, and returns the CloudCredential response
-func CreateGoogleCloudCredentials(rancherClient *rancher.Client) (*cloudcredentials.CloudCredential, error) {
-	var googleCredentialConfig cloudcredentials.GoogleCredentialConfig
-	config.LoadConfig(cloudcredentials.GoogleCredentialConfigurationFileKey, &googleCredentialConfig)
-
-	cloudCredential := cloudcredentials.CloudCredential{
-		Name:                   googleCloudCredNameBase,
-		GoogleCredentialConfig: &googleCredentialConfig,
+// CreateGoogleCloudCredentials is a helper function that creates V1 cloud credentials and waits for them to become active.
+func CreateGoogleCloudCredentials(client *rancher.Client, credentials cloudcredentials.CloudCredential) (*v1.SteveAPIObject, error) {
+	secretName := namegenerator.AppendRandomString(providers.Google)
+	spec := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: cloudcredentials.GeneratedName,
+			Namespace:    namespaces.CattleData,
+			Annotations: map[string]string{
+				"field.cattle.io/name":          secretName,
+				"provisioning.cattle.io/driver": googleProvider,
+				"field.cattle.io/creatorId":     client.UserID,
+			},
+		},
+		Data: map[string][]byte{
+			"googlecredentialConfig-authEncodedJson": []byte(credentials.GoogleCredentialConfig.AuthEncodedJSON),
+		},
+		Type: corev1.SecretTypeOpaque,
 	}
 
-	resp := &cloudcredentials.CloudCredential{}
-	err := rancherClient.Management.APIBaseClient.Ops.DoCreate(management.CloudCredentialType, cloudCredential, resp)
+	googleCloudCredentials, err := steve.CreateAndWaitForResource(client, stevetypes.Secret, spec, true, defaults.FiveSecondTimeout, defaults.FiveMinuteTimeout)
 	if err != nil {
 		return nil, err
 	}
-	return resp, nil
+
+	return googleCloudCredentials, nil
 }
