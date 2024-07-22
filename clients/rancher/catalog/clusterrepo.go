@@ -140,13 +140,17 @@ func (c *Client) GetListChartVersions(chartName, repoName string) ([]string, err
 	}
 
 	entries := mapResponse["entries"]
-	specifiedChartEntries := entries.(map[string]interface{})[chartName].([]interface{})
-	if len(specifiedChartEntries) < 1 {
+	specifiedChartEntries := entries.(map[string]interface{})[chartName]
+	if specifiedChartEntries == nil {
 		return nil, fmt.Errorf("failed to find chart %s from the chart repo", chartName)
 	}
 
+	if len(specifiedChartEntries.([]interface{})) < 1 {
+		return nil, fmt.Errorf("there are no chart versions %s from the chart repo", chartName)
+	}
+
 	versionsList := []string{}
-	for _, entry := range specifiedChartEntries {
+	for _, entry := range specifiedChartEntries.([]interface{}) {
 		entryMap := entry.(map[string]interface{})
 		versionsList = append(versionsList, entryMap[version].(string))
 	}
