@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/rancher/shepherd/clients/rancher"
-	"github.com/rancher/shepherd/extensions/cloudcredentials"
+	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/clusters"
 	"github.com/rancher/shepherd/extensions/defaults"
 	"github.com/rancher/shepherd/extensions/projects"
@@ -20,7 +20,7 @@ const (
 )
 
 // InstallTemplateChart installs a template from a repo.
-func InstallTemplateChart(client *rancher.Client, repoName, templateName, clusterName, k8sVersion string, credentials *cloudcredentials.CloudCredential) error {
+func InstallTemplateChart(client *rancher.Client, repoName, templateName, clusterName, k8sVersion string, credentials *v1.SteveAPIObject) error {
 	latestVersion, err := client.Catalog.GetLatestChartVersion(templateName, repoName)
 	if err != nil {
 		return err
@@ -62,7 +62,7 @@ func InstallTemplateChart(client *rancher.Client, repoName, templateName, cluste
 		return err
 	}
 
-	chartInstallAction := TemplateInstallAction(chartInstallActionPayload, repoName, clusterName, credentials.ID, k8sVersion, fleetNamespace, chartValues)
+	chartInstallAction := TemplateInstallAction(chartInstallActionPayload, repoName, clusterName, credentials.Namespace+":"+credentials.Name, k8sVersion, fleetNamespace, chartValues)
 
 	catalogClient, err := client.GetClusterCatalogClient(installOptions.Cluster.ID)
 	if err != nil {

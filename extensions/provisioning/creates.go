@@ -17,6 +17,7 @@ import (
 	rkev1 "github.com/rancher/rancher/pkg/apis/rke.cattle.io/v1"
 
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
+	"github.com/rancher/shepherd/extensions/cloudcredentials"
 	"github.com/rancher/shepherd/extensions/cloudcredentials/aws"
 	"github.com/rancher/shepherd/extensions/cloudcredentials/azure"
 	"github.com/rancher/shepherd/extensions/cloudcredentials/google"
@@ -38,6 +39,7 @@ import (
 	"github.com/rancher/shepherd/extensions/rke1/nodetemplates"
 	"github.com/rancher/shepherd/extensions/secrets"
 	"github.com/rancher/shepherd/extensions/tokenregistration"
+	"github.com/rancher/shepherd/pkg/config"
 	"github.com/rancher/shepherd/pkg/environmentflag"
 	namegen "github.com/rancher/shepherd/pkg/namegenerator"
 	"github.com/rancher/shepherd/pkg/nodes"
@@ -65,7 +67,8 @@ const (
 
 // CreateProvisioningCluster provisions a non-rke1 cluster, then runs verify checks
 func CreateProvisioningCluster(client *rancher.Client, provider Provider, clustersConfig *clusters.ClusterConfig, hostnameTruncation []machinepools.HostnameTruncation) (*v1.SteveAPIObject, error) {
-	cloudCredential, err := provider.CloudCredFunc(client)
+	credentialSpec := cloudcredentials.LoadCloudCredential(string(provider.Name))
+	cloudCredential, err := provider.CloudCredFunc(client, credentialSpec)
 	if err != nil {
 		return nil, err
 	}
@@ -136,9 +139,9 @@ func CreateProvisioningCluster(client *rancher.Client, provider Provider, cluste
 
 		vcenterCredentials := map[string]interface{}{
 			"datacenters": machinePoolConfigs[0].Object["datacenter"],
-			"host":        cloudCredential.VmwareVsphereConfig.Vcenter,
+			"host":        credentialSpec.VmwareVsphereConfig.Vcenter,
 			"password":    vsphere.GetVspherePassword(),
-			"username":    cloudCredential.VmwareVsphereConfig.Username,
+			"username":    credentialSpec.VmwareVsphereConfig.Username,
 		}
 		clustersConfig.AddOnConfig = &provisioninginput.AddOnConfig{
 			ChartValues: &rkev1.GenericMap{
@@ -157,7 +160,7 @@ func CreateProvisioningCluster(client *rancher.Client, provider Provider, cluste
 		}
 	}
 
-	cluster := clusters.NewK3SRKE2ClusterConfig(clusterName, namespace, clustersConfig, machinePools, cloudCredential.ID)
+	cluster := clusters.NewK3SRKE2ClusterConfig(clusterName, namespace, clustersConfig, machinePools, cloudCredential.Namespace+":"+cloudCredential.Name)
 
 	for _, truncatedPool := range hostnameTruncation {
 		if truncatedPool.PoolNameLengthLimit > 0 || truncatedPool.ClusterNameLengthLimit > 0 {
@@ -721,13 +724,15 @@ func CreateProvisioningRKE1AirgapCustomCluster(client *rancher.Client, clustersC
 
 // CreateProvisioningAKSHostedCluster provisions an AKS cluster, then runs verify checks
 func CreateProvisioningAKSHostedCluster(client *rancher.Client, aksClusterConfig aks.ClusterConfig) (*management.Cluster, error) {
-	cloudCredential, err := azure.CreateAzureCloudCredentials(client)
+	var cloudCredentialConfig cloudcredentials.CloudCredential
+	config.LoadConfig(cloudcredentials.AzureCredentialConfigurationFileKey, &cloudCredentialConfig.AzureCredentialConfig)
+	cloudCredential, err := azure.CreateAzureCloudCredentials(client, cloudCredentialConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	clusterName := namegen.AppendRandomString("akshostcluster")
-	clusterResp, err := aks.CreateAKSHostedCluster(client, clusterName, cloudCredential.ID, aksClusterConfig, false, false, false, false, nil)
+	clusterResp, err := aks.CreateAKSHostedCluster(client, clusterName, cloudCredential.Namespace+":"+cloudCredential.Name, aksClusterConfig, false, false, false, false, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -746,13 +751,15 @@ func CreateProvisioningAKSHostedCluster(client *rancher.Client, aksClusterConfig
 
 // CreateProvisioningEKSHostedCluster provisions an EKS cluster, then runs verify checks
 func CreateProvisioningEKSHostedCluster(client *rancher.Client, eksClusterConfig eks.ClusterConfig) (*management.Cluster, error) {
-	cloudCredential, err := aws.CreateAWSCloudCredentials(client)
+	var cloudCredentialConfig cloudcredentials.CloudCredential
+	config.LoadConfig(cloudcredentials.AmazonEC2CredentialConfigurationFileKey, &cloudCredentialConfig.AmazonEC2CredentialConfig)
+	cloudCredential, err := aws.CreateAWSCloudCredentials(client, cloudCredentialConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	clusterName := namegen.AppendRandomString("ekshostcluster")
-	clusterResp, err := eks.CreateEKSHostedCluster(client, clusterName, cloudCredential.ID, eksClusterConfig, false, false, false, false, nil)
+	clusterResp, err := eks.CreateEKSHostedCluster(client, clusterName, cloudCredential.Namespace+":"+cloudCredential.Name, eksClusterConfig, false, false, false, false, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -771,13 +778,14 @@ func CreateProvisioningEKSHostedCluster(client *rancher.Client, eksClusterConfig
 
 // CreateProvisioningGKEHostedCluster provisions an GKE cluster, then runs verify checks
 func CreateProvisioningGKEHostedCluster(client *rancher.Client, gkeClusterConfig gke.ClusterConfig) (*management.Cluster, error) {
-	cloudCredential, err := google.CreateGoogleCloudCredentials(client)
+	credentialSpec := cloudcredentials.LoadCloudCredential(provisioninginput.GoogleProviderName.String())
+	cloudCredential, err := google.CreateGoogleCloudCredentials(client, credentialSpec)
 	if err != nil {
 		return nil, err
 	}
 
 	clusterName := namegen.AppendRandomString("gkehostcluster")
-	clusterResp, err := gke.CreateGKEHostedCluster(client, clusterName, cloudCredential.ID, gkeClusterConfig, false, false, false, false, nil)
+	clusterResp, err := gke.CreateGKEHostedCluster(client, clusterName, cloudCredential.Namespace+":"+cloudCredential.Name, gkeClusterConfig, false, false, false, false, nil)
 	if err != nil {
 		return nil, err
 	}
