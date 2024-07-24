@@ -113,7 +113,7 @@ type Interface interface {
 func New(controllerFactory controller.SharedControllerFactory, ts *session.Session) Interface {
 	return &version{
 		controllerFactory: controllerFactory,
-		ts: ts,
+		ts:                ts,
 	}
 }
 

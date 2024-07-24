@@ -30,14 +30,14 @@ type Interface interface {
 
 type group struct {
 	controllerFactory controller.SharedControllerFactory
-	ts 			  *session.Session
+	ts                *session.Session
 }
 
 // New returns a new Interface.
 func New(controllerFactory controller.SharedControllerFactory, ts *session.Session) Interface {
 	return &group{
 		controllerFactory: controllerFactory,
-		ts:  ts,
+		ts:                ts,
 	}
 }
 
