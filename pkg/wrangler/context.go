@@ -81,6 +81,7 @@ type Context struct {
 	apps *apps.Factory
 	core *core.Factory
 
+	session *session.Session
 	started bool
 }
 
@@ -194,9 +195,10 @@ func NewContext(ctx context.Context, restConfig *rest.Config, ts *session.Sessio
 		ControllerFactory:       controllerFactory,
 		controllerLock:          &sync.Mutex{},
 
-		mgmt: mgmt,
-		apps: apps,
-		core: core,
+		mgmt:    mgmt,
+		apps:    apps,
+		core:    core,
+		session: ts,
 	}
 
 	return wContext, nil
@@ -258,7 +260,7 @@ func (w *Context) DownStreamClusterWranglerContext(clusterID string) (*Context, 
 	restConfig := *w.RESTConfig
 	restConfig.Host = fmt.Sprintf("https://%s/k8s/clusters/%s", w.RESTConfig.Host, clusterID)
 
-	clusterContext, err := NewContext(context.TODO(), &restConfig, nil)
+	clusterContext, err := NewContext(context.TODO(), &restConfig, w.session)
 	if err != nil {
 		return nil, err
 	}
