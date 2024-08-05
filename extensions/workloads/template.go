@@ -24,9 +24,13 @@ func NewContainer(containerName, image string, imagePullPolicy corev1.PullPolicy
 }
 
 // NewPodTemplate is a constructor that creates the pod template for all types of workloads e.g. cronjobs, daemonsets, deployments, and batch jobs
-func NewPodTemplate(containers []corev1.Container, volumes []corev1.Volume, imagePullSecrets []corev1.LocalObjectReference, labels map[string]string) corev1.PodTemplateSpec {
+func NewPodTemplate(containers []corev1.Container, volumes []corev1.Volume, imagePullSecrets []corev1.LocalObjectReference, labels map[string]string, nodeSelector map[string]string) corev1.PodTemplateSpec {
 	if labels == nil {
 		labels = make(map[string]string)
+	}
+
+	if nodeSelector == nil {
+		nodeSelector = make(map[string]string)
 	}
 
 	return corev1.PodTemplateSpec{
@@ -37,6 +41,7 @@ func NewPodTemplate(containers []corev1.Container, volumes []corev1.Volume, imag
 			Containers:       containers,
 			Volumes:          volumes,
 			ImagePullSecrets: imagePullSecrets,
+			NodeSelector:     nodeSelector,
 		},
 	}
 }
@@ -67,7 +72,7 @@ func NewDeploymentTemplate(deploymentName string, namespace string, template cor
 
 }
 
-// NewDeploymentTemplate is a constructor that creates a daemonset template. If the isCattleLabeled true, workloadselector labels are assigned to the daemonset and the pod template.
+// NewDaemonSetTemplate is a constructor that creates a daemonset template. If the isCattleLabeled true, workloadselector labels are assigned to the daemonset and the pod template.
 func NewDaemonSetTemplate(daemonsetName string, namespace string, template corev1.PodTemplateSpec, isCattleLabeled bool, matchLabels map[string]string) *appv1.DaemonSet {
 	if matchLabels == nil {
 		matchLabels = map[string]string{}
