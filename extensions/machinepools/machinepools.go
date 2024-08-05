@@ -42,9 +42,11 @@ func MatchNodeRolesToMachinePool(nodeRoles NodeRoles, machinePools []apisV1.RKEM
 		if nodeRoles.ControlPlane != machinePoolConfig.ControlPlaneRole {
 			continue
 		}
+
 		if nodeRoles.Etcd != machinePoolConfig.EtcdRole {
 			continue
 		}
+
 		if nodeRoles.Worker != machinePoolConfig.WorkerRole {
 			continue
 		}
@@ -52,6 +54,10 @@ func MatchNodeRolesToMachinePool(nodeRoles NodeRoles, machinePools []apisV1.RKEM
 		count += *machinePoolConfig.Quantity
 
 		return index, count
+	}
+
+	if nodeRoles.Windows {
+		return len(machinePools) - 1, count
 	}
 
 	return -1, count
