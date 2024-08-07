@@ -9,6 +9,7 @@ import (
 type Role string
 
 const (
+	Admin                     Role = "admin"
 	RestrictedAdmin           Role = "restricted-admin"
 	StandardUser              Role = "user"
 	ClusterOwner              Role = "cluster-owner"
