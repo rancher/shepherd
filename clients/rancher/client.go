@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/rancher/norman/httperror"
@@ -52,6 +53,7 @@ type Client struct {
 	// Flags is the environment flags used by the client to test selectively against a rancher instance.
 	Flags      *environmentflag.EnvironmentFlags
 	restConfig *rest.Config
+	UserID     string
 }
 
 // NewClient is the constructor to the initializing a rancher Client. It takes a bearer token and session.Session. If bearer token is not provided,
@@ -112,6 +114,14 @@ func NewClient(bearerToken string, session *session.Session) (*Client, error) {
 	}
 
 	c.WranglerContext = wranglerContext
+
+	splitBearerKey := strings.Split(bearerToken, ":")
+	token, err := c.Management.Token.ByID(splitBearerKey[0])
+	if err != nil {
+		return nil, err
+	}
+
+	c.UserID = token.UserID
 
 	return c, nil
 }
