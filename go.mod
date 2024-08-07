@@ -136,6 +136,7 @@ require (
 	github.com/prometheus/common v0.45.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/rancher/aks-operator v1.9.0 // indirect
+	github.com/rancher/backup-restore-operator v1.2.1
 	github.com/rancher/eks-operator v1.9.0 // indirect
 	github.com/rancher/gke-operator v1.9.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
