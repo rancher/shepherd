@@ -3,6 +3,7 @@ package nodetemplates
 import (
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
+	"github.com/rancher/shepherd/extensions/cloudcredentials"
 	"github.com/rancher/shepherd/extensions/cloudcredentials/harvester"
 	"github.com/rancher/shepherd/extensions/rke1/nodetemplates"
 	"github.com/rancher/shepherd/pkg/config"
@@ -16,7 +17,9 @@ func CreateHarvesterNodeTemplate(rancherClient *rancher.Client) (*nodetemplates.
 	var harvesterNodeTemplateConfig nodetemplates.HarvesterNodeTemplateConfig
 	config.LoadConfig(nodetemplates.HarvesterNodeTemplateConfigurationFileKey, &harvesterNodeTemplateConfig)
 
-	cloudCredential, err := harvester.CreateHarvesterCloudCredentials(rancherClient)
+	var cloudCredentialConfig cloudcredentials.CloudCredential
+	config.LoadConfig(cloudcredentials.HarvesterCredentialConfigurationFileKey, &cloudCredentialConfig.HarvesterCredentialConfig)
+	cloudCredential, err := harvester.CreateHarvesterCloudCredentials(rancherClient, cloudCredentialConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +31,7 @@ func CreateHarvesterNodeTemplate(rancherClient *rancher.Client) (*nodetemplates.
 	}
 
 	nodeTemplateConfig := &nodetemplates.NodeTemplate{
-		CloudCredentialID: cloudCredential.ID,
+		CloudCredentialID: cloudCredential.Namespace + ":" + cloudCredential.Name,
 	}
 
 	config.LoadConfig(nodetemplates.NodeTemplateConfigurationFileKey, nodeTemplateConfig)
