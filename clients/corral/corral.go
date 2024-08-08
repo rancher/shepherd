@@ -68,9 +68,9 @@ func SetCustomRepo(repo string) error {
 	return nil
 }
 
-// CreateCorral creates a corral taking the corral name, the package path, and a debug set so if someone wants to view the
+// CreateCorralAndWait creates a corral taking the corral name, the package path, and a debug set so if someone wants to view the
 // corral create log
-func CreateCorral(ts *session.Session, corralName, packageName string, debug bool, cleanup bool) ([]byte, error) {
+func CreateCorralAndWait(ts *session.Session, corralName, packageName string, debug, cleanup bool) ([]byte, error) {
 	ts.RegisterCleanupFunc(func() error {
 		return DeleteCorral(corralName)
 	})
@@ -84,14 +84,49 @@ func CreateCorral(ts *session.Session, corralName, packageName string, debug boo
 	}
 	args = append(args, corralName, packageName)
 	logrus.Infof("Creating corral with the following parameters: %v", args)
-	// complicated, but running the command in a way that allows us to
-	// capture the output and error(s) and print it to the console
+
 	msg, err := exec.Command("corral", args...).CombinedOutput()
 	logrus.Infof("Corral create output: %s", string(msg))
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to create corral: "+string(msg))
 	}
 
+	return msg, nil
+}
+
+// CreateCorral creates a corral taking the corral name, the package path, and a debug set so if someone wants to view the
+// corral create log
+func CreateCorral(ts *session.Session, corralName, packageName string, debug, cleanup bool) (*exec.Cmd, error) {
+	ts.RegisterCleanupFunc(func() error {
+		return DeleteCorral(corralName)
+	})
+
+	args := []string{"create"}
+	if !cleanup {
+		args = append(args, skipCleanupFlag)
+	}
+	if debug {
+		args = append(args, debugFlag)
+	}
+	args = append(args, corralName, packageName)
+	logrus.Infof("Creating corral with the following parameters: %v", args)
+
+	corralCommand := exec.Command("corral", args...)
+
+	var b bytes.Buffer
+	corralCommand.Stdout = &b
+	corralCommand.Stderr = &b
+	b.Bytes()
+	return corralCommand, corralCommand.Start()
+}
+
+func WaitOnCorralWithCombinedOutput(runningCommand *exec.Cmd) ([]byte, error) {
+	err := runningCommand.Wait()
+	msg := runningCommand.Stdout.(*bytes.Buffer).Bytes()
+	logrus.Infof("Corral create output: %s", string(msg))
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to create corral: "+string(msg))
+	}
 	return msg, nil
 }
 
