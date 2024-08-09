@@ -12,8 +12,8 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 )
 
-// VerifyChartInstall verifies that the app from a chart was successfully deployed
-func VerifyChartInstall(client *catalog.Client, chartNamespace, chartName string) error {
+// WaitChartInstall verifies that the app from a chart was successfully deployed
+func WaitChartInstall(client *catalog.Client, chartNamespace, chartName string) error {
 	watchAppInterface, err := client.Apps(chartNamespace).Watch(context.TODO(), metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + chartName,
 		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
@@ -38,8 +38,8 @@ func VerifyChartInstall(client *catalog.Client, chartNamespace, chartName string
 	return err
 }
 
-// VerifyChartUpgrade verifies that the app from a chart was successfully upgraded
-func VerifyChartUpgrade(client *catalog.Client, chartNamespace, chartName, chartVersion string) error {
+// WaitChartUpgrade verifies that the app from a chart was successfully upgraded
+func WaitChartUpgrade(client *catalog.Client, chartNamespace, chartName, chartVersion string) error {
 	watchAppInterface, err := client.Apps(chartNamespace).Watch(context.TODO(), metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + chartName,
 		TimeoutSeconds: &defaults.WatchTimeoutSeconds,

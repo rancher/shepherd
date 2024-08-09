@@ -1,6 +1,7 @@
 package users
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -10,16 +11,17 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	extauthz "github.com/rancher/shepherd/extensions/kubeapi/authorization"
-	"github.com/rancher/shepherd/extensions/kubeapi/rbac"
 	password "github.com/rancher/shepherd/extensions/users/passwordgenerator"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	namegen "github.com/rancher/shepherd/pkg/namegenerator"
 	"github.com/rancher/shepherd/pkg/ref"
 	"github.com/rancher/shepherd/pkg/wait"
 	authzv1 "k8s.io/api/authorization/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
@@ -296,10 +298,6 @@ func GetUserIDByName(client *rancher.Client, username string) (string, error) {
 		return "", err
 	}
 
-	if err != nil {
-		return "", err
-	}
-
 	for _, user := range userList.Data {
 		if user.Username == username {
 			return user.ID, nil
@@ -346,7 +344,7 @@ func waitForRTBRollout(client *rancher.Client, rtbNamespace string, rtbName stri
 		Steps:    41,
 	}
 	err := kwait.ExponentialBackoff(backoff, func() (done bool, err error) {
-		downstreamCRBs, err := rbac.ListClusterRoleBindings(client, clusterID, metav1.ListOptions{
+		downstreamCRBs, err := listClusterRoleBindings(client, clusterID, metav1.ListOptions{
 			LabelSelector: selector.String(),
 		})
 		if err != nil {
@@ -379,4 +377,34 @@ func waitForAllowed(rancherClient *rancher.Client, clusterID string, user *manag
 	}
 
 	return extauthz.WaitForAllowed(userClient, clusterID, attrs)
+}
+
+func listClusterRoleBindings(client *rancher.Client, clusterName string, listOpt metav1.ListOptions) (*rbacv1.ClusterRoleBindingList, error) {
+	dynamicClient, err := client.GetDownStreamClusterClient(clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	clusterRoleBindingGroupVersionResource := schema.GroupVersionResource{
+		Group:    rbacv1.SchemeGroupVersion.Group,
+		Version:  rbacv1.SchemeGroupVersion.Version,
+		Resource: "clusterrolebindings",
+	}
+
+	unstructuredList, err := dynamicClient.Resource(clusterRoleBindingGroupVersionResource).Namespace("").List(context.Background(), listOpt)
+	if err != nil {
+		return nil, err
+	}
+
+	crbList := new(rbacv1.ClusterRoleBindingList)
+	for _, unstructuredCRB := range unstructuredList.Items {
+		crb := &rbacv1.ClusterRoleBinding{}
+		err := scheme.Scheme.Convert(&unstructuredCRB, crb, unstructuredCRB.GroupVersionKind())
+		if err != nil {
+			return nil, err
+		}
+		crbList.Items = append(crbList.Items, *crb)
+	}
+
+	return crbList, nil
 }

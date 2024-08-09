@@ -8,16 +8,7 @@ import (
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
-
-// PodGroupVersion is the required Group Version for accessing pods in a cluster,
-// using the dynamic client.
-var PodGroupVersionResource = schema.GroupVersionResource{
-	Group:    "",
-	Version:  "v1",
-	Resource: "pods",
-}
 
 // StatusPods is a helper function that uses the dynamic client to list pods on a namespace for a specific cluster with its list options.
 func StatusPods(client *rancher.Client, clusterID string, listOpts metav1.ListOptions) ([]string, []error) {
