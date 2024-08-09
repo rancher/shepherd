@@ -16,13 +16,13 @@ func GetWebhook(client *rancher.Client, clusterID, resourceName string) (*V1.Val
 	if err != nil {
 		return nil, err
 	}
-	WebHookGroupVersionResource := schema.GroupVersionResource{
+	webHookGroupVersionResource := schema.GroupVersionResource{
 		Group:    "admissionregistration.k8s.io",
 		Version:  "v1",
 		Resource: "validatingwebhookconfigurations",
 	}
 
-	result, err := dynamicClient.Resource(WebHookGroupVersionResource).Get(context.TODO(), resourceName, metav1.GetOptions{})
+	result, err := dynamicClient.Resource(webHookGroupVersionResource).Get(context.TODO(), resourceName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
