@@ -7,7 +7,7 @@ import (
 
 	"github.com/rancher/norman/types"
 	apisV1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
-	"github.com/rancher/shepherd/clients/dynamic"
+	shepherdDynamic "github.com/rancher/shepherd/clients/dynamic"
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	ext_unstructured "github.com/rancher/shepherd/extensions/unstructured"
@@ -89,7 +89,7 @@ func ImportCluster(client *rancher.Client, cluster *apisV1.Cluster, rest *rest.C
 		return err
 	}
 
-	downClient, err := dynamic.NewForConfig(ts, rest)
+	downClient, err := shepherdDynamic.NewForConfig(ts, rest)
 	if err != nil {
 		return err
 	}
