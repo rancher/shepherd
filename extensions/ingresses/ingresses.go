@@ -19,7 +19,6 @@ import (
 )
 
 const (
-	active           = "active"
 	IngressSteveType = "networking.k8s.io.ingress"
 	pod              = "pod"
 	IngressNginx     = "ingress-nginx"

@@ -12,9 +12,6 @@ func (bc *BundledCluster) Get(client *rancher.Client) (cluster *BundledCluster, 
 	cluster.Meta = bc.Meta
 
 	steveclient := client.Steve.SteveType(clusters.ProvisioningSteveResourceType)
-	if err != nil {
-		return
-	}
 
 	if bc.V1 != nil {
 		cluster.V1, err = steveclient.ByID(cluster.Meta.ID)
