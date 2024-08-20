@@ -7,82 +7,33 @@ import (
 	catalogv1 "github.com/rancher/rancher/pkg/apis/catalog.cattle.io/v1"
 	"github.com/rancher/shepherd/clients/rancher"
 	steveV1 "github.com/rancher/shepherd/clients/rancher/v1"
-	"github.com/rancher/shepherd/extensions/clusters"
 	"github.com/rancher/shepherd/extensions/defaults"
-	"github.com/rancher/shepherd/extensions/kubeapi/workloads/daemonsets"
-	"github.com/rancher/shepherd/extensions/kubeapi/workloads/deployments"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	"github.com/rancher/shepherd/pkg/wait"
 	appv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 )
 
 const (
-	// defaultRegistrySettingID is a private constant string that contains the ID of system default registry setting.
-	defaultRegistrySettingID = "system-default-registry"
 	// serverURLSettingID is a private constant string that contains the ID of server URL setting.
 	serverURLSettingID = "server-url"
 	rancherChartsName  = "rancher-charts"
 	active             = "active"
+	repoType           = "catalog.cattle.io.clusterrepo"
+	appsType           = "catalog.cattle.io.apps"
 )
 
-// InstallOptions is a struct of the required options to install a chart.
-type InstallOptions struct {
-	Cluster   *clusters.ClusterMeta
-	Version   string
-	ProjectID string
-}
-
-// payloadOpts is a private struct that contains the options for the chart payloads.
-// It is used to avoid passing the same options to different functions while using the chart helpers.
-type payloadOpts struct {
-	InstallOptions
-	Name            string
-	Namespace       string
-	Host            string
-	DefaultRegistry string
-}
-
-// RancherIstioOpts is a struct of the required options to install Rancher Istio with desired chart values.
-type RancherIstioOpts struct {
-	IngressGateways bool
-	EgressGateways  bool
-	Pilot           bool
-	Telemetry       bool
-	Kiali           bool
-	Tracing         bool
-	CNI             bool
-}
-
-// RancherMonitoringOpts is a struct of the required options to install Rancher Monitoring with desired chart values.
-type RancherMonitoringOpts struct {
-	IngressNginx      bool `json:"ingressNginx" yaml:"ingressNginx"`
-	ControllerManager bool `json:"controllerManager" yaml:"controllerManager"`
-	Etcd              bool `json:"etcd" yaml:"etcd"`
-	Proxy             bool `json:"proxy" yaml:"proxy"`
-	Scheduler         bool `json:"scheduler" yaml:"scheduler"`
-}
-
-// RancherLoggingOpts is a struct of the required options to install Rancher Logging with desired chart values.
-type RancherLoggingOpts struct {
-	AdditionalLoggingSources bool
-}
-
-// RancherAlertingOpts is a struct of the required options to install Rancher Alerting Drivers with desired chart values.
-type RancherAlertingOpts struct {
-	SMS   bool
-	Teams bool
-}
-
-// GetChartCaseEndpointResult is a struct that GetChartCaseEndpoint helper function returns.
-// It contains the boolean for healthy response and the request body.
-type GetChartCaseEndpointResult struct {
-	Ok   bool
-	Body string
-}
+var (
+	deploymentGroupVersionResource = schema.GroupVersionResource{
+		Group:    "apps",
+		Version:  "v1",
+		Resource: "deployments",
+	}
+)
 
 // ChartStatus is a struct that GetChartStatus helper function returns.
 // It contains the boolean for is already installed and the chart information.
@@ -134,7 +85,8 @@ func WatchAndWaitDeployments(client *rancher.Client, clusterID, namespace string
 	if err != nil {
 		return err
 	}
-	adminDeploymentResource := adminDynamicClient.Resource(deployments.DeploymentGroupVersionResource).Namespace(namespace)
+
+	adminDeploymentResource := adminDynamicClient.Resource(deploymentGroupVersionResource).Namespace(namespace)
 
 	deployments, err := adminDeploymentResource.List(context.TODO(), listOptions)
 	if err != nil {
@@ -192,7 +144,7 @@ func WatchAndWaitDeploymentForAnnotation(client *rancher.Client, clusterID, name
 	if err != nil {
 		return err
 	}
-	adminDeploymentResource := adminDynamicClient.Resource(deployments.DeploymentGroupVersionResource).Namespace(namespace)
+	adminDeploymentResource := adminDynamicClient.Resource(deploymentGroupVersionResource).Namespace(namespace)
 
 	watchAppInterface, err := adminDeploymentResource.Watch(context.TODO(), metav1.ListOptions{
 		FieldSelector:  "metadata.name=" + deploymentName,
@@ -234,7 +186,13 @@ func WatchAndWaitDaemonSets(client *rancher.Client, clusterID, namespace string,
 	if err != nil {
 		return err
 	}
-	adminDaemonSetResource := adminDynamicClient.Resource(daemonsets.DaemonSetGroupVersionResource).Namespace(namespace)
+
+	daemonSetGroupVersionResource := schema.GroupVersionResource{
+		Group:    "apps",
+		Version:  "v1",
+		Resource: "daemonsets",
+	}
+	adminDaemonSetResource := adminDynamicClient.Resource(daemonSetGroupVersionResource).Namespace(namespace)
 
 	daemonSets, err := adminDaemonSetResource.List(context.TODO(), listOptions)
 	if err != nil {
