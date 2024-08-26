@@ -13,7 +13,7 @@ import (
 )
 
 func GetUnstructured(s *session.Session, client *rancher.Client, name, clusterID, n string, gvr schema.GroupVersionResource) (*v1Unstructured.Unstructured, error) {
-	dynClient, _, err := setupDynamicClient(s, client, nil, clusterID)
+	dynClient, _, err := SetupDynamicClient(s, client, nil, clusterID)
 	if err != nil {
 		return nil, err
 	}
@@ -25,8 +25,8 @@ func GetUnstructured(s *session.Session, client *rancher.Client, name, clusterID
 	return result, nil
 }
 
-func GetUnstructuredFromFlags(s *session.Session, masterURL, kubeconfigPath, name, clusterID, n string, gvr schema.GroupVersionResource) (*v1Unstructured.Unstructured, error) {
-	dynClient, _, err := setupDynamicClientFromFlags(s, masterURL, kubeconfigPath, nil)
+func GetUnstructuredFromFlags(s *session.Session, masterURL, kubeconfigPath, name, n string, gvr schema.GroupVersionResource) (*v1Unstructured.Unstructured, error) {
+	dynClient, _, err := SetupDynamicClientFromFlags(s, masterURL, kubeconfigPath, nil)
 	if err != nil {
 		return nil, err
 	}

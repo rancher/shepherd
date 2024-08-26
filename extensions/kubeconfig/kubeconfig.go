@@ -1,7 +1,6 @@
 package kubeconfig
 
 import (
-	"errors"
 	"os"
 
 	"github.com/pkg/errors"

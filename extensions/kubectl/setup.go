@@ -10,7 +10,7 @@ import (
 	shepherdDynamic "github.com/rancher/shepherd/clients/dynamic"
 )
 
-func setupDynamicClient(s *session.Session, client *rancher.Client, scheme *runtime.Scheme, clusterID string) (*shepherdDynamic.Client, *session.Session, error) {
+func SetupDynamicClient(s *session.Session, client *rancher.Client, scheme *runtime.Scheme, clusterID string) (*shepherdDynamic.Client, *session.Session, error) {
 	kubeConfig, err := kubeconfig.GetKubeconfig(client, clusterID)
 	if err != nil {
 		return nil, s, err
@@ -37,7 +37,7 @@ func setupDynamicClient(s *session.Session, client *rancher.Client, scheme *runt
 	return dynClient, session, err
 }
 
-func setupDynamicClientFromFlags(s *session.Session, masterURL, kubeconfigPath string, scheme *runtime.Scheme) (*shepherdDynamic.Client, *session.Session, error) {
+func SetupDynamicClientFromFlags(s *session.Session, masterURL, kubeconfigPath string, scheme *runtime.Scheme) (*shepherdDynamic.Client, *session.Session, error) {
 	kubeConfig, err := kubeconfig.GetKubeconfigFromFlags(masterURL, kubeconfigPath)
 	if err != nil {
 		return nil, s, err

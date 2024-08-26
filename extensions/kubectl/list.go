@@ -13,7 +13,7 @@ import (
 )
 
 func ListUnstructured(s *session.Session, client *rancher.Client, name, clusterID, n string, gvr schema.GroupVersionResource, opts metav1.ListOptions) (*v1Unstructured.UnstructuredList, error) {
-	dynClient, _, err := setupDynamicClient(s, client, nil, clusterID)
+	dynClient, _, err := SetupDynamicClient(s, client, nil, clusterID)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +26,7 @@ func ListUnstructured(s *session.Session, client *rancher.Client, name, clusterI
 }
 
 func ListAllUnstructured(s *session.Session, client *rancher.Client, name, clusterID string, gvr schema.GroupVersionResource, opts metav1.ListOptions) (*v1Unstructured.UnstructuredList, error) {
-	dynClient, _, err := setupDynamicClient(s, client, nil, clusterID)
+	dynClient, _, err := SetupDynamicClient(s, client, nil, clusterID)
 	if err != nil {
 		return nil, err
 	}
@@ -38,8 +38,8 @@ func ListAllUnstructured(s *session.Session, client *rancher.Client, name, clust
 	return result, nil
 }
 
-func ListUnstructuredFromFlags(s *session.Session, masterURL, kubeconfigPath, name, clusterID, n string, gvr schema.GroupVersionResource, opts metav1.ListOptions) (*v1Unstructured.UnstructuredList, error) {
-	dynClient, _, err := setupDynamicClientFromFlags(s, masterURL, kubeconfigPath, nil)
+func ListUnstructuredFromFlags(s *session.Session, masterURL, kubeconfigPath, name, n string, gvr schema.GroupVersionResource, opts metav1.ListOptions) (*v1Unstructured.UnstructuredList, error) {
+	dynClient, _, err := SetupDynamicClientFromFlags(s, masterURL, kubeconfigPath, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -51,8 +51,8 @@ func ListUnstructuredFromFlags(s *session.Session, masterURL, kubeconfigPath, na
 	return result, nil
 }
 
-func ListAllUnstructuredFromFlags(s *session.Session, masterURL, kubeconfigPath, name, clusterID string, gvr schema.GroupVersionResource, opts metav1.ListOptions) (*v1Unstructured.UnstructuredList, error) {
-	dynClient, _, err := setupDynamicClientFromFlags(s, masterURL, kubeconfigPath, nil)
+func ListAllUnstructuredFromFlags(s *session.Session, masterURL, kubeconfigPath, name string, gvr schema.GroupVersionResource, opts metav1.ListOptions) (*v1Unstructured.UnstructuredList, error) {
+	dynClient, _, err := SetupDynamicClientFromFlags(s, masterURL, kubeconfigPath, nil)
 	if err != nil {
 		return nil, err
 	}
