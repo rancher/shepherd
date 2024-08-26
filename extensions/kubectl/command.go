@@ -96,7 +96,11 @@ func Command(client *rancher.Client, yamlContent *management.ImportClusterYamlIn
 		return "", err
 	}
 
-	steveClient := client.Steve
+	steveClient, err := client.Steve.ProxyDownstream(clusterID)
+	if err != nil {
+		return "", err
+	}
+
 	pods, err := steveClient.SteveType(pods.PodResourceSteveType).NamespacedSteveClient(Namespace).List(nil)
 	if err != nil {
 		return "", err
