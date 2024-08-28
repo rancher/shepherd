@@ -11,8 +11,10 @@ const (
 
 // ClusterConfig is the configuration needed to create an GKE host cluster
 type ClusterConfig struct {
+	AutopilotConfig                *AutopilotConfig                `json:"autopilotConfig,omitempty" yaml:"autopilotConfig,omitempty"`
 	ClusterAddons                  *ClusterAddons                  `json:"clusterAddons,omitempty" yaml:"clusterAddons,omitempty"`
 	ClusterIpv4CidrBlock           *string                         `json:"clusterIpv4Cidr,omitempty" yaml:"clusterIpv4Cidr,omitempty"`
+	CustomerManagedEncryptionKey   *CMEKConfig                     `json:"customerManagedEncryptionKey,omitempty" yaml:"customerManagedEncryptionKey,omitempty"`
 	EnableKubernetesAlpha          *bool                           `json:"enableKubernetesAlpha,omitempty" yaml:"enableKubernetesAlpha,omitempty"`
 	IPAllocationPolicy             *IPAllocationPolicy             `json:"ipAllocationPolicy,omitempty" yaml:"ipAllocationPolicy,omitempty"`
 	KubernetesVersion              *string                         `json:"kubernetesVersion,omitempty" yaml:"kubernetesVersion,omitempty"`
@@ -32,11 +34,22 @@ type ClusterConfig struct {
 	Zone                           string                          `json:"zone" yaml:"zone"`
 }
 
+// GKEAutopilotConfig is the configuration for the ClusterConfig AutopilotConfig
+type AutopilotConfig struct {
+	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+}
+
 // ClusterAddons is the configuration for the ClusterConfig ClusterAddons
 type ClusterAddons struct {
 	HTTPLoadBalancing        bool `json:"httpLoadBalancing" yaml:"httpLoadBalancing"`
 	HorizontalPodAutoscaling bool `json:"horizontalPodAutoscaling" yaml:"horizontalPodAutoscaling"`
 	NetworkPolicyConfig      bool `json:"networkPolicyConfig" yaml:"networkPolicyConfig"`
+}
+
+// CMEKConfig is the configuration for the ClusterConfig CustomerManagedEncryptionKey
+type CMEKConfig struct {
+	KeyName  string `json:"keyName,omitempty" yaml:"keyName,omitempty"`
+	RingName string `json:"ringName,omitempty" yaml:"ringName,omitempty"`
 }
 
 // IPAllocationPolicy is the configuration for the ClusterConfig IPAllocationPolicy
@@ -115,11 +128,24 @@ type PrivateClusterConfig struct {
 	MasterIpv4CidrBlock   string `json:"masterIpv4CidrBlock" yaml:"masterIpv4CidrBlock"`
 }
 
+func autopilotBuilder(autopilotconfig *AutopilotConfig) *management.GKEAutopilotConfig {
+	return &management.GKEAutopilotConfig{
+		Enabled: autopilotconfig.Enabled,
+	}
+}
+
 func clusterAddonsBuilder(clusterAddons *ClusterAddons) *management.GKEClusterAddons {
 	return &management.GKEClusterAddons{
 		HTTPLoadBalancing:        clusterAddons.HTTPLoadBalancing,
 		HorizontalPodAutoscaling: clusterAddons.HorizontalPodAutoscaling,
 		NetworkPolicyConfig:      clusterAddons.NetworkPolicyConfig,
+	}
+}
+
+func cmekConfigBuilder(cmekConfig *CMEKConfig) *management.CMEKConfig {
+	return &management.CMEKConfig{
+		KeyName:  cmekConfig.KeyName,
+		RingName: cmekConfig.RingName,
 	}
 }
 
@@ -229,13 +255,15 @@ func privateClusterConfigBuilder(privateClusterConfig *PrivateClusterConfig) *ma
 
 func gkeHostClusterConfig(clusterName, cloudCredentialID string, gkeClusterConfig ClusterConfig) *management.GKEClusterConfigSpec {
 	return &management.GKEClusterConfigSpec{
+		AutopilotConfig:                autopilotBuilder(gkeClusterConfig.AutopilotConfig),
 		ClusterAddons:                  clusterAddonsBuilder(gkeClusterConfig.ClusterAddons),
 		ClusterIpv4CidrBlock:           gkeClusterConfig.ClusterIpv4CidrBlock,
 		ClusterName:                    clusterName,
+		CustomerManagedEncryptionKey:   cmekConfigBuilder(gkeClusterConfig.CustomerManagedEncryptionKey),
 		EnableKubernetesAlpha:          gkeClusterConfig.EnableKubernetesAlpha,
 		GoogleCredentialSecret:         cloudCredentialID,
-		Imported:                       false,
 		IPAllocationPolicy:             ipAllocationPolicyBuilder(gkeClusterConfig.IPAllocationPolicy),
+		Imported:                       false,
 		KubernetesVersion:              gkeClusterConfig.KubernetesVersion,
 		Labels:                         gkeClusterConfig.Labels,
 		Locations:                      gkeClusterConfig.Locations,

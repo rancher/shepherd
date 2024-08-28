@@ -11,6 +11,7 @@ const (
 
 // ClusterConfig is the configuration needed to create an EKS host cluster
 type ClusterConfig struct {
+	EBSCSIDriver        *bool              `json:"ebsCSIDriver,omitempty" yaml:"ebsCSIDriver,omitempty"`
 	KmsKey              *string            `json:"kmsKey,omitempty" yaml:"kmsKey,omitempty"`
 	KubernetesVersion   *string            `json:"kubernetesVersion,omitempty" yaml:"kubernetesVersion,omitempty"`
 	LoggingTypes        []string           `json:"loggingTypes" yaml:"loggingTypes"`
@@ -28,6 +29,7 @@ type ClusterConfig struct {
 
 // NodeGroupConfig is the configuration need to create an EKS node group
 type NodeGroupConfig struct {
+	Arm                  *bool                 `json:"arm,omitempty" yaml:"arm,omitempty"`
 	DesiredSize          *int64                `json:"desiredSize,omitempty" yaml:"desiredSize,omitempty"`
 	DiskSize             *int64                `json:"diskSize,omitempty" yaml:"diskSize,omitempty"`
 	Ec2SshKey            *string               `json:"ec2SshKey,omitempty" yaml:"ec2SshKey,omitempty"`
@@ -50,6 +52,7 @@ type NodeGroupConfig struct {
 
 // LaunchTemplateConfig is the configuration need for a node group launch template
 type LaunchTemplateConfig struct {
+	ID      *string `json:"id,omitempty" yaml:"id,omitempty"`
 	Name    *string `json:"name,omitempty" yaml:"name,omitempty"`
 	Version *int64  `json:"version,omitempty" yaml:"version,omitempty"`
 }
@@ -60,11 +63,13 @@ func nodeGroupsConstructor(nodeGroupsConfig *[]NodeGroupConfig, kubernetesVersio
 		var launchTemplate *management.LaunchTemplate
 		if nodeGroupConfig.LaunchTemplateConfig != nil {
 			launchTemplate = &management.LaunchTemplate{
+				ID:      nodeGroupConfig.LaunchTemplateConfig.ID,
 				Name:    nodeGroupConfig.LaunchTemplateConfig.Name,
 				Version: nodeGroupConfig.LaunchTemplateConfig.Version,
 			}
 		}
 		nodeGroup := management.NodeGroup{
+			Arm:                  nodeGroupConfig.Arm,
 			DesiredSize:          nodeGroupConfig.DesiredSize,
 			DiskSize:             nodeGroupConfig.DiskSize,
 			Ec2SshKey:            nodeGroupConfig.Ec2SshKey,
@@ -94,6 +99,7 @@ func eksHostClusterConfig(displayName, cloudCredentialID string, eksClusterConfi
 	return &management.EKSClusterConfigSpec{
 		AmazonCredentialSecret: cloudCredentialID,
 		DisplayName:            displayName,
+		EBSCSIDriver:           eksClusterConfig.EBSCSIDriver,
 		Imported:               false,
 		KmsKey:                 eksClusterConfig.KmsKey,
 		KubernetesVersion:      eksClusterConfig.KubernetesVersion,
