@@ -2,28 +2,43 @@ package aws
 
 import (
 	"github.com/rancher/shepherd/clients/rancher"
-	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
+	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/cloudcredentials"
-	"github.com/rancher/shepherd/pkg/config"
+	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/namespaces"
+	"github.com/rancher/shepherd/extensions/defaults/providers"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
+	"github.com/rancher/shepherd/extensions/steve"
+	"github.com/rancher/shepherd/pkg/namegenerator"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const awsCloudCredNameBase = "awsCloudCredential"
-
-// CreateAWSCloudCredentials is a helper function that takes the rancher Client as a parameter and creates
-// an AWS cloud credential, and returns the CloudCredential response
-func CreateAWSCloudCredentials(rancherClient *rancher.Client) (*cloudcredentials.CloudCredential, error) {
-	var amazonEC2CredentialConfig cloudcredentials.AmazonEC2CredentialConfig
-	config.LoadConfig(cloudcredentials.AmazonEC2CredentialConfigurationFileKey, &amazonEC2CredentialConfig)
-
-	cloudCredential := cloudcredentials.CloudCredential{
-		Name:                      awsCloudCredNameBase,
-		AmazonEC2CredentialConfig: &amazonEC2CredentialConfig,
+// CreateAWSCloudCredentials is a helper function that creates V1 cloud credentials and waits for them to become active.
+func CreateAWSCloudCredentials(client *rancher.Client, credentials cloudcredentials.CloudCredential) (*v1.SteveAPIObject, error) {
+	secretName := namegenerator.AppendRandomString(providers.AWS)
+	spec := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: cloudcredentials.GeneratedName,
+			Namespace:    namespaces.CattleData,
+			Annotations: map[string]string{
+				"provisioning.cattle.io/driver": providers.AWS,
+				"field.cattle.io/name":          secretName,
+				"field.cattle.io/creatorId":     client.UserID,
+			},
+		},
+		Data: map[string][]byte{
+			"amazonec2credentialConfig-accessKey":     []byte(credentials.AmazonEC2CredentialConfig.AccessKey),
+			"amazonec2credentialConfig-secretKey":     []byte(credentials.AmazonEC2CredentialConfig.SecretKey),
+			"amazonec2credentialConfig-defaultRegion": []byte(credentials.AmazonEC2CredentialConfig.DefaultRegion),
+		},
+		Type: corev1.SecretTypeOpaque,
 	}
 
-	resp := &cloudcredentials.CloudCredential{}
-	err := rancherClient.Management.APIBaseClient.Ops.DoCreate(management.CloudCredentialType, cloudCredential, resp)
+	awsCloudCredentials, err := steve.CreateAndWaitForResource(client, stevetypes.Secret, spec, true, defaults.FiveSecondTimeout, defaults.FiveMinuteTimeout)
 	if err != nil {
 		return nil, err
 	}
-	return resp, nil
+
+	return awsCloudCredentials, nil
 }
