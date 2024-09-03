@@ -7,11 +7,16 @@ import (
 	"github.com/rancher/shepherd/extensions/defaults"
 	"github.com/rancher/shepherd/extensions/defaults/namespaces"
 	"github.com/rancher/shepherd/extensions/defaults/providers"
+	"github.com/rancher/shepherd/extensions/defaults/stevestates"
 	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/rancher/shepherd/extensions/steve"
 	"github.com/rancher/shepherd/pkg/namegenerator"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	localCluster = "local"
 )
 
 // CreateAWSCloudCredentials is a helper function that creates V1 cloud credentials and waits for them to become active.
@@ -35,7 +40,7 @@ func CreateAWSCloudCredentials(client *rancher.Client, credentials cloudcredenti
 		Type: corev1.SecretTypeOpaque,
 	}
 
-	awsCloudCredentials, err := steve.CreateAndWaitForResource(client, stevetypes.Secret, spec, true, defaults.FiveSecondTimeout, defaults.FiveMinuteTimeout)
+	awsCloudCredentials, err := steve.CreateAndWaitForResource(client, namespaces.FleetLocal+"/"+localCluster, stevetypes.Secret, spec, stevestates.Active, defaults.FiveSecondTimeout, defaults.FiveMinuteTimeout)
 	if err != nil {
 		return nil, err
 	}
