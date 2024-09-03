@@ -5,6 +5,8 @@ import (
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/cloudcredentials"
 	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/namespaces"
+	"github.com/rancher/shepherd/extensions/defaults/stevestates"
 	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/rancher/shepherd/extensions/steve"
 	"github.com/rancher/shepherd/pkg/config"
@@ -14,8 +16,8 @@ import (
 )
 
 const (
-	vsphereProvider     = "vsphere"
-	credentialNamespace = "cattle-global-data"
+	vsphereProvider = "vsphere"
+	localCluster    = "local"
 )
 
 // CreateVsphereCloudCredentials is a helper function that creates V1 cloud credentials and waits for them to become active.
@@ -24,7 +26,7 @@ func CreateVsphereCloudCredentials(client *rancher.Client, credentials cloudcred
 	spec := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: cloudcredentials.GeneratedName,
-			Namespace:    credentialNamespace,
+			Namespace:    namespaces.CattleData,
 			Annotations: map[string]string{
 				"field.cattle.io/name":      secretName,
 				"field.cattle.io/creatorId": client.UserID,
@@ -39,7 +41,7 @@ func CreateVsphereCloudCredentials(client *rancher.Client, credentials cloudcred
 		Type: corev1.SecretTypeOpaque,
 	}
 
-	vSphereCloudCredentials, err := steve.CreateAndWaitForResource(client, stevetypes.Secret, spec, true, defaults.FiveSecondTimeout, defaults.FiveMinuteTimeout)
+	vSphereCloudCredentials, err := steve.CreateAndWaitForResource(client, namespaces.FleetLocal+"/"+localCluster, stevetypes.Secret, spec, stevestates.Active, defaults.FiveSecondTimeout, defaults.FiveMinuteTimeout)
 	if err != nil {
 		return nil, err
 	}
