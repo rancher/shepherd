@@ -3,6 +3,8 @@ package schema
 import (
 	"net/http"
 
+	eksv1 "github.com/rancher/eks-operator/pkg/apis/eks.cattle.io/v1"
+	gkev1 "github.com/rancher/gke-operator/pkg/apis/gke.cattle.io/v1"
 	rketypes "github.com/rancher/rke/types"
 
 	"github.com/rancher/norman/types"
@@ -251,6 +253,60 @@ func clusterTypes(schemas *types.Schemas) *types.Schemas {
 					"election-timeout":   "5000",
 					"heartbeat-interval": "500",
 				}
+				return field
+			})
+		}).
+		MustImportAndCustomize(&Version, gkev1.GKEClusterConfigSpec{}, func(schema *types.Schema) {
+			schema.MustCustomizeField("labels", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+			schema.MustCustomizeField("locations", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+		}).
+		MustImportAndCustomize(&Version, eksv1.EKSClusterConfigSpec{}, func(schema *types.Schema) {
+			schema.MustCustomizeField("publicAccessSources", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+			schema.MustCustomizeField("loggingTypes", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+			schema.MustCustomizeField("subnets", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+			schema.MustCustomizeField("securityGroups", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+			schema.MustCustomizeField("tags", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+		}).
+		MustImportAndCustomize(&Version, eksv1.NodeGroup{}, func(schema *types.Schema) {
+			schema.MustCustomizeField("labels", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+			schema.MustCustomizeField("resourceTags", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+			schema.MustCustomizeField("subnets", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+			schema.MustCustomizeField("spotInstanceTypes", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+			schema.MustCustomizeField("tags", func(field types.Field) types.Field {
+				field.Pointer = true
 				return field
 			})
 		}).
