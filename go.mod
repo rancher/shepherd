@@ -27,7 +27,9 @@ require (
 	github.com/pkg/sftp v1.13.5
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.52.0
 	github.com/rancher/apiserver v0.0.0-20240604183424-8c448886365e
+	github.com/rancher/eks-operator v1.9.0
 	github.com/rancher/fleet/pkg/apis v0.10.0
+	github.com/rancher/gke-operator v1.9.0
 	github.com/rancher/lasso v0.0.0-20240705194423-b2a060d103c1
 	github.com/rancher/norman v0.0.0-20240708202514-a0127673d1b9
 	github.com/rancher/rancher/pkg/apis v0.0.0-20240719121207-baeda6b89fe3
@@ -134,8 +136,6 @@ require (
 	github.com/prometheus/common v0.45.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/rancher/aks-operator v1.9.0 // indirect
-	github.com/rancher/eks-operator v1.9.0 // indirect
-	github.com/rancher/gke-operator v1.9.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
