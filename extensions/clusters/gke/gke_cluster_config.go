@@ -143,10 +143,16 @@ func clusterAddonsBuilder(clusterAddons *ClusterAddons) *management.GKEClusterAd
 }
 
 func cmekConfigBuilder(cmekConfig *CMEKConfig) *management.CMEKConfig {
+
+	if cmekConfig == nil {
+		return nil
+	}
+
 	return &management.CMEKConfig{
 		KeyName:  cmekConfig.KeyName,
 		RingName: cmekConfig.RingName,
 	}
+
 }
 
 func ipAllocationPolicyBuilder(ipAllocationPolicy *IPAllocationPolicy) *management.GKEIPAllocationPolicy {
@@ -265,8 +271,8 @@ func gkeHostClusterConfig(clusterName, cloudCredentialID string, gkeClusterConfi
 		IPAllocationPolicy:             ipAllocationPolicyBuilder(gkeClusterConfig.IPAllocationPolicy),
 		Imported:                       false,
 		KubernetesVersion:              gkeClusterConfig.KubernetesVersion,
-		Labels:                         gkeClusterConfig.Labels,
-		Locations:                      gkeClusterConfig.Locations,
+		Labels:                         &gkeClusterConfig.Labels,
+		Locations:                      &gkeClusterConfig.Locations,
 		LoggingService:                 gkeClusterConfig.LoggingService,
 		MaintenanceWindow:              gkeClusterConfig.MaintenanceWindow,
 		MasterAuthorizedNetworksConfig: masterAuthorizedNetworksConfigBuilder(*gkeClusterConfig.MasterAuthorizedNetworksConfig),
