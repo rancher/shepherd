@@ -48,6 +48,7 @@ type NodeGroupConfig struct {
 	Subnets              []string              `json:"subnets" yaml:"subnets"`
 	Tags                 map[string]string     `json:"tags" yaml:"tags"`
 	UserData             *string               `json:"userData,omitempty" yaml:"userData,omitempty"`
+	Version              *string               `json:"version,omitempty" yaml:"version,omitempty"`
 }
 
 // LaunchTemplateConfig is the configuration need for a node group launch template
@@ -67,6 +68,12 @@ func nodeGroupsConstructor(nodeGroupsConfig *[]NodeGroupConfig, kubernetesVersio
 				Name:    nodeGroupConfig.LaunchTemplateConfig.Name,
 				Version: nodeGroupConfig.LaunchTemplateConfig.Version,
 			}
+		}
+		var version *string
+		if nodeGroupConfig.Version != nil {
+			version = nodeGroupConfig.Version
+		} else {
+			version = &kubernetesVersion
 		}
 		nodeGroup := management.NodeGroup{
 			Arm:                  nodeGroupConfig.Arm,
@@ -88,7 +95,7 @@ func nodeGroupsConstructor(nodeGroupsConfig *[]NodeGroupConfig, kubernetesVersio
 			Subnets:              &nodeGroupConfig.Subnets,
 			Tags:                 &nodeGroupConfig.Tags,
 			UserData:             nodeGroupConfig.UserData,
-			Version:              &kubernetesVersion,
+			Version:              version,
 		}
 		nodeGroups = append(nodeGroups, nodeGroup)
 	}
