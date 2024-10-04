@@ -25,6 +25,14 @@ type Packages struct {
 	HasCustomRepo       string            `json:"hasCustomRepo" yaml:"hasCustomRepo"`
 }
 
+// Args is a struct that contains arguments to a corral create command, and any updates to the config
+// that should be applied before creating the corral
+type Args struct {
+	Name        string
+	PackageName string
+	Updates     map[string]string
+}
+
 // PackagesConfig is a function that reads in the corral package object from the config file
 func PackagesConfig() *Packages {
 	var corralPackages Packages
