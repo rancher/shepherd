@@ -4,22 +4,24 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/rancher/shepherd/pkg/session"
 	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
-	debugFlag               = "--trace"
-	skipCleanupFlag         = "--skip-cleanup"
-	corralPrivateSSHKey     = "corral_private_key"
-	corralPublicSSHKey      = "corral_public_key"
-	corralRegistryIP        = "registry_ip"
-	corralRegistryPrivateIP = "registry_private_ip"
+	debugFlag           = "--trace"
+	skipCleanupFlag     = "--skip-cleanup"
+	corralPrivateSSHKey = "corral_private_key"
+	corralPublicSSHKey  = "corral_public_key"
 )
 
 // GetCorralEnvVar gets corral environment variables
@@ -72,29 +74,153 @@ func SetCustomRepo(repo string) error {
 
 // CreateCorral creates a corral taking the corral name, the package path, and a debug set so if someone wants to view the
 // corral create log
-func CreateCorral(ts *session.Session, corralName, packageName string, debug bool, cleanup bool) ([]byte, error) {
+func CreateCorral(ts *session.Session, corralName, packageName string, debug, cleanup bool) ([]byte, error) {
+	command, err := startCorral(ts, corralName, packageName, debug, cleanup)
+	if err != nil {
+		return nil, err
+	}
+
+	return runAndWaitOnCommand(command)
+}
+
+func runAndWaitOnCommand(command *exec.Cmd) ([]byte, error) {
+	err := command.Wait()
+	var msg []byte
+	if command.Stdout != nil {
+		msg = command.Stdout.(*bytes.Buffer).Bytes()
+	}
+
+	if msg != nil {
+		logrus.Infof("Stdout: %s", string(msg))
+	}
+
+	return msg, errors.Wrap(err, "Debug: "+string(msg))
+}
+
+func startCorral(ts *session.Session, corralName, packageName string, debug, cleanup bool) (*exec.Cmd, error) {
 	ts.RegisterCleanupFunc(func() error {
 		return DeleteCorral(corralName)
 	})
 
 	args := []string{"create"}
+
 	if !cleanup {
 		args = append(args, skipCleanupFlag)
 	}
 	if debug {
 		args = append(args, debugFlag)
 	}
+
 	args = append(args, corralName, packageName)
 	logrus.Infof("Creating corral with the following parameters: %v", args)
-	// complicated, but running the command in a way that allows us to
-	// capture the output and error(s) and print it to the console
-	msg, err := exec.Command("corral", args...).CombinedOutput()
-	logrus.Infof("Corral create output: %s", string(msg))
+
+	cmdToRun := exec.Command("corral", args...)
+
+	// create a buffer for stdout/stderr so we can read from it later. commands initiate this to nil by default.
+	var b bytes.Buffer
+	cmdToRun.Stdout = &b
+	cmdToRun.Stderr = &b
+	err := cmdToRun.Start()
 	if err != nil {
-		return nil, errors.Wrap(err, "Unable to create corral: "+string(msg))
+		return nil, err
 	}
 
-	return msg, nil
+	// this ensures corral is completely initiated. Otherwise, race conditions occur.
+	err = waitForCorralConfig(corralName)
+	if err != nil {
+		return nil, err
+	}
+
+	return cmdToRun, err
+}
+
+func waitForCorralConfig(corralName string) error {
+	backoff := wait.Backoff{
+		Duration: 1 * time.Second,
+		Factor:   1.1,
+		Jitter:   0.1,
+		Steps:    10,
+	}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	corralOSPath := homeDir + "/.corral/corrals/" + corralName + "/corral.yaml"
+
+	return wait.ExponentialBackoff(backoff, func() (finished bool, err error) {
+		_, err = os.Stat(corralOSPath)
+		if err != nil {
+			return false, nil
+		}
+
+		fileContents, err := os.ReadFile(corralOSPath)
+		if err != nil {
+			return false, nil
+		}
+
+		if len(string(fileContents)) <= 0 {
+			return false, nil
+		}
+
+		return true, err
+	})
+}
+
+// CreateMultipleCorrals creates corrals taking the corral name, the package path, and a debug set so if someone wants to view the
+// corral create log. Using this function implies calling WaitOnCorralWithCombinedOutput to get the output once finished.
+func CreateMultipleCorrals(ts *session.Session, commands []Args, debug, cleanup bool) ([][]byte, error) {
+	var waitGroup sync.WaitGroup
+
+	var msgs [][]byte
+	var errStrings []string
+
+	for _, currentCommand := range commands {
+		// break out of any error that comes up before we run the waitGroup, to avoid running if we're already in an error state.
+		for key, value := range currentCommand.Updates {
+			logrus.Info(key, ": ", value)
+			err := UpdateCorralConfig(key, value)
+			if err != nil {
+				errStrings = append(errStrings, fmt.Sprint(err.Error(), "Unable to update corral: "+currentCommand.Name+" for "+key+": "+value))
+				break
+			}
+		}
+
+		cmdToRun, err := startCorral(ts, currentCommand.Name, currentCommand.PackageName, debug, cleanup)
+		if err != nil {
+			errStrings = append(errStrings, err.Error())
+			break
+		}
+
+		waitGroup.Add(1)
+
+		go func() {
+			defer waitGroup.Done()
+
+			msg, err := runAndWaitOnCommand(cmdToRun)
+			if err != nil {
+				errStrings = append(errStrings, err.Error())
+			}
+
+			msgs = append(msgs, msg)
+		}()
+
+	}
+
+	waitGroup.Wait()
+
+	var formattedError error
+	var longString string
+	if len(errStrings) > 0 {
+		for _, err := range errStrings {
+			longString += err
+		}
+		formattedError = fmt.Errorf(longString)
+	}
+
+	logrus.Info("done with registration")
+	return msgs, formattedError
 }
 
 // DeleteCorral deletes a corral based on the corral name
@@ -218,24 +344,4 @@ func SetCorralSSHKeys(corralName string) error {
 	}
 
 	return UpdateCorralConfig(corralPublicSSHKey, publicSSHkey)
-}
-
-// SetCorralBastion is a helper function that will set the corral bastion private and pulic addresses previously generated by `corralName`
-func SetCorralBastion(corralName string) error {
-	bastion_ip, err := GetCorralEnvVar(corralName, corralRegistryIP)
-	if err != nil {
-		return err
-	}
-
-	err = UpdateCorralConfig(corralRegistryIP, bastion_ip)
-	if err != nil {
-		return err
-	}
-
-	bastion_internal_ip, err := GetCorralEnvVar(corralName, corralRegistryPrivateIP)
-	if err != nil {
-		return err
-	}
-
-	return UpdateCorralConfig(corralRegistryPrivateIP, bastion_internal_ip)
 }
