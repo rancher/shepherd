@@ -51,23 +51,15 @@ type Client struct {
 	// Session is the session object used by the client to track all the resources being created by the client.
 	Session *session.Session
 	// Flags is the environment flags used by the client to test selectively against a rancher instance.
-	Flags      *environmentflag.EnvironmentFlags
-	restConfig *rest.Config
-	UserID     string
+	Flags            *environmentflag.EnvironmentFlags
+	restConfig       *rest.Config
+	UserID           string
+	RancherInstances []*Client
 }
 
-// NewClient is the constructor to the initializing a rancher Client. It takes a bearer token and session.Session. If bearer token is not provided,
-// the bearer token provided in the configuration file is used.
-func NewClient(bearerToken string, session *session.Session) (*Client, error) {
-	rancherConfig := new(Config)
-	config.LoadConfig(ConfigurationFileKey, rancherConfig)
-
+func initializeClient(rancherConfig *Config, session *session.Session, bearerToken string) (*Client, error) {
 	environmentFlags := environmentflag.NewEnvironmentFlags()
 	environmentflag.LoadEnvironmentFlags(environmentflag.ConfigurationFileKey, environmentFlags)
-
-	if bearerToken == "" {
-		bearerToken = rancherConfig.AdminToken
-	}
 
 	c := &Client{
 		RancherConfig: rancherConfig,
@@ -124,6 +116,68 @@ func NewClient(bearerToken string, session *session.Session) (*Client, error) {
 	c.UserID = token.UserID
 
 	return c, nil
+}
+
+// NewClient is the constructor to the initializing a rancher Client. It takes a bearer token and session.Session. If bearer token is not provided,
+// the bearer token provided in the configuration file is used.
+func NewClient(bearerToken string, session *session.Session) (*Client, error) {
+	rancherConfig := new(Config)
+	config.LoadConfig(ConfigurationFileKey, rancherConfig)
+
+	if bearerToken == "" {
+		bearerToken = rancherConfig.AdminToken
+	}
+
+	return initializeClient(rancherConfig, session, bearerToken)
+}
+
+func newAdditionalClient(config InstanceConfig, session *session.Session) (*Client, error) {
+	// Convert InstanceConfig to Config for compatibility with initializeClient
+	fullConfig := &Config{
+		ConfigCommon: config.ConfigCommon,
+	}
+	return initializeClient(fullConfig, session, config.AdminToken)
+}
+
+// RancherClients returns a slice of Client pointers representing additional Rancher instances.
+// If clients have already been initialized, it returns the cached instances.
+// Otherwise, it loads the configuration, initializes new clients for each instance,
+// and caches them for future use.
+//
+// The method follows these steps:
+// 1. Check if clients are already initialized and return them if available.
+// 2. Load the Rancher configuration from the configuration file.
+// 3. If no additional instances are configured, return an empty slice.
+// 4. Initialize a new client for each configured instance.
+// 5. Cache the initialized clients for future use.
+//
+// Returns:
+//   - []*Client: A slice of pointers to initialized Client objects for additional Rancher instances.
+//   - error: An error if client initialization fails for any instance.
+//
+// Note: This method modifies the c.RancherInstances field, caching the initialized clients.
+func (c *Client) RancherClients() ([]*Client, error) {
+	if len(c.RancherInstances) > 0 {
+		return c.RancherInstances, nil
+	}
+
+	rancherConfig := new(Config)
+	config.LoadConfig(ConfigurationFileKey, rancherConfig)
+
+	if len(rancherConfig.RancherInstances) == 0 {
+		return []*Client{}, nil
+	}
+
+	c.RancherInstances = make([]*Client, 0, len(rancherConfig.RancherInstances))
+	for _, instance := range rancherConfig.RancherInstances {
+		additionalClient, err := newAdditionalClient(instance, c.Session)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize additional Rancher instance %s: %v", instance.Host, err)
+		}
+		c.RancherInstances = append(c.RancherInstances, additionalClient)
+	}
+
+	return c.RancherInstances, nil
 }
 
 // newRestConfig is a constructor that sets ups rest.Config the configuration used by the Provisioning client.
