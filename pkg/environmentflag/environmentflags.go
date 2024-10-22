@@ -17,5 +17,6 @@ const (
 	InstallRancher
 	Long
 	Short
+	Quarantined
 	environmentFlagLastItem // This is used to determine the number of items in the enum
 )
