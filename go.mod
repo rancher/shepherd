@@ -14,8 +14,6 @@ replace (
 	k8s.io/client-go => k8s.io/client-go v0.31.1
 )
 
-replace github.com/rancher/rancher/pkg/apis => github.com/rohitsakala/rancher/pkg/apis v0.0.0-20241017210137-b06d8639a8f1
-
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/aws/aws-sdk-go v1.50.38
@@ -35,7 +33,7 @@ require (
 	github.com/rancher/gke-operator v1.10.0-rc.1
 	github.com/rancher/lasso v0.0.0-20240924233157-8f384efc8813
 	github.com/rancher/norman v0.0.0-20241001183610-78a520c160ab
-	github.com/rancher/rancher/pkg/apis v0.0.0-20240821150307-952f563826f5
+	github.com/rancher/rancher/pkg/apis v0.0.0-20241023011518-955534c18d04
 	github.com/rancher/rke v1.7.0-rc.1
 	github.com/rancher/system-upgrade-controller/pkg/apis v0.0.0-20210727200656-10b094e30007
 	github.com/rancher/wrangler v1.1.2
