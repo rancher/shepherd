@@ -119,3 +119,19 @@ func WriteConfig(key string, config interface{}) error {
 
 	return nil
 }
+
+// LoadConfigFromFile loads an entire yaml file into a map[string]any
+func LoadConfigFromFile(filePath string) map[string]any {
+	allString, err := os.ReadFile(filePath)
+	if err != nil {
+		panic(err)
+	}
+
+	var all map[string]any
+	err = yaml.Unmarshal(allString, &all)
+	if err != nil {
+		panic(err)
+	}
+
+	return all
+}
