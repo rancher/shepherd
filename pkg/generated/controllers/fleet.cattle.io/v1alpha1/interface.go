@@ -1,5 +1,5 @@
 /*
-Copyright 2024 Rancher Labs, Inc.
+Copyright 2025 Rancher Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,7 +21,8 @@ package v1alpha1
 import (
 	v1alpha1 "github.com/rancher/fleet/pkg/apis/fleet.cattle.io/v1alpha1"
 	"github.com/rancher/lasso/pkg/controller"
-	"github.com/rancher/wrangler/v2/pkg/generic"
+	"github.com/rancher/shepherd/pkg/session"
+	"github.com/rancher/shepherd/pkg/wrangler/pkg/generic"
 	"github.com/rancher/wrangler/v2/pkg/schemes"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -36,24 +37,26 @@ type Interface interface {
 	ClusterGroup() ClusterGroupController
 }
 
-func New(controllerFactory controller.SharedControllerFactory) Interface {
+func New(controllerFactory controller.SharedControllerFactory, ts *session.Session) Interface {
 	return &version{
 		controllerFactory: controllerFactory,
+		ts:                ts,
 	}
 }
 
 type version struct {
 	controllerFactory controller.SharedControllerFactory
+	ts                *session.Session
 }
 
 func (v *version) Bundle() BundleController {
-	return generic.NewController[*v1alpha1.Bundle, *v1alpha1.BundleList](schema.GroupVersionKind{Group: "fleet.cattle.io", Version: "v1alpha1", Kind: "Bundle"}, "bundles", true, v.controllerFactory)
+	return generic.NewController[*v1alpha1.Bundle, *v1alpha1.BundleList](schema.GroupVersionKind{Group: "fleet.cattle.io", Version: "v1alpha1", Kind: "Bundle"}, "bundles", true, v.controllerFactory, v.ts)
 }
 
 func (v *version) Cluster() ClusterController {
-	return generic.NewController[*v1alpha1.Cluster, *v1alpha1.ClusterList](schema.GroupVersionKind{Group: "fleet.cattle.io", Version: "v1alpha1", Kind: "Cluster"}, "clusters", true, v.controllerFactory)
+	return generic.NewController[*v1alpha1.Cluster, *v1alpha1.ClusterList](schema.GroupVersionKind{Group: "fleet.cattle.io", Version: "v1alpha1", Kind: "Cluster"}, "clusters", true, v.controllerFactory, v.ts)
 }
 
 func (v *version) ClusterGroup() ClusterGroupController {
-	return generic.NewController[*v1alpha1.ClusterGroup, *v1alpha1.ClusterGroupList](schema.GroupVersionKind{Group: "fleet.cattle.io", Version: "v1alpha1", Kind: "ClusterGroup"}, "clustergroups", true, v.controllerFactory)
+	return generic.NewController[*v1alpha1.ClusterGroup, *v1alpha1.ClusterGroupList](schema.GroupVersionKind{Group: "fleet.cattle.io", Version: "v1alpha1", Kind: "ClusterGroup"}, "clustergroups", true, v.controllerFactory, v.ts)
 }
