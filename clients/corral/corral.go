@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	debugFlag               = "--trace"
+	debugFlag               = "--debug"
 	skipCleanupFlag         = "--skip-cleanup"
 	corralPrivateSSHKey     = "corral_private_key"
 	corralPublicSSHKey      = "corral_public_key"
@@ -152,13 +152,21 @@ func waitForCorralConfig(corralName string) error {
 	corralOSPath := homeDir + "/.corral/corrals/" + corralName + "/corral.yaml"
 
 	return wait.ExponentialBackoff(backoff, func() (finished bool, err error) {
-		_, err = os.Stat(corralOSPath)
+		fileStat, err := os.Stat(corralOSPath)
 		if err != nil {
+			return false, nil
+		}
+
+		if fileStat == nil {
 			return false, nil
 		}
 
 		fileContents, err := os.ReadFile(corralOSPath)
 		if err != nil {
+			return false, nil
+		}
+
+		if fileContents == nil {
 			return false, nil
 		}
 
