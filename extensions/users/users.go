@@ -126,12 +126,19 @@ func AddProjectMember(rancherClient *rancher.Client, project *management.Project
 	if err != nil {
 		return err
 	}
+	fmt.Printf("PRTB: %v", roleTemplateResp)
 
 	var prtb *management.ProjectRoleTemplateBinding
 	err = kwait.Poll(500*time.Millisecond, 2*time.Minute, func() (done bool, err error) {
 		prtb, err = rancherClient.Management.ProjectRoleTemplateBinding.ByID(roleTemplateResp.ID)
 		if err != nil {
+			fmt.Printf("failed to get by id %v", err)
 			return false, err
+		}
+		if prtb != nil {
+			fmt.Printf("prtb.UserID: %v user.ID: %v prtb.ProjectID: %v project.ID: %v", prtb.UserID, user.ID, prtb.ProjectID, project.ID)
+		} else {
+			fmt.Print("prtb is nil")
 		}
 		if prtb != nil && prtb.UserID == user.ID && prtb.ProjectID == project.ID {
 			return true, nil
@@ -143,6 +150,7 @@ func AddProjectMember(rancherClient *rancher.Client, project *management.Project
 		return err
 	}
 
+	fmt.Printf("waitForPRTBRollout")
 	err = waitForPRTBRollout(adminClient, prtb, createOp)
 	if err != nil {
 		return err
