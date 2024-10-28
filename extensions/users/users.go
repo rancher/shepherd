@@ -8,6 +8,7 @@ import (
 
 	"github.com/rancher/norman/types"
 	v3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
+	"github.com/sirupsen/logrus"
 	authzv1 "k8s.io/api/authorization/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -79,6 +80,7 @@ func CreateUserWithRole(rancherClient *rancher.Client, user *management.User, ro
 func AddProjectMember(rancherClient *rancher.Client, project *management.Project,
 	user *management.User, projectRole string, attrs []*authzv1.ResourceAttributes,
 ) error {
+	logrus.Infof("AddProjectMember")
 	role := &management.ProjectRoleTemplateBinding{
 		ProjectID:       project.ID,
 		UserPrincipalID: user.PrincipalIDs[0],
@@ -117,6 +119,7 @@ func AddProjectMember(rancherClient *rancher.Client, project *management.Project
 		return false, nil
 	}
 
+	logrus.Infof("Watch for project conversion and NamespaceBackedResource")
 	err = wait.WatchWait(watchInterface, checkFunc)
 	if err != nil {
 		return err
@@ -126,19 +129,19 @@ func AddProjectMember(rancherClient *rancher.Client, project *management.Project
 	if err != nil {
 		return err
 	}
-	fmt.Printf("PRTB: %v", roleTemplateResp)
+	logrus.Infof("PRTB: %v", roleTemplateResp)
 
 	var prtb *management.ProjectRoleTemplateBinding
 	err = kwait.Poll(500*time.Millisecond, 2*time.Minute, func() (done bool, err error) {
 		prtb, err = rancherClient.Management.ProjectRoleTemplateBinding.ByID(roleTemplateResp.ID)
 		if err != nil {
-			fmt.Printf("failed to get by id %v", err)
+			logrus.Infof("failed to get by id %v", err)
 			return false, err
 		}
 		if prtb != nil {
-			fmt.Printf("prtb.UserID: %v user.ID: %v prtb.ProjectID: %v project.ID: %v", prtb.UserID, user.ID, prtb.ProjectID, project.ID)
+			logrus.Infof("prtb.UserID: %v user.ID: %v prtb.ProjectID: %v project.ID: %v", prtb.UserID, user.ID, prtb.ProjectID, project.ID)
 		} else {
-			fmt.Print("prtb is nil")
+			logrus.Infof("prtb is nil")
 		}
 		if prtb != nil && prtb.UserID == user.ID && prtb.ProjectID == project.ID {
 			return true, nil
@@ -150,7 +153,7 @@ func AddProjectMember(rancherClient *rancher.Client, project *management.Project
 		return err
 	}
 
-	fmt.Printf("waitForPRTBRollout")
+	logrus.Infof("waitForPRTBRollout")
 	err = waitForPRTBRollout(adminClient, prtb, createOp)
 	if err != nil {
 		return err
