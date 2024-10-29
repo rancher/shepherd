@@ -6,6 +6,8 @@ toolchain go1.22.7
 
 replace (
 	github.com/docker/distribution => github.com/docker/distribution v2.8.2+incompatible // rancher-machine requires a replace is set
+	// Temporary. will be removed shortly
+	github.com/rancher/rancher/pkg/apis => github.com/rohitsakala/rancher/pkg/apis v0.0.0-20241126182546-542381f93109
 	k8s.io/api => k8s.io/api v0.31.1
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.31.1
 	k8s.io/apimachinery => k8s.io/apimachinery v0.31.1
