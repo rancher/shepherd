@@ -87,6 +87,9 @@ func AddProjectMember(rancherClient *rancher.Client, project *management.Project
 
 	projectID := strings.Split(project.ID, ":")
 	namespace := string(projectID[0])
+	if project.BackingNamespace != "" {
+		namespace = project.BackingNamespace
+	}
 	name := string(projectID[1])
 
 	adminClient, err := rancher.NewClient(rancherClient.RancherConfig.AdminToken, rancherClient.Session)
