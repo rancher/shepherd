@@ -6,8 +6,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/rancher/norman/types"
 	v3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
+	"github.com/sirupsen/logrus"
 	authzv1 "k8s.io/api/authorization/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -91,7 +93,7 @@ func AddProjectMember(rancherClient *rancher.Client, project *management.Project
 
 	adminClient, err := rancher.NewClient(rancherClient.RancherConfig.AdminToken, rancherClient.Session)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "admin client instantiation")
 	}
 
 	opts := metav1.ListOptions{
@@ -100,16 +102,18 @@ func AddProjectMember(rancherClient *rancher.Client, project *management.Project
 	}
 	watchInterface, err := adminClient.GetManagementWatchInterface(management.ProjectType, opts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "watcher interface instantiation")
 	}
 
 	checkFunc := func(event watch.Event) (ready bool, err error) {
 		projectUnstructured := event.Object.(*unstructured.Unstructured)
 		project := &v3.Project{}
+		logrus.Infof("project found: [%v]", project.Name)
 		err = scheme.Scheme.Convert(projectUnstructured, project, projectUnstructured.GroupVersionKind())
 		if err != nil {
-			return false, err
+			return false, errors.Wrap(err, "scheme convert in watcher")
 		}
+		logrus.Infof("namespaced backed resource: [%v]", v3.NamespaceBackedResource.IsTrue(project))
 		if v3.NamespaceBackedResource.IsTrue(project) {
 			return true, nil
 		}
@@ -119,19 +123,24 @@ func AddProjectMember(rancherClient *rancher.Client, project *management.Project
 
 	err = wait.WatchWait(watchInterface, checkFunc)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "watcher to make sure namespaced backed resource is true")
 	}
 
 	roleTemplateResp, err := rancherClient.Management.ProjectRoleTemplateBinding.Create(role)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "role template create")
 	}
 
 	var prtb *management.ProjectRoleTemplateBinding
 	err = kwait.Poll(500*time.Millisecond, 2*time.Minute, func() (done bool, err error) {
 		prtb, err = rancherClient.Management.ProjectRoleTemplateBinding.ByID(roleTemplateResp.ID)
 		if err != nil {
-			return false, err
+			return false, errors.Wrap(err, "prtb get in poll")
+		}
+		if prtb != nil {
+			logrus.Infof("prtb: [%v]", prtb.Name)
+		} else {
+			logrus.Infof("prtb is nil")
 		}
 		if prtb != nil && prtb.UserID == user.ID && prtb.ProjectID == project.ID {
 			return true, nil
@@ -140,12 +149,12 @@ func AddProjectMember(rancherClient *rancher.Client, project *management.Project
 		return false, nil
 	})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "prtb get poll")
 	}
 
 	err = waitForPRTBRollout(adminClient, prtb, createOp)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "watcher for PRTB rollout")
 	}
 
 	err = waitForAllowed(rancherClient, project.ClusterID, user, attrs)
