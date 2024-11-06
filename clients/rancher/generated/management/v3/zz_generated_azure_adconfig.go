@@ -16,7 +16,6 @@ const (
 	AzureADConfigFieldGraphEndpoint         = "graphEndpoint"
 	AzureADConfigFieldGroupMembershipFilter = "groupMembershipFilter"
 	AzureADConfigFieldLabels                = "labels"
-	AzureADConfigFieldLogoutAllSupported    = "logoutAllSupported"
 	AzureADConfigFieldName                  = "name"
 	AzureADConfigFieldOwnerReferences       = "ownerReferences"
 	AzureADConfigFieldRancherURL            = "rancherUrl"
@@ -43,7 +42,6 @@ type AzureADConfig struct {
 	GraphEndpoint         string            `json:"graphEndpoint,omitempty" yaml:"graphEndpoint,omitempty"`
 	GroupMembershipFilter string            `json:"groupMembershipFilter,omitempty" yaml:"groupMembershipFilter,omitempty"`
 	Labels                map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
-	LogoutAllSupported    bool              `json:"logoutAllSupported,omitempty" yaml:"logoutAllSupported,omitempty"`
 	Name                  string            `json:"name,omitempty" yaml:"name,omitempty"`
 	OwnerReferences       []OwnerReference  `json:"ownerReferences,omitempty" yaml:"ownerReferences,omitempty"`
 	RancherURL            string            `json:"rancherUrl,omitempty" yaml:"rancherUrl,omitempty"`

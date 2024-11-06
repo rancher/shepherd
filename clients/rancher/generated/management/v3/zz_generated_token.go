@@ -19,7 +19,7 @@ const (
 	TokenFieldGroupPrincipals = "groupPrincipals"
 	TokenFieldIsDerived       = "isDerived"
 	TokenFieldLabels          = "labels"
-	TokenFieldLastUsedAt      = "lastUsedAt"
+	TokenFieldLastUpdateTime  = "lastUpdateTime"
 	TokenFieldName            = "name"
 	TokenFieldOwnerReferences = "ownerReferences"
 	TokenFieldProviderInfo    = "providerInfo"
@@ -46,7 +46,7 @@ type Token struct {
 	GroupPrincipals []string          `json:"groupPrincipals,omitempty" yaml:"groupPrincipals,omitempty"`
 	IsDerived       bool              `json:"isDerived,omitempty" yaml:"isDerived,omitempty"`
 	Labels          map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
-	LastUsedAt      string            `json:"lastUsedAt,omitempty" yaml:"lastUsedAt,omitempty"`
+	LastUpdateTime  string            `json:"lastUpdateTime,omitempty" yaml:"lastUpdateTime,omitempty"`
 	Name            string            `json:"name,omitempty" yaml:"name,omitempty"`
 	OwnerReferences []OwnerReference  `json:"ownerReferences,omitempty" yaml:"ownerReferences,omitempty"`
 	ProviderInfo    map[string]string `json:"providerInfo,omitempty" yaml:"providerInfo,omitempty"`

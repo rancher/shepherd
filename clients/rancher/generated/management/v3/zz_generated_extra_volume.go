@@ -20,7 +20,6 @@ const (
 	ExtraVolumeFieldGlusterfs             = "glusterfs"
 	ExtraVolumeFieldHostPath              = "hostPath"
 	ExtraVolumeFieldISCSI                 = "iscsi"
-	ExtraVolumeFieldImage                 = "image"
 	ExtraVolumeFieldNFS                   = "nfs"
 	ExtraVolumeFieldName                  = "name"
 	ExtraVolumeFieldPersistentVolumeClaim = "persistentVolumeClaim"
@@ -54,7 +53,6 @@ type ExtraVolume struct {
 	Glusterfs             *GlusterfsVolumeSource             `json:"glusterfs,omitempty" yaml:"glusterfs,omitempty"`
 	HostPath              *HostPathVolumeSource              `json:"hostPath,omitempty" yaml:"hostPath,omitempty"`
 	ISCSI                 *ISCSIVolumeSource                 `json:"iscsi,omitempty" yaml:"iscsi,omitempty"`
-	Image                 *ImageVolumeSource                 `json:"image,omitempty" yaml:"image,omitempty"`
 	NFS                   *NFSVolumeSource                   `json:"nfs,omitempty" yaml:"nfs,omitempty"`
 	Name                  string                             `json:"name,omitempty" yaml:"name,omitempty"`
 	PersistentVolumeClaim *PersistentVolumeClaimVolumeSource `json:"persistentVolumeClaim,omitempty" yaml:"persistentVolumeClaim,omitempty"`

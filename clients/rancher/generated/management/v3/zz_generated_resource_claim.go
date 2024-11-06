@@ -1,12 +1,10 @@
 package client
 
 const (
-	ResourceClaimType         = "resourceClaim"
-	ResourceClaimFieldName    = "name"
-	ResourceClaimFieldRequest = "request"
+	ResourceClaimType      = "resourceClaim"
+	ResourceClaimFieldName = "name"
 )
 
 type ResourceClaim struct {
-	Name    string `json:"name,omitempty" yaml:"name,omitempty"`
-	Request string `json:"request,omitempty" yaml:"request,omitempty"`
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 }

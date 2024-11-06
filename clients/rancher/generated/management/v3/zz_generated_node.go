@@ -20,7 +20,6 @@ const (
 	NodeFieldDockerInfo           = "dockerInfo"
 	NodeFieldEtcd                 = "etcd"
 	NodeFieldExternalIPAddress    = "externalIpAddress"
-	NodeFieldFeatures             = "features"
 	NodeFieldHostname             = "hostname"
 	NodeFieldIPAddress            = "ipAddress"
 	NodeFieldImported             = "imported"
@@ -72,7 +71,6 @@ type Node struct {
 	DockerInfo           *DockerInfo               `json:"dockerInfo,omitempty" yaml:"dockerInfo,omitempty"`
 	Etcd                 bool                      `json:"etcd,omitempty" yaml:"etcd,omitempty"`
 	ExternalIPAddress    string                    `json:"externalIpAddress,omitempty" yaml:"externalIpAddress,omitempty"`
-	Features             *NodeFeatures             `json:"features,omitempty" yaml:"features,omitempty"`
 	Hostname             string                    `json:"hostname,omitempty" yaml:"hostname,omitempty"`
 	IPAddress            string                    `json:"ipAddress,omitempty" yaml:"ipAddress,omitempty"`
 	Imported             bool                      `json:"imported,omitempty" yaml:"imported,omitempty"`
