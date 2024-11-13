@@ -16,7 +16,6 @@ import (
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 
 	kubeProvisioning "github.com/rancher/shepherd/clients/provisioning"
-	kubeRKE "github.com/rancher/shepherd/clients/rke"
 	"github.com/rancher/shepherd/pkg/clientbase"
 	"github.com/rancher/shepherd/pkg/config"
 	"github.com/rancher/shepherd/pkg/environmentflag"
@@ -26,10 +25,9 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
-// Client is the main harvester Client object that gives an end user access to the Provisioning and Management
+// Client is the main harvester Client object that gives an end user access to the Provisioning and Catalog
 // clients in order to create resources on harvester
 type Client struct {
 	// Client used to access Steve v1 API resources
@@ -180,7 +178,7 @@ func (c *Client) GetClusterCatalogClient(clusterID string) (*catalog.Client, err
 }
 
 // GetRancherDynamicClient is a helper function that instantiates a dynamic client to communicate with the harvester host.
-func (c *Client) GetRancherDynamicClient() (dynamic.Interface, error) {
+func (c *Client) GetHarvesterDynamicClient() (dynamic.Interface, error) {
 	dynamic, err := frameworkDynamic.NewForConfig(c.Session, c.restConfig)
 	if err != nil {
 		return nil, err
@@ -198,52 +196,6 @@ func (c *Client) GetKubeAPIProvisioningClient() (*kubeProvisioning.Client, error
 	return provClient, nil
 }
 
-// GetKubeAPIRKEClient is a function that instantiates a rke client that communicates with the Kube API of a cluster
-func (c *Client) GetKubeAPIRKEClient() (*kubeRKE.Client, error) {
-	rkeClient, err := kubeRKE.NewForConfig(c.restConfig, c.Session)
-	if err != nil {
-		return nil, err
-	}
-
-	return rkeClient, nil
-}
-
-// GetDownStreamClusterClient is a helper function that instantiates a dynamic client to communicate with a specific cluster.
-func (c *Client) GetDownStreamClusterClient(clusterID string) (dynamic.Interface, error) {
-	restConfig := *c.restConfig
-	restConfig.Host = fmt.Sprintf("https://%s/k8s/clusters/%s", c.restConfig.Host, clusterID)
-
-	dynamic, err := frameworkDynamic.NewForConfig(c.Session, &restConfig)
-	if err != nil {
-		return nil, err
-	}
-	return dynamic, nil
-}
-
-// SwitchContext is a helper function that changes the current context to `context` and instantiates a dynamic client
-func (c *Client) SwitchContext(context string, clientConfig *clientcmd.ClientConfig) (dynamic.Interface, error) {
-	overrides := clientcmd.ConfigOverrides{CurrentContext: context}
-
-	rawConfig, err := (*clientConfig).RawConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	updatedConfig := clientcmd.NewNonInteractiveClientConfig(rawConfig, rawConfig.CurrentContext, &overrides, (*clientConfig).ConfigAccess())
-
-	restConfig, err := updatedConfig.ClientConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	dynamic, err := frameworkDynamic.NewForConfig(c.Session, restConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	return dynamic, nil
-}
-
 // GetManagementWatchInterface is a functions used to get a watch.Interface from a resource created by the Management Client.
 // As is the Management resources do not have a watch.Interface, so therefore, the dynamic Client is used to get the watch.Interface.
 // The `schemaType` is a string that is found in different Management clients packages. Ex) management.ProjectType
@@ -258,7 +210,7 @@ func (c *Client) GetManagementWatchInterface(schemaType string, opts metav1.List
 		Version:  "v1",
 		Resource: schemaResource.PluralName,
 	}
-	dynamicClient, err := c.GetRancherDynamicClient()
+	dynamicClient, err := c.GetHarvesterDynamicClient()
 	if err != nil {
 		return nil, err
 	}
@@ -287,7 +239,7 @@ func (c *Client) login(user *management.User) (*management.Token, error) {
 	return token, nil
 }
 
-// IsConnected is a helper function that pings harvester ping endpoint with the management, steve and rest clients.
+// IsConnected is a helper function that pings harvester ping endpoint with the steve and rest clients.
 // Returns boolean value depending on if all the clients are able to get pong respond.
 func (c *Client) IsConnected() (isConnected bool, err error) {
 	mngmntPong, err := c.ping(c.Steve.APIBaseClient.Ops.Client)
