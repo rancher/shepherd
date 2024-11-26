@@ -2361,8 +2361,6 @@ github.com/rancher/lasso v0.0.0-20240924233157-8f384efc8813 h1:V/LY8pUHZG9Kc+xED
 github.com/rancher/lasso v0.0.0-20240924233157-8f384efc8813/go.mod h1:IxgTBO55lziYhTEETyVKiT8/B5Rg92qYiRmcIIYoPgI=
 github.com/rancher/norman v0.0.0-20241001183610-78a520c160ab h1:ihK6See3y/JilqZlc0CG7NXPN+ue5nY9U7xUZUA8M7I=
 github.com/rancher/norman v0.0.0-20241001183610-78a520c160ab/go.mod h1:qX/OG/4wY27xSAcSdRilUBxBumV6Ey2CWpAeaKnBQDs=
-github.com/rancher/rancher/pkg/apis v0.0.0-20241113133627-598640d1556c h1:wgRohofDe45lOK4nmA7AboPkl1AlTJgp97kQ/0nDsg8=
-github.com/rancher/rancher/pkg/apis v0.0.0-20241113133627-598640d1556c/go.mod h1:VJQNArsPMiuWlvlnfGbD5gZtGvttnsEJSbrLsHfBtuA=
 github.com/rancher/rke v1.7.0-rc.5 h1:kBRwXTW8CYPXvCcPLISiwGTCvJ8K/+b35D5ES0IcduM=
 github.com/rancher/rke v1.7.0-rc.5/go.mod h1:+x++Mvl0A3jIzNLiu8nkraqZXiHg6VPWv0Xl4iQCg+A=
 github.com/rancher/system-upgrade-controller/pkg/apis v0.0.0-20210727200656-10b094e30007 h1:ru+mqGnxMmKeU0Q3XIDxkARvInDIqT1hH2amTcsjxI4=
@@ -2382,6 +2380,8 @@ github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/f
 github.com/rogpeppe/go-internal v1.10.0/go.mod h1:UQnix2H7Ngw/k4C5ijL5+65zddjncjaFoBhdsK/akog=
 github.com/rogpeppe/go-internal v1.12.0 h1:exVL4IDcn6na9z1rAb56Vxr+CgyK3nn3O+epU5NdKM8=
 github.com/rogpeppe/go-internal v1.12.0/go.mod h1:E+RYuTGaKKdloAfM02xzb0FW3Paa99yedzYV+kq4uf4=
+github.com/rohitsakala/rancher/pkg/apis v0.0.0-20241126182546-542381f93109 h1:94VisPo5yIpQoeqcrUwN0TsJKgRas9a8GDKjcuwODRg=
+github.com/rohitsakala/rancher/pkg/apis v0.0.0-20241126182546-542381f93109/go.mod h1:VJQNArsPMiuWlvlnfGbD5gZtGvttnsEJSbrLsHfBtuA=
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/russross/blackfriday/v2 v2.1.0 h1:JIOH55/0cWyOuilr9/qlrm0BSXldqnqwMsf35Ld67mk=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
