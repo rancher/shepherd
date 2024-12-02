@@ -6,8 +6,6 @@ toolchain go1.22.7
 
 replace (
 	github.com/docker/distribution => github.com/docker/distribution v2.8.2+incompatible // rancher-machine requires a replace is set
-	// Temporary. will be removed shortly
-	github.com/rancher/rancher/pkg/apis => github.com/rohitsakala/rancher/pkg/apis v0.0.0-20241126182546-542381f93109
 	k8s.io/api => k8s.io/api v0.31.1
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.31.1
 	k8s.io/apimachinery => k8s.io/apimachinery v0.31.1
@@ -35,7 +33,7 @@ require (
 	github.com/rancher/gke-operator v1.10.0
 	github.com/rancher/lasso v0.0.0-20240924233157-8f384efc8813
 	github.com/rancher/norman v0.0.0-20241001183610-78a520c160ab
-	github.com/rancher/rancher/pkg/apis v0.0.0-20241113133627-598640d1556c
+	github.com/rancher/rancher/pkg/apis v0.0.0-20241127174121-c051d99dcded
 	github.com/rancher/rke v1.7.0-rc.5
 	github.com/rancher/system-upgrade-controller/pkg/apis v0.0.0-20210727200656-10b094e30007
 	github.com/rancher/wrangler v1.1.2
