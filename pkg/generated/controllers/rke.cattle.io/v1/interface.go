@@ -21,7 +21,8 @@ package v1
 import (
 	"github.com/rancher/lasso/pkg/controller"
 	v1 "github.com/rancher/rancher/pkg/apis/rke.cattle.io/v1"
-	"github.com/rancher/wrangler/v3/pkg/generic"
+	"github.com/rancher/shepherd/pkg/session"
+	"github.com/rancher/shepherd/pkg/wrangler/pkg/generic"
 	"github.com/rancher/wrangler/v3/pkg/schemes"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -39,36 +40,38 @@ type Interface interface {
 	RKEControlPlane() RKEControlPlaneController
 }
 
-func New(controllerFactory controller.SharedControllerFactory) Interface {
+func New(controllerFactory controller.SharedControllerFactory, ts *session.Session) Interface {
 	return &version{
 		controllerFactory: controllerFactory,
+		ts:                ts,
 	}
 }
 
 type version struct {
 	controllerFactory controller.SharedControllerFactory
+	ts                *session.Session
 }
 
 func (v *version) CustomMachine() CustomMachineController {
-	return generic.NewController[*v1.CustomMachine, *v1.CustomMachineList](schema.GroupVersionKind{Group: "rke.cattle.io", Version: "v1", Kind: "CustomMachine"}, "custommachines", true, v.controllerFactory)
+	return generic.NewController[*v1.CustomMachine, *v1.CustomMachineList](schema.GroupVersionKind{Group: "rke.cattle.io", Version: "v1", Kind: "CustomMachine"}, "custommachines", true, v.controllerFactory, v.ts)
 }
 
 func (v *version) ETCDSnapshot() ETCDSnapshotController {
-	return generic.NewController[*v1.ETCDSnapshot, *v1.ETCDSnapshotList](schema.GroupVersionKind{Group: "rke.cattle.io", Version: "v1", Kind: "ETCDSnapshot"}, "etcdsnapshots", true, v.controllerFactory)
+	return generic.NewController[*v1.ETCDSnapshot, *v1.ETCDSnapshotList](schema.GroupVersionKind{Group: "rke.cattle.io", Version: "v1", Kind: "ETCDSnapshot"}, "etcdsnapshots", true, v.controllerFactory, v.ts)
 }
 
 func (v *version) RKEBootstrap() RKEBootstrapController {
-	return generic.NewController[*v1.RKEBootstrap, *v1.RKEBootstrapList](schema.GroupVersionKind{Group: "rke.cattle.io", Version: "v1", Kind: "RKEBootstrap"}, "rkebootstraps", true, v.controllerFactory)
+	return generic.NewController[*v1.RKEBootstrap, *v1.RKEBootstrapList](schema.GroupVersionKind{Group: "rke.cattle.io", Version: "v1", Kind: "RKEBootstrap"}, "rkebootstraps", true, v.controllerFactory, v.ts)
 }
 
 func (v *version) RKEBootstrapTemplate() RKEBootstrapTemplateController {
-	return generic.NewController[*v1.RKEBootstrapTemplate, *v1.RKEBootstrapTemplateList](schema.GroupVersionKind{Group: "rke.cattle.io", Version: "v1", Kind: "RKEBootstrapTemplate"}, "rkebootstraptemplates", true, v.controllerFactory)
+	return generic.NewController[*v1.RKEBootstrapTemplate, *v1.RKEBootstrapTemplateList](schema.GroupVersionKind{Group: "rke.cattle.io", Version: "v1", Kind: "RKEBootstrapTemplate"}, "rkebootstraptemplates", true, v.controllerFactory, v.ts)
 }
 
 func (v *version) RKECluster() RKEClusterController {
-	return generic.NewController[*v1.RKECluster, *v1.RKEClusterList](schema.GroupVersionKind{Group: "rke.cattle.io", Version: "v1", Kind: "RKECluster"}, "rkeclusters", true, v.controllerFactory)
+	return generic.NewController[*v1.RKECluster, *v1.RKEClusterList](schema.GroupVersionKind{Group: "rke.cattle.io", Version: "v1", Kind: "RKECluster"}, "rkeclusters", true, v.controllerFactory, v.ts)
 }
 
 func (v *version) RKEControlPlane() RKEControlPlaneController {
-	return generic.NewController[*v1.RKEControlPlane, *v1.RKEControlPlaneList](schema.GroupVersionKind{Group: "rke.cattle.io", Version: "v1", Kind: "RKEControlPlane"}, "rkecontrolplanes", true, v.controllerFactory)
+	return generic.NewController[*v1.RKEControlPlane, *v1.RKEControlPlaneList](schema.GroupVersionKind{Group: "rke.cattle.io", Version: "v1", Kind: "RKEControlPlane"}, "rkecontrolplanes", true, v.controllerFactory, v.ts)
 }
