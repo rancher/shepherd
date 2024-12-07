@@ -43,6 +43,9 @@ func NewRKEConfigs(client *rancher.Client) (stateFilePath, clusterFilePath strin
 		return
 	}
 
+	fmt.Println("state file", state)
+
+
 	stateFilePath, err = NewStateFile(state, dirName)
 	if err != nil {
 		return
@@ -135,6 +138,8 @@ func NewClusterFile(state *cluster.FullState, dirName string, config *Config) (c
 	if err != nil {
 		return
 	}
+
+	fmt.Println("config", rkeConfig)
 
 	fileName := file.Name(rkeConfigFileName)
 
