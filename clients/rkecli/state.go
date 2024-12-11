@@ -12,7 +12,6 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	v3 "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
-	"github.com/rancher/shepherd/extensions/configmaps"
 	"github.com/rancher/shepherd/pkg/config"
 	"github.com/rancher/shepherd/pkg/file"
 	"gopkg.in/yaml.v2"
@@ -129,7 +128,7 @@ func NewClusterFile(state *cluster.FullState, dirName string, config *Config) (c
 			rkeConfig.Nodes[i].SSHKeyPath = appendSSHPath(rkeConfig.Nodes[i].SSHKeyPath, config.SSHPath)
 		}
 	} else {
-		return "", errors.Wrap(err, "rke SSHPath or SSHKey not configured")
+		return "", errors.New("missing SSH configuration")
 	}
 
 	marshaled, err := yaml.Marshal(rkeConfig)
@@ -166,28 +165,27 @@ func NewStateFile(state *cluster.FullState, dirName string) (stateFilePath strin
 	return
 }
 
-// GetFullState is a function that gets RKE full state from "full-cluster-state" configmap.
+// GetFullState is a function that gets RKE full state from "full-cluster-state" secret.
 // And returns the cluster full state.
 func GetFullState(client *rancher.Client) (state *cluster.FullState, err error) {
-	namespacedConfigmapClient := client.Steve.SteveType(configmaps.ConfigMapSteveType).NamespacedSteveClient(cluster.SystemNamespace)
+	namespacedSecretClient := client.Steve.SteveType("secret").NamespacedSteveClient(cluster.SystemNamespace)
+
+	fullstateSecretID := fmt.Sprintf(cluster.SystemNamespace+"/%s", cluster.FullStateSecretName)
+
+	secretResp, err := namespacedSecretClient.ByID(fullstateSecretID)
 	if err != nil {
 		return
 	}
 
-	configmapResp, err := namespacedConfigmapClient.ByID(cluster.FullStateConfigMapName)
+	secret := &corev1.Secret{}
+	err = v1.ConvertToK8sType(secretResp.JSONResp, secret)
 	if err != nil {
 		return
 	}
 
-	configmap := &corev1.ConfigMap{}
-	err = v1.ConvertToK8sType(configmapResp.JSONResp, configmap)
-	if err != nil {
-		return
-	}
-
-	rawState, ok := configmap.Data[cluster.FullStateConfigMapName]
+	rawState, ok := secret.Data[cluster.FullStateSecretName]
 	if !ok {
-		err = errors.Wrapf(err, "couldn't retrieve full state data in the configmap")
+		err = errors.Wrapf(err, "couldn't retrieve full state data in the secret")
 		return
 	}
 
