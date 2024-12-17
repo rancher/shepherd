@@ -20,7 +20,8 @@ package v1beta1
 
 import (
 	"github.com/rancher/lasso/pkg/controller"
-	"github.com/rancher/wrangler/v3/pkg/generic"
+	"github.com/rancher/shepherd/pkg/session"
+	"github.com/rancher/shepherd/pkg/wrangler/pkg/generic"
 	"github.com/rancher/wrangler/v3/pkg/schemes"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	v1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -37,28 +38,30 @@ type Interface interface {
 	MachineSet() MachineSetController
 }
 
-func New(controllerFactory controller.SharedControllerFactory) Interface {
+func New(controllerFactory controller.SharedControllerFactory, ts *session.Session) Interface {
 	return &version{
 		controllerFactory: controllerFactory,
+		ts:                ts,
 	}
 }
 
 type version struct {
 	controllerFactory controller.SharedControllerFactory
+	ts                *session.Session
 }
 
 func (v *version) Cluster() ClusterController {
-	return generic.NewController[*v1beta1.Cluster, *v1beta1.ClusterList](schema.GroupVersionKind{Group: "cluster.x-k8s.io", Version: "v1beta1", Kind: "Cluster"}, "clusters", true, v.controllerFactory)
+	return generic.NewController[*v1beta1.Cluster, *v1beta1.ClusterList](schema.GroupVersionKind{Group: "cluster.x-k8s.io", Version: "v1beta1", Kind: "Cluster"}, "clusters", true, v.controllerFactory, v.ts)
 }
 
 func (v *version) Machine() MachineController {
-	return generic.NewController[*v1beta1.Machine, *v1beta1.MachineList](schema.GroupVersionKind{Group: "cluster.x-k8s.io", Version: "v1beta1", Kind: "Machine"}, "machines", true, v.controllerFactory)
+	return generic.NewController[*v1beta1.Machine, *v1beta1.MachineList](schema.GroupVersionKind{Group: "cluster.x-k8s.io", Version: "v1beta1", Kind: "Machine"}, "machines", true, v.controllerFactory, v.ts)
 }
 
 func (v *version) MachineDeployment() MachineDeploymentController {
-	return generic.NewController[*v1beta1.MachineDeployment, *v1beta1.MachineDeploymentList](schema.GroupVersionKind{Group: "cluster.x-k8s.io", Version: "v1beta1", Kind: "MachineDeployment"}, "machinedeployments", true, v.controllerFactory)
+	return generic.NewController[*v1beta1.MachineDeployment, *v1beta1.MachineDeploymentList](schema.GroupVersionKind{Group: "cluster.x-k8s.io", Version: "v1beta1", Kind: "MachineDeployment"}, "machinedeployments", true, v.controllerFactory, v.ts)
 }
 
 func (v *version) MachineSet() MachineSetController {
-	return generic.NewController[*v1beta1.MachineSet, *v1beta1.MachineSetList](schema.GroupVersionKind{Group: "cluster.x-k8s.io", Version: "v1beta1", Kind: "MachineSet"}, "machinesets", true, v.controllerFactory)
+	return generic.NewController[*v1beta1.MachineSet, *v1beta1.MachineSetList](schema.GroupVersionKind{Group: "cluster.x-k8s.io", Version: "v1beta1", Kind: "MachineSet"}, "machinesets", true, v.controllerFactory, v.ts)
 }
