@@ -23,10 +23,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/rancher/shepherd/pkg/wrangler/pkg/generic"
 	v1 "github.com/rancher/system-upgrade-controller/pkg/apis/upgrade.cattle.io/v1"
 	"github.com/rancher/wrangler/v2/pkg/apply"
 	"github.com/rancher/wrangler/v2/pkg/condition"
-	"github.com/rancher/wrangler/v2/pkg/generic"
 	"github.com/rancher/wrangler/v2/pkg/kv"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
