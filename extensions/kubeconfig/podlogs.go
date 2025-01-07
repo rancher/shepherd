@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	k8Scheme "k8s.io/client-go/kubernetes/scheme"
@@ -65,6 +66,64 @@ func GetPodLogs(client *rancher.Client, clusterID string, podName string, namesp
 	var logs string
 	for reader.Scan() {
 		logs = logs + fmt.Sprintf("%s\n", reader.Text())
+	}
+
+	if err := reader.Err(); err != nil {
+		return "", fmt.Errorf("error reading pod logs for pod %s/%s: %v", namespace, podName, err)
+	}
+	return logs, nil
+}
+
+func GetPodLogsWithOpts(client *rancher.Client, clusterID string, podName string, namespace string, bufferSizeStr string, opts *corev1.PodLogOptions) (string, error) {
+	var restConfig *restclient.Config
+
+	kubeConfig, err := GetKubeconfig(client, clusterID)
+	if err != nil {
+		return "", err
+	}
+
+	restConfig, err = (*kubeConfig).ClientConfig()
+	if err != nil {
+		return "", err
+	}
+	restConfig.ContentConfig.NegotiatedSerializer = serializer.NewCodecFactory(k8Scheme.Scheme)
+	restConfig.ContentConfig.GroupVersion = &podGroupVersion
+	restConfig.APIPath = apiPath
+
+	restClient, err := restclient.RESTClientFor(restConfig)
+	if err != nil {
+		return "", err
+	}
+
+	req := restClient.Get().Resource("pods").Name(podName).Namespace(namespace).SubResource("log")
+	req.VersionedParams(
+		opts,
+		k8Scheme.ParameterCodec,
+	)
+
+	stream, err := req.Stream(context.TODO())
+	if err != nil {
+		return "", fmt.Errorf("error streaming pod logs for pod %s/%s: %v", namespace, podName, err)
+	}
+
+	defer stream.Close()
+
+	reader := bufio.NewScanner(stream)
+
+	if bufferSizeStr != "" {
+		bufferSize, err := parseBufferSize(bufferSizeStr)
+		if err != nil {
+			return "", fmt.Errorf("error in parseBufferSize: %v", err)
+		}
+
+		buf := make([]byte, bufferSize)
+		reader.Buffer(buf, bufferSize)
+	}
+
+	var logs string
+	for reader.Scan() {
+		logs = logs + fmt.Sprintf("%s\n", reader.Text())
+		logrus.Info(reader.Text())
 	}
 
 	if err := reader.Err(); err != nil {
