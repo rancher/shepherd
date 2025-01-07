@@ -21,6 +21,7 @@ package catalog
 import (
 	"github.com/rancher/lasso/pkg/controller"
 	v1 "github.com/rancher/shepherd/pkg/generated/controllers/catalog.cattle.io/v1"
+	"github.com/rancher/shepherd/pkg/session"
 )
 
 type Interface interface {
@@ -29,15 +30,17 @@ type Interface interface {
 
 type group struct {
 	controllerFactory controller.SharedControllerFactory
+	ts                *session.Session
 }
 
 // New returns a new Interface.
-func New(controllerFactory controller.SharedControllerFactory) Interface {
+func New(controllerFactory controller.SharedControllerFactory, ts *session.Session) Interface {
 	return &group{
 		controllerFactory: controllerFactory,
+		ts:                ts,
 	}
 }
 
 func (g *group) V1() v1.Interface {
-	return v1.New(g.controllerFactory)
+	return v1.New(g.controllerFactory, g.ts)
 }
