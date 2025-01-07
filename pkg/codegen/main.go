@@ -28,6 +28,7 @@ import (
 	"github.com/rancher/wrangler/v3/pkg/controller-gen/args"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -44,9 +45,17 @@ func main() {
 	}
 
 	generatedControllerPaths := map[string]string{
-		"AppsControllerPath":       "./pkg/generated/controllers/apps",
-		"CoreControllerPath":       "./pkg/generated/controllers/core",
-		"ManagementControllerPath": "./pkg/generated/controllers/management.cattle.io",
+		"AppsControllerPath":               "./pkg/generated/controllers/apps",
+		"CoreControllerPath":               "./pkg/generated/controllers/core",
+		"RBACControllerPath":               "./pkg/generated/controllers/rbac",
+		"ManagementControllerPath":         "./pkg/generated/controllers/management.cattle.io",
+		"ClusterCattleControllerPath":      "./pkg/generated/controllers/cluster.cattle.io",
+		"CatalogCattleControllerPath":      "./pkg/generated/controllers/catalog.cattle.io",
+		"UpgradeCattleControllerPath":      "./pkg/generated/controllers/upgrade.cattle.io",
+		"ProvisioningCattleControllerPath": "./pkg/generated/controllers/provisioning.cattle.io",
+		"FleetCattleControllerPath":        "./pkg/generated/controllers/fleet.cattle.io",
+		"RKECattleControllerPath":          "./pkg/generated/controllers/rke.cattle.io",
+		"ClusterXK8sControllerPath":        "./pkg/generated/controllers/cluster.x-k8s.io",
 	}
 
 	controllergen.Run(args.Options{
@@ -79,6 +88,15 @@ func main() {
 					corev1.Pod{},
 				},
 			},
+			rbacv1.GroupName: {
+				Types: []interface{}{
+					rbacv1.Role{},
+					rbacv1.RoleBinding{},
+					rbacv1.ClusterRole{},
+					rbacv1.ClusterRoleBinding{},
+				},
+				OutputControllerPackageName: "rbac",
+			},
 			"management.cattle.io": {
 				PackageName: "management.cattle.io",
 				Types: []interface{}{
@@ -86,6 +104,13 @@ func main() {
 					"./vendor/github.com/rancher/rancher/pkg/apis/management.cattle.io/v3",
 					managementv3.ProjectCatalog{},
 					managementv3.ClusterCatalog{},
+				},
+			},
+			"cluster.cattle.io": {
+				PackageName: "cluster.cattle.io",
+				Types: []interface{}{
+					// All structs with an embedded ObjectMeta field will be picked up
+					"./vendor/github.com/rancher/rancher/pkg/apis/cluster.cattle.io/v3",
 				},
 			},
 			"catalog.cattle.io": {

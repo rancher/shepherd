@@ -23,9 +23,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/rancher/shepherd/pkg/wrangler/pkg/generic"
 	"github.com/rancher/wrangler/v3/pkg/apply"
 	"github.com/rancher/wrangler/v3/pkg/condition"
-	"github.com/rancher/wrangler/v3/pkg/generic"
 	"github.com/rancher/wrangler/v3/pkg/kv"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"

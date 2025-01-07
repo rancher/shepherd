@@ -21,7 +21,8 @@ package v1
 import (
 	"github.com/rancher/lasso/pkg/controller"
 	v1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
-	"github.com/rancher/wrangler/v3/pkg/generic"
+	"github.com/rancher/shepherd/pkg/session"
+	"github.com/rancher/shepherd/pkg/wrangler/pkg/generic"
 	"github.com/rancher/wrangler/v3/pkg/schemes"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -34,16 +35,18 @@ type Interface interface {
 	Cluster() ClusterController
 }
 
-func New(controllerFactory controller.SharedControllerFactory) Interface {
+func New(controllerFactory controller.SharedControllerFactory, ts *session.Session) Interface {
 	return &version{
 		controllerFactory: controllerFactory,
+		ts:                ts,
 	}
 }
 
 type version struct {
 	controllerFactory controller.SharedControllerFactory
+	ts                *session.Session
 }
 
 func (v *version) Cluster() ClusterController {
-	return generic.NewController[*v1.Cluster, *v1.ClusterList](schema.GroupVersionKind{Group: "provisioning.cattle.io", Version: "v1", Kind: "Cluster"}, "clusters", true, v.controllerFactory)
+	return generic.NewController[*v1.Cluster, *v1.ClusterList](schema.GroupVersionKind{Group: "provisioning.cattle.io", Version: "v1", Kind: "Cluster"}, "clusters", true, v.controllerFactory, v.ts)
 }
