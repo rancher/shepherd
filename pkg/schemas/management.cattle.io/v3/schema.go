@@ -3,6 +3,7 @@ package schema
 import (
 	"net/http"
 
+	aksv1 "github.com/rancher/aks-operator/pkg/apis/aks.cattle.io/v1"
 	eksv1 "github.com/rancher/eks-operator/pkg/apis/eks.cattle.io/v1"
 	gkev1 "github.com/rancher/gke-operator/pkg/apis/gke.cattle.io/v1"
 	rketypes "github.com/rancher/rke/types"
@@ -10,10 +11,11 @@ import (
 	"github.com/rancher/norman/types"
 	m "github.com/rancher/norman/types/mapper"
 	v3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apiserver/pkg/apis/apiserver"
+
 	"github.com/rancher/shepherd/pkg/schemas/factory"
 	"github.com/rancher/shepherd/pkg/schemas/mapper"
-	v1 "k8s.io/api/core/v1"
-	apiserver "k8s.io/apiserver/pkg/apis/apiserver"
 )
 
 var (
@@ -223,8 +225,22 @@ func clusterTypes(schemas *types.Schemas) *types.Schemas {
 				field.Pointer = true
 				return field
 			})
+			schema.MustCustomizeField("nodePools", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
+		}).
+		MustImportAndCustomize(&Version, aksv1.AKSClusterConfigSpec{}, func(schema *types.Schema) {
+			schema.MustCustomizeField("nodePools", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
 		}).
 		MustImportAndCustomize(&Version, eksv1.EKSClusterConfigSpec{}, func(schema *types.Schema) {
+			schema.MustCustomizeField("nodeGroups", func(field types.Field) types.Field {
+				field.Pointer = true
+				return field
+			})
 			schema.MustCustomizeField("publicAccessSources", func(field types.Field) types.Field {
 				field.Pointer = true
 				return field

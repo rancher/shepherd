@@ -49,7 +49,7 @@ type GKEClusterConfigSpec struct {
 	MonitoringService              *string                            `json:"monitoringService,omitempty" yaml:"monitoringService,omitempty"`
 	Network                        *string                            `json:"network,omitempty" yaml:"network,omitempty"`
 	NetworkPolicyEnabled           *bool                              `json:"networkPolicyEnabled,omitempty" yaml:"networkPolicyEnabled,omitempty"`
-	NodePools                      []GKENodePoolConfig                `json:"nodePools,omitempty" yaml:"nodePools,omitempty"`
+	NodePools                      *[]GKENodePoolConfig               `json:"nodePools,omitempty" yaml:"nodePools,omitempty"`
 	PrivateClusterConfig           *GKEPrivateClusterConfig           `json:"privateClusterConfig,omitempty" yaml:"privateClusterConfig,omitempty"`
 	ProjectID                      string                             `json:"projectID,omitempty" yaml:"projectID,omitempty"`
 	Region                         string                             `json:"region,omitempty" yaml:"region,omitempty"`
