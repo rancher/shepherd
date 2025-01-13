@@ -1,12 +1,14 @@
 package eks
 
 import (
+	"fmt"
 	"time"
+
+	"github.com/sirupsen/logrus"
+	kwait "k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
-	"github.com/sirupsen/logrus"
-	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -21,7 +23,12 @@ func updateNodePoolQuantity(client *rancher.Client, cluster *management.Cluster,
 	}
 
 	var eksConfig = clusterResp.EKSConfig
-	*eksConfig.NodeGroups[0].DesiredSize += *nodePool.DesiredSize
+	if eksConfig.NodeGroups == nil {
+		return nil, fmt.Errorf("NodeGroups is empty")
+	}
+
+	nodeGroups := *eksConfig.NodeGroups
+	*nodeGroups[0].DesiredSize += *nodePool.DesiredSize
 
 	eksHostCluster := &management.Cluster{
 		DockerRootDir:          "/var/lib/docker",
@@ -32,7 +39,7 @@ func updateNodePoolQuantity(client *rancher.Client, cluster *management.Cluster,
 		WindowsPreferedCluster: clusterResp.WindowsPreferedCluster,
 	}
 
-	logrus.Infof("Scaling the node group to %v total nodes", *eksConfig.NodeGroups[0].DesiredSize)
+	logrus.Infof("Scaling the node group to %v total nodes", *nodeGroups[0].DesiredSize)
 	updatedCluster, err := client.Management.Cluster.Update(clusterResp, eksHostCluster)
 	if err != nil {
 		return nil, err
@@ -44,7 +51,7 @@ func updateNodePoolQuantity(client *rancher.Client, cluster *management.Cluster,
 			return false, err
 		}
 
-		if clusterResp.State == active && clusterResp.NodeCount == *eksConfig.NodeGroups[0].DesiredSize {
+		if clusterResp.State == active && clusterResp.NodeCount == *nodeGroups[0].DesiredSize {
 			return true, nil
 		}
 
