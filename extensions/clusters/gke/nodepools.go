@@ -1,12 +1,14 @@
 package gke
 
 import (
+	"fmt"
 	"time"
+
+	"github.com/sirupsen/logrus"
+	kwait "k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
-	"github.com/sirupsen/logrus"
-	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -21,7 +23,12 @@ func updateNodePoolQuantity(client *rancher.Client, cluster *management.Cluster,
 	}
 
 	var gkeConfig = clusterResp.GKEConfig
-	*gkeConfig.NodePools[0].InitialNodeCount += *nodePool.InitialNodeCount
+	if gkeConfig.NodePools == nil {
+		return nil, fmt.Errorf("NodePools is empty")
+	}
+
+	nodePools := *gkeConfig.NodePools
+	*nodePools[0].InitialNodeCount += *nodePool.InitialNodeCount
 
 	gkeHostCluster := &management.Cluster{
 		DockerRootDir:          "/var/lib/docker",
@@ -32,7 +39,7 @@ func updateNodePoolQuantity(client *rancher.Client, cluster *management.Cluster,
 		WindowsPreferedCluster: clusterResp.WindowsPreferedCluster,
 	}
 
-	logrus.Infof("Scaling the node pool to %v total nodes", *gkeConfig.NodePools[0].InitialNodeCount)
+	logrus.Infof("Scaling the node pool to %v total nodes", *nodePools[0].InitialNodeCount)
 	updatedCluster, err := client.Management.Cluster.Update(clusterResp, gkeHostCluster)
 	if err != nil {
 		return nil, err
@@ -44,7 +51,7 @@ func updateNodePoolQuantity(client *rancher.Client, cluster *management.Cluster,
 			return false, err
 		}
 
-		if clusterResp.State == active && clusterResp.NodeCount == *gkeConfig.NodePools[0].InitialNodeCount {
+		if clusterResp.State == active && clusterResp.NodeCount == *nodePools[0].InitialNodeCount {
 			return true, nil
 		}
 

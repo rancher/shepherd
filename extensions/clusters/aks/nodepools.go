@@ -1,12 +1,14 @@
 package aks
 
 import (
+	"fmt"
 	"time"
+
+	"github.com/sirupsen/logrus"
+	kwait "k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
-	"github.com/sirupsen/logrus"
-	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -21,7 +23,13 @@ func updateNodePoolQuantity(client *rancher.Client, cluster *management.Cluster,
 	}
 
 	var aksConfig = clusterResp.AKSConfig
-	*aksConfig.NodePools[0].Count += *nodePool.NodeCount
+
+	if aksConfig.NodePools == nil {
+		return nil, fmt.Errorf("NodePools is empty")
+	}
+
+	nodePools := *aksConfig.NodePools
+	*nodePools[0].Count += *nodePool.NodeCount
 
 	aksHostCluster := &management.Cluster{
 		AKSConfig:              aksConfig,
@@ -32,7 +40,7 @@ func updateNodePoolQuantity(client *rancher.Client, cluster *management.Cluster,
 		WindowsPreferedCluster: clusterResp.WindowsPreferedCluster,
 	}
 
-	logrus.Infof("Scaling the agentpool to %v total nodes", *aksConfig.NodePools[0].Count)
+	logrus.Infof("Scaling the agentpool to %v total nodes", *nodePools[0].Count)
 	updatedCluster, err := client.Management.Cluster.Update(clusterResp, aksHostCluster)
 	if err != nil {
 		return nil, err
@@ -44,7 +52,7 @@ func updateNodePoolQuantity(client *rancher.Client, cluster *management.Cluster,
 			return false, err
 		}
 
-		if clusterResp.State == active && clusterResp.NodeCount == *aksConfig.NodePools[0].Count {
+		if clusterResp.State == active && clusterResp.NodeCount == *nodePools[0].Count {
 			return true, nil
 		}
 

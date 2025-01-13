@@ -66,8 +66,11 @@ type NodePool struct {
 	VnetSubnetID        *string           `json:"vnetSubnetID,omitempty" yaml:"vnetSubnetID,omitempty"`
 }
 
-func aksNodePoolConstructor(aksNodePoolConfigs *[]NodePool, kubernetesVersion string) []management.AKSNodePool {
-	var aksNodePools []management.AKSNodePool
+func aksNodePoolConstructor(aksNodePoolConfigs *[]NodePool, kubernetesVersion string) *[]management.AKSNodePool {
+	var aksNodePools = make([]management.AKSNodePool, 0)
+	if aksNodePoolConfigs == nil {
+		return nil
+	}
 	for _, aksNodePoolConfig := range *aksNodePoolConfigs {
 		aksNodePool := management.AKSNodePool{
 			AvailabilityZones:   aksNodePoolConfig.AvailabilityZones,
@@ -90,7 +93,7 @@ func aksNodePoolConstructor(aksNodePoolConfigs *[]NodePool, kubernetesVersion st
 		}
 		aksNodePools = append(aksNodePools, aksNodePool)
 	}
-	return aksNodePools
+	return &aksNodePools
 }
 
 func HostClusterConfig(displayName, cloudCredentialID string, aksClusterConfig ClusterConfig) *management.AKSClusterConfigSpec {
