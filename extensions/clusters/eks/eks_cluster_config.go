@@ -58,8 +58,11 @@ type LaunchTemplateConfig struct {
 	Version *int64  `json:"version,omitempty" yaml:"version,omitempty"`
 }
 
-func nodeGroupsConstructor(nodeGroupsConfig *[]NodeGroupConfig, kubernetesVersion string) []management.NodeGroup {
-	var nodeGroups []management.NodeGroup
+func nodeGroupsConstructor(nodeGroupsConfig *[]NodeGroupConfig, kubernetesVersion string) *[]management.NodeGroup {
+	var nodeGroups = make([]management.NodeGroup, 0)
+	if nodeGroupsConfig == nil {
+		return nil
+	}
 	for _, nodeGroupConfig := range *nodeGroupsConfig {
 		var launchTemplate *management.LaunchTemplate
 		if nodeGroupConfig.LaunchTemplateConfig != nil {
@@ -99,7 +102,7 @@ func nodeGroupsConstructor(nodeGroupsConfig *[]NodeGroupConfig, kubernetesVersio
 		}
 		nodeGroups = append(nodeGroups, nodeGroup)
 	}
-	return nodeGroups
+	return &nodeGroups
 }
 
 func eksHostClusterConfig(displayName, cloudCredentialID string, eksClusterConfig ClusterConfig) *management.EKSClusterConfigSpec {

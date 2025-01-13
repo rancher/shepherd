@@ -26,6 +26,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.13.5
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.52.0
+	github.com/rancher/aks-operator v1.10.0
 	github.com/rancher/apiserver v0.0.0-20240604183424-8c448886365e
 	github.com/rancher/eks-operator v1.9.0
 	github.com/rancher/fleet/pkg/apis v0.10.0

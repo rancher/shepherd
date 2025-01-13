@@ -188,8 +188,11 @@ func cidrBlocksBuilder(cidrBlocks []CidrBlock) []management.GKECidrBlock {
 	return newCidrBlocks
 }
 
-func nodePoolsBuilder(nodePools []NodePool, kubernetesVersion *string) []management.GKENodePoolConfig {
-	var gkeNodePoolConfigs []management.GKENodePoolConfig
+func nodePoolsBuilder(nodePools []NodePool, kubernetesVersion *string) *[]management.GKENodePoolConfig {
+	var gkeNodePoolConfigs = make([]management.GKENodePoolConfig, 0)
+	if nodePools == nil {
+		return nil
+	}
 	for _, nodePool := range nodePools {
 		gkeNodePoolConfig := management.GKENodePoolConfig{
 			Autoscaling:       autoScallingBuilder(nodePool.Autoscaling),
@@ -203,7 +206,7 @@ func nodePoolsBuilder(nodePools []NodePool, kubernetesVersion *string) []managem
 
 		gkeNodePoolConfigs = append(gkeNodePoolConfigs, gkeNodePoolConfig)
 	}
-	return gkeNodePoolConfigs
+	return &gkeNodePoolConfigs
 }
 
 func nodePoolManagementBuilder(nodePoolManagement *NodePoolManagement) *management.GKENodePoolManagement {
