@@ -61,7 +61,7 @@ type AKSClusterConfigSpec struct {
 	NetworkPodCIDR              *string           `json:"podCidr,omitempty" yaml:"podCidr,omitempty"`
 	NetworkPolicy               *string           `json:"networkPolicy,omitempty" yaml:"networkPolicy,omitempty"`
 	NetworkServiceCIDR          *string           `json:"serviceCidr,omitempty" yaml:"serviceCidr,omitempty"`
-	NodePools                   []AKSNodePool     `json:"nodePools,omitempty" yaml:"nodePools,omitempty"`
+	NodePools                   *[]AKSNodePool    `json:"nodePools,omitempty" yaml:"nodePools,omitempty"`
 	NodeResourceGroup           *string           `json:"nodeResourceGroup,omitempty" yaml:"nodeResourceGroup,omitempty"`
 	OutboundType                *string           `json:"outboundType,omitempty" yaml:"outboundType,omitempty"`
 	PrivateCluster              *bool             `json:"privateCluster,omitempty" yaml:"privateCluster,omitempty"`
