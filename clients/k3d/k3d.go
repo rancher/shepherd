@@ -7,18 +7,19 @@ import (
 
 	"github.com/pkg/errors"
 	apisV1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
-	"github.com/rancher/shepherd/clients/rancher"
-	"github.com/rancher/shepherd/extensions/clusters"
-	"github.com/rancher/shepherd/extensions/defaults"
-	"github.com/rancher/shepherd/pkg/config"
-	"github.com/rancher/shepherd/pkg/session"
-	"github.com/rancher/shepherd/pkg/wait"
 	"github.com/rancher/wrangler/pkg/randomtoken"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/clusters"
+	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/pkg/config"
+	"github.com/rancher/shepherd/pkg/session"
+	"github.com/rancher/shepherd/pkg/wait"
 )
 
 var importTimeout = int64(60 * 20)
@@ -168,6 +169,9 @@ func CreateAndImportK3DCluster(client *rancher.Client, name, image, hostname str
 		FieldSelector:  "metadata.name=" + name,
 		TimeoutSeconds: &importTimeout,
 	})
+	if err != nil {
+		return nil, errors.Wrap(err, "CreateAndImportK3DCluster: failed to instantiate the watcher for the cluster")
+	}
 
 	checkFunc := clusters.IsImportedClusterReady
 	err = wait.WatchWait(clusterWatch, checkFunc)
