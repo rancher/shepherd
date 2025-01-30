@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
+
 	"github.com/rancher/shepherd/clients/rancher"
 )
 
@@ -19,9 +20,9 @@ const (
 	k3sReleasePath      = "v1-k3s-release/releases"
 	gkeVersionPath      = "meta/gkeVersions"
 	aksVersionPath      = "meta/aksVersions"
-	eksVersionsFileURL  = "raw.githubusercontent.com/rancher/ui/master/lib/shared/addon/utils/amazon.js"
+	eksVersionsFileURL  = "raw.githubusercontent.com/rancher/dashboard/refs/heads/release-2.10/pkg/eks/assets/data/eks-versions.js"
 
-	eksVersionsSliceRegex      = `EKS_VERSIONS = \[\s*(.*?)\s*\]\;`
+	eksVersionsSliceRegex      = `\[(?:'\d+\.\d+',?\s*)+\]`
 	eksVersionsSliceItemsRegex = `(?s)'(.*?)'`
 )
 
@@ -185,7 +186,7 @@ func ListEKSAllVersions(client *rancher.Client) (allAvailableVersions []string, 
 	if len(match) == 0 {
 		return
 	}
-	versions := match[1]
+	versions := match[0]
 	rx := regexp.MustCompile(eksVersionsSliceItemsRegex)
 	out := rx.FindAllStringSubmatch(versions, -1)
 
