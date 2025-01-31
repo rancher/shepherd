@@ -170,7 +170,7 @@ func CreateAndImportK3DCluster(client *rancher.Client, name, image, hostname str
 		TimeoutSeconds: &importTimeout,
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "CreateAndImportK3DCluster: failed to watch for the imported cluster")
+		return nil, errors.Wrap(err, "CreateAndImportK3DCluster: failed to instantiate the watcher for the cluster")
 	}
 
 	checkFunc := clusters.IsImportedClusterReady
