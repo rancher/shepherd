@@ -8,10 +8,11 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/pkg/errors"
 	apiv1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
+	"github.com/sirupsen/logrus"
+
 	"github.com/rancher/shepherd/clients/rancher"
 	v3 "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
-	"github.com/sirupsen/logrus"
 )
 
 // ListRKE1AvailableVersions is a function to list and return only available RKE1 versions for a specific cluster.
@@ -241,7 +242,9 @@ func ListGKEAvailableVersions(client *rancher.Client, cluster *v3.Cluster) (avai
 
 	var validMasterVersions []*semver.Version
 	allAvailableVersions, err := ListGKEAllVersions(client, cluster.GKEConfig.ProjectID, cluster.GKEConfig.GoogleCredentialSecret, cluster.GKEConfig.Zone, cluster.GKEConfig.Region)
-
+	if err != nil {
+		return
+	}
 	for _, version := range allAvailableVersions {
 		v, err := semver.NewVersion(version)
 		if err != nil {
@@ -271,6 +274,9 @@ func ListAKSAvailableVersions(client *rancher.Client, cluster *v3.Cluster) (avai
 
 	var validMasterVersions []*semver.Version
 	allAvailableVersions, err := ListAKSAllVersions(client, cluster.AKSConfig.AzureCredentialSecret, cluster.AKSConfig.ResourceLocation)
+	if err != nil {
+		return
+	}
 
 	for _, version := range allAvailableVersions {
 		v, err := semver.NewVersion(version)
