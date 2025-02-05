@@ -21,7 +21,8 @@ package v1
 import (
 	"github.com/rancher/lasso/pkg/controller"
 	v1 "github.com/rancher/rancher/pkg/apis/catalog.cattle.io/v1"
-	"github.com/rancher/wrangler/v3/pkg/generic"
+	"github.com/rancher/shepherd/pkg/session"
+	"github.com/rancher/shepherd/pkg/wrangler/pkg/generic"
 	"github.com/rancher/wrangler/v3/pkg/schemes"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -36,24 +37,26 @@ type Interface interface {
 	Operation() OperationController
 }
 
-func New(controllerFactory controller.SharedControllerFactory) Interface {
+func New(controllerFactory controller.SharedControllerFactory, ts *session.Session) Interface {
 	return &version{
 		controllerFactory: controllerFactory,
+		ts:                ts,
 	}
 }
 
 type version struct {
 	controllerFactory controller.SharedControllerFactory
+	ts                *session.Session
 }
 
 func (v *version) App() AppController {
-	return generic.NewController[*v1.App, *v1.AppList](schema.GroupVersionKind{Group: "catalog.cattle.io", Version: "v1", Kind: "App"}, "apps", true, v.controllerFactory)
+	return generic.NewController[*v1.App, *v1.AppList](schema.GroupVersionKind{Group: "catalog.cattle.io", Version: "v1", Kind: "App"}, "apps", true, v.controllerFactory, v.ts)
 }
 
 func (v *version) ClusterRepo() ClusterRepoController {
-	return generic.NewNonNamespacedController[*v1.ClusterRepo, *v1.ClusterRepoList](schema.GroupVersionKind{Group: "catalog.cattle.io", Version: "v1", Kind: "ClusterRepo"}, "clusterrepos", v.controllerFactory)
+	return generic.NewNonNamespacedController[*v1.ClusterRepo, *v1.ClusterRepoList](schema.GroupVersionKind{Group: "catalog.cattle.io", Version: "v1", Kind: "ClusterRepo"}, "clusterrepos", v.controllerFactory, v.ts)
 }
 
 func (v *version) Operation() OperationController {
-	return generic.NewController[*v1.Operation, *v1.OperationList](schema.GroupVersionKind{Group: "catalog.cattle.io", Version: "v1", Kind: "Operation"}, "operations", true, v.controllerFactory)
+	return generic.NewController[*v1.Operation, *v1.OperationList](schema.GroupVersionKind{Group: "catalog.cattle.io", Version: "v1", Kind: "Operation"}, "operations", true, v.controllerFactory, v.ts)
 }

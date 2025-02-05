@@ -20,8 +20,9 @@ package v1
 
 import (
 	"github.com/rancher/lasso/pkg/controller"
+	"github.com/rancher/shepherd/pkg/session"
+	"github.com/rancher/shepherd/pkg/wrangler/pkg/generic"
 	v1 "github.com/rancher/system-upgrade-controller/pkg/apis/upgrade.cattle.io/v1"
-	"github.com/rancher/wrangler/v3/pkg/generic"
 	"github.com/rancher/wrangler/v3/pkg/schemes"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -34,16 +35,18 @@ type Interface interface {
 	Plan() PlanController
 }
 
-func New(controllerFactory controller.SharedControllerFactory) Interface {
+func New(controllerFactory controller.SharedControllerFactory, ts *session.Session) Interface {
 	return &version{
 		controllerFactory: controllerFactory,
+		ts:                ts,
 	}
 }
 
 type version struct {
 	controllerFactory controller.SharedControllerFactory
+	ts                *session.Session
 }
 
 func (v *version) Plan() PlanController {
-	return generic.NewController[*v1.Plan, *v1.PlanList](schema.GroupVersionKind{Group: "upgrade.cattle.io", Version: "v1", Kind: "Plan"}, "plans", true, v.controllerFactory)
+	return generic.NewController[*v1.Plan, *v1.PlanList](schema.GroupVersionKind{Group: "upgrade.cattle.io", Version: "v1", Kind: "Plan"}, "plans", true, v.controllerFactory, v.ts)
 }

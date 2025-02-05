@@ -15,13 +15,18 @@ import (
 	"github.com/rancher/lasso/pkg/controller"
 	"github.com/rancher/lasso/pkg/dynamic"
 	"github.com/rancher/norman/types"
+	clusterv3api "github.com/rancher/rancher/pkg/apis/cluster.cattle.io/v3"
 	managementv3api "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
 	"github.com/rancher/shepherd/pkg/generated/controllers/apps"
 	appsv1 "github.com/rancher/shepherd/pkg/generated/controllers/apps/v1"
+	"github.com/rancher/shepherd/pkg/generated/controllers/cluster.cattle.io"
+	clusterv3 "github.com/rancher/shepherd/pkg/generated/controllers/cluster.cattle.io/v3"
 	"github.com/rancher/shepherd/pkg/generated/controllers/core"
 	corev1 "github.com/rancher/shepherd/pkg/generated/controllers/core/v1"
 	"github.com/rancher/shepherd/pkg/generated/controllers/management.cattle.io"
 	managementv3 "github.com/rancher/shepherd/pkg/generated/controllers/management.cattle.io/v3"
+	"github.com/rancher/shepherd/pkg/generated/controllers/rbac"
+	rbacv1 "github.com/rancher/shepherd/pkg/generated/controllers/rbac/v1"
 	"github.com/rancher/shepherd/pkg/session"
 	"github.com/rancher/shepherd/pkg/wrangler/pkg/generic"
 	"github.com/rancher/wrangler/v3/pkg/apply"
@@ -47,6 +52,7 @@ const (
 var (
 	localSchemeBuilder = runtime.SchemeBuilder{
 		managementv3api.AddToScheme,
+		clusterv3api.AddToScheme,
 	}
 	AddToScheme = localSchemeBuilder.AddToScheme
 	Scheme      = runtime.NewScheme()
@@ -68,6 +74,8 @@ type Context struct {
 	ControllerFactory   controller.SharedControllerFactory
 	MultiClusterManager MultiClusterManager
 	Core                corev1.Interface
+	Cluster             clusterv3.Interface
+	RBAC                rbacv1.Interface
 
 	CachedDiscovery         discovery.CachedDiscoveryInterface
 	RESTMapper              meta.RESTMapper
@@ -77,9 +85,11 @@ type Context struct {
 
 	RESTClientGetter genericclioptions.RESTClientGetter
 
-	mgmt *management.Factory
-	apps *apps.Factory
-	core *core.Factory
+	mgmt    *management.Factory
+	apps    *apps.Factory
+	core    *core.Factory
+	rbac    *rbac.Factory
+	cluster *cluster.Factory
 
 	session *session.Session
 	started bool
@@ -185,6 +195,16 @@ func NewContext(ctx context.Context, restConfig *rest.Config, ts *session.Sessio
 		return nil, err
 	}
 
+	rbac, err := rbac.NewFactoryFromConfigWithOptions(restConfig, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	cluster, err := cluster.NewFactoryFromConfigWithOptions(restConfig, opts)
+	if err != nil {
+		return nil, err
+	}
+
 	wContext := &Context{
 		RESTConfig:              restConfig,
 		Apply:                   apply,
@@ -192,12 +212,16 @@ func NewContext(ctx context.Context, restConfig *rest.Config, ts *session.Sessio
 		Mgmt:                    mgmt.Management().V3(),
 		Apps:                    apps.Apps().V1(),
 		Core:                    core.Core().V1(),
+		RBAC:                    rbac.Rbac().V1(),
+		Cluster:                 cluster.Cluster().V3(),
 		ControllerFactory:       controllerFactory,
 		controllerLock:          &sync.Mutex{},
 
 		mgmt:    mgmt,
 		apps:    apps,
 		core:    core,
+		rbac:    rbac,
+		cluster: cluster,
 		session: ts,
 	}
 
