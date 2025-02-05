@@ -19,21 +19,21 @@ limitations under the License.
 package v1
 
 import (
-	v1 "github.com/rancher/rancher/pkg/apis/rke.cattle.io/v1"
 	"github.com/rancher/shepherd/pkg/wrangler/pkg/generic"
+	v1 "k8s.io/api/rbac/v1"
 )
 
-// RKEBootstrapTemplateController interface for managing RKEBootstrapTemplate resources.
-type RKEBootstrapTemplateController interface {
-	generic.ControllerInterface[*v1.RKEBootstrapTemplate, *v1.RKEBootstrapTemplateList]
+// ClusterRoleBindingController interface for managing ClusterRoleBinding resources.
+type ClusterRoleBindingController interface {
+	generic.NonNamespacedControllerInterface[*v1.ClusterRoleBinding, *v1.ClusterRoleBindingList]
 }
 
-// RKEBootstrapTemplateClient interface for managing RKEBootstrapTemplate resources in Kubernetes.
-type RKEBootstrapTemplateClient interface {
-	generic.ClientInterface[*v1.RKEBootstrapTemplate, *v1.RKEBootstrapTemplateList]
+// ClusterRoleBindingClient interface for managing ClusterRoleBinding resources in Kubernetes.
+type ClusterRoleBindingClient interface {
+	generic.NonNamespacedClientInterface[*v1.ClusterRoleBinding, *v1.ClusterRoleBindingList]
 }
 
-// RKEBootstrapTemplateCache interface for retrieving RKEBootstrapTemplate resources in memory.
-type RKEBootstrapTemplateCache interface {
-	generic.CacheInterface[*v1.RKEBootstrapTemplate]
+// ClusterRoleBindingCache interface for retrieving ClusterRoleBinding resources in memory.
+type ClusterRoleBindingCache interface {
+	generic.NonNamespacedCacheInterface[*v1.ClusterRoleBinding]
 }
