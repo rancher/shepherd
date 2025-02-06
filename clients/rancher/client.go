@@ -74,10 +74,32 @@ func NewClient(bearerToken string, session *session.Session) (*Client, error) {
 		Flags:         &environmentFlags,
 	}
 
-	session.CleanupEnabled = *rancherConfig.Cleanup
+	return newClient(c, bearerToken, rancherConfig, session)
+}
 
+// NewClientForConfig is the constructor for initializing a rancher Client for the given config and session.
+func NewClientForConfig(bearerToken string, rancherConfig *Config, session *session.Session) (*Client, error) {
+	environmentFlags := environmentflag.NewEnvironmentFlags()
+	environmentflag.LoadEnvironmentFlags(environmentflag.ConfigurationFileKey, environmentFlags)
+
+	if bearerToken == "" {
+		bearerToken = rancherConfig.AdminToken
+	}
+
+	c := &Client{
+		RancherConfig: rancherConfig,
+		Flags:         &environmentFlags,
+	}
+
+	return newClient(c, bearerToken, rancherConfig, session)
+}
+
+func newClient(c *Client, bearerToken string, config *Config, session *session.Session) (*Client, error) {
+	if session != nil {
+		session.CleanupEnabled = *config.Cleanup
+	}
 	var err error
-	restConfig := newRestConfig(bearerToken, rancherConfig)
+	restConfig := newRestConfig(bearerToken, config)
 	c.restConfig = restConfig
 	c.Session = session
 	c.Management, err = management.NewClient(clientOpts(restConfig, c.RancherConfig))
@@ -94,8 +116,8 @@ func NewClient(bearerToken string, session *session.Session) (*Client, error) {
 
 	c.Steve.Ops.Session = session
 
-	if rancherConfig.RancherCLI {
-		c.CLI, err = ranchercli.NewClient(session, bearerToken, rancherConfig.Host, c.Management)
+	if config.RancherCLI {
+		c.CLI, err = ranchercli.NewClient(session, bearerToken, config.Host, c.Management)
 		if err != nil {
 			return nil, err
 		}
