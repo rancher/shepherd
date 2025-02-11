@@ -5,6 +5,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/rancher/shepherd/extensions/cloudcredentials"
 	"github.com/rancher/shepherd/pkg/config"
 )
 
@@ -30,10 +31,31 @@ func NewClient() (*Client, error) {
 		return nil, err
 	}
 
-	// Create EC2 service client
 	svc := ec2.New(sess)
 	return &Client{
 		SVC:          svc,
 		ClientConfig: awsEC2ClientConfig,
+	}, nil
+}
+
+// NewClientFromConfig generates a new ec2 client using the provided credentials
+func NewClientFromConfig(awsCredentials *cloudcredentials.AmazonEC2CredentialConfig) (*Client, error) {
+	credential := credentials.NewStaticCredentials(awsCredentials.AccessKey, awsCredentials.SecretKey, "")
+	ec2Session, err := session.NewSession(&aws.Config{
+		Credentials: credential,
+		Region:      aws.String(awsCredentials.DefaultRegion)},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	svc := ec2.New(ec2Session)
+	return &Client{
+		SVC: svc,
+		ClientConfig: &AWSEC2Configs{
+			AWSAccessKeyID:     awsCredentials.AccessKey,
+			AWSSecretAccessKey: awsCredentials.SecretKey,
+			Region:             awsCredentials.DefaultRegion,
+		},
 	}, nil
 }
