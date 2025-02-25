@@ -1,5 +1,5 @@
 /*
-Copyright 2024 Rancher Labs, Inc.
+Copyright 2025 Rancher Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ package v1
 
 import (
 	v1 "github.com/rancher/rancher/pkg/apis/rke.cattle.io/v1"
-	"github.com/rancher/wrangler/v3/pkg/generic"
+	"github.com/rancher/shepherd/pkg/wrangler/pkg/generic"
 )
 
 // RKEBootstrapTemplateController interface for managing RKEBootstrapTemplate resources.

@@ -1,5 +1,5 @@
 /*
-Copyright 2024 Rancher Labs, Inc.
+Copyright 2025 Rancher Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -72,6 +72,9 @@ type Interface interface {
 	Principal() PrincipalController
 	Project() ProjectController
 	ProjectNetworkPolicy() ProjectNetworkPolicyController
+	ProjectRoleTemplateBinding() ProjectRoleTemplateBindingController
+	RancherUserNotification() RancherUserNotificationController
+	RkeAddon() RkeAddonController
 	RkeK8sServiceOption() RkeK8sServiceOptionController
 	RkeK8sSystemImage() RkeK8sSystemImageController
 	RoleTemplate() RoleTemplateController
