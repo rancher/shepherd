@@ -1,5 +1,5 @@
 /*
-Copyright 2024 Rancher Labs, Inc.
+Copyright 2025 Rancher Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ package provisioning
 import (
 	"github.com/rancher/lasso/pkg/controller"
 	v1 "github.com/rancher/shepherd/pkg/generated/controllers/provisioning.cattle.io/v1"
+	"github.com/rancher/shepherd/pkg/session"
 )
 
 type Interface interface {
@@ -29,15 +30,17 @@ type Interface interface {
 
 type group struct {
 	controllerFactory controller.SharedControllerFactory
+	ts                *session.Session
 }
 
 // New returns a new Interface.
-func New(controllerFactory controller.SharedControllerFactory) Interface {
+func New(controllerFactory controller.SharedControllerFactory, ts *session.Session) Interface {
 	return &group{
 		controllerFactory: controllerFactory,
+		ts:                ts,
 	}
 }
 
 func (g *group) V1() v1.Interface {
-	return v1.New(g.controllerFactory)
+	return v1.New(g.controllerFactory, g.ts)
 }
