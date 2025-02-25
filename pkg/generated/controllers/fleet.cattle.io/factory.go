@@ -1,5 +1,5 @@
 /*
-Copyright 2024 Rancher Labs, Inc.
+Copyright 2025 Rancher Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ package fleet
 
 import (
 	"github.com/rancher/lasso/pkg/controller"
-	"github.com/rancher/wrangler/v2/pkg/generic"
+	"github.com/rancher/shepherd/pkg/wrangler/pkg/generic"
 	"k8s.io/client-go/rest"
 )
 
@@ -64,9 +64,9 @@ func NewFactoryFromConfigWithOptionsOrDie(config *rest.Config, opts *FactoryOpti
 }
 
 func (c *Factory) Fleet() Interface {
-	return New(c.ControllerFactory())
+	return New(c.ControllerFactory(), c.Opts.TS)
 }
 
 func (c *Factory) WithAgent(userAgent string) Interface {
-	return New(controller.NewSharedControllerFactoryWithAgent(userAgent, c.ControllerFactory()))
+	return New(controller.NewSharedControllerFactoryWithAgent(userAgent, c.ControllerFactory()), c.Opts.TS)
 }
