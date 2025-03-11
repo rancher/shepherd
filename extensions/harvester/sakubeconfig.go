@@ -48,6 +48,9 @@ func GetHarvesterSAKubeconfig(client *rancher.Client, clusterName string) ([]byt
 
 	status := &provv1.ClusterStatus{}
 	err = steveV1.ConvertToK8sType(harvesterCluster.Data[0].Status, status)
+	if err != nil {
+		return nil, err
+	}
 
 	opts := KubeConfigOpts{
 		CSIClusterRoleName: "harvesterhci.io:csi-driver",
