@@ -3,6 +3,7 @@ package harvester
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -31,11 +32,6 @@ type KubeConfigOpts struct {
 // cluster which will use the kubeconfig. This is typically used when creating a downstream cluster for
 // harvester that uses the harvester cloud provider.
 func GetHarvesterSAKubeconfig(client *rancher.Client, clusterName string) ([]byte, error) {
-	client, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
-	if err != nil {
-		return nil, err
-	}
-
 	query, err := url.ParseQuery(HarvesterProviderClusterLabel)
 	if err != nil {
 		return nil, err
@@ -44,6 +40,10 @@ func GetHarvesterSAKubeconfig(client *rancher.Client, clusterName string) ([]byt
 	harvesterCluster, err := client.Steve.SteveType(clusters.ProvisioningSteveResourceType).ListAll(query)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(harvesterCluster.Data) == 0 {
+		return nil, errors.New("no imported harvester cluster found")
 	}
 
 	status := &provv1.ClusterStatus{}
