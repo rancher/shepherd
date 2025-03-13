@@ -7,6 +7,7 @@ import (
 	"github.com/rancher/shepherd/extensions/defaults"
 	"github.com/rancher/shepherd/extensions/defaults/namespaces"
 	"github.com/rancher/shepherd/extensions/defaults/providers"
+	"github.com/rancher/shepherd/extensions/defaults/stevestates"
 	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/rancher/shepherd/extensions/steve"
 	"github.com/rancher/shepherd/pkg/namegenerator"
@@ -16,6 +17,7 @@ import (
 
 const (
 	googleProvider = "gcp"
+	localCluster   = "local"
 )
 
 // CreateGoogleCloudCredentials is a helper function that creates V1 cloud credentials and waits for them to become active.
@@ -37,7 +39,7 @@ func CreateGoogleCloudCredentials(client *rancher.Client, credentials cloudcrede
 		Type: corev1.SecretTypeOpaque,
 	}
 
-	googleCloudCredentials, err := steve.CreateAndWaitForResource(client, stevetypes.Secret, spec, true, defaults.FiveSecondTimeout, defaults.FiveMinuteTimeout)
+	googleCloudCredentials, err := steve.CreateAndWaitForResource(client, namespaces.FleetLocal+"/"+localCluster, stevetypes.Secret, spec, stevestates.Active, defaults.FiveSecondTimeout, defaults.FiveMinuteTimeout)
 	if err != nil {
 		return nil, err
 	}
