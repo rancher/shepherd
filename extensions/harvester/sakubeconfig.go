@@ -69,7 +69,7 @@ func GetHarvesterSAKubeconfig(client *rancher.Client, clusterName string) ([]byt
 		return nil, err
 	}
 
-	req.Header.Add("Authorization", "Bearer "+client.RancherConfig.AdminToken)
+	req.Header.Add("Authorization", "Bearer "+client.Management.APIBaseClient.Opts.TokenKey)
 	req.Header.Set("Content-Type", "application/json")
 
 	response, err := client.Management.APIBaseClient.Ops.Client.Do(req)
