@@ -112,3 +112,26 @@ func CreateIngress(client *v1.Client, ingressName string, ingressTemplate networ
 
 	return ingressResp, err
 }
+
+// UpdateIngress updates an existing ingress with new specifications.
+func UpdateIngress(client *v1.Client, ingress *v1.SteveAPIObject, updatedIngressSpec *networking.Ingress) (*v1.SteveAPIObject, error) {
+	logrus.Infof("Updating Ingress: %v", ingress.Name)
+
+	ingressClient := client.SteveType(IngressSteveType)
+	existingIngressObj, err := ingressClient.ByID(ingress.ID)
+	if err != nil {
+		logrus.Errorf("Failed to get existing ingress: %v", err)
+		return nil, errors.Wrapf(err, "failed to get existing ingress with ID: %s", ingress.ID)
+	}
+
+	updatedIngressSpec.ResourceVersion = existingIngressObj.ResourceVersion
+
+	updatedIngressObj, err := ingressClient.Update(existingIngressObj, updatedIngressSpec)
+	if err != nil {
+		logrus.Errorf("Failed to update ingress: %v", err)
+		return nil, errors.Wrapf(err, "failed to update ingress with ID: %s", ingress.ID)
+	}
+
+	logrus.Infof("Successfully updated Ingress: %v", ingress.Name)
+	return updatedIngressObj, nil
+}
