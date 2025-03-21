@@ -93,3 +93,24 @@ func DeepCopyMap(config map[string]any) (map[string]any, error) {
 
 	return unmarshaledConfig, nil
 }
+
+// DeepMerge merges two maps together with priority given to the first map provided.
+func DeepMerge(mergingMap map[string]any, baseMap map[string]any) (map[string]any, error) {
+	output, err := DeepCopyMap(baseMap)
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range mergingMap {
+		if _, ok := output[k].(map[string]any); ok {
+			output[k], err = DeepMerge(mergingMap[k].(map[string]any), output[k].(map[string]any))
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			output[k] = v
+		}
+	}
+
+	return output, nil
+}
