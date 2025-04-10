@@ -34,31 +34,31 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// GlobalRoleBindingController interface for managing GlobalRoleBinding resources.
-type GlobalRoleBindingController interface {
-	generic.NonNamespacedControllerInterface[*v3.GlobalRoleBinding, *v3.GlobalRoleBindingList]
+// OIDCClientController interface for managing OIDCClient resources.
+type OIDCClientController interface {
+	generic.NonNamespacedControllerInterface[*v3.OIDCClient, *v3.OIDCClientList]
 }
 
-// GlobalRoleBindingClient interface for managing GlobalRoleBinding resources in Kubernetes.
-type GlobalRoleBindingClient interface {
-	generic.NonNamespacedClientInterface[*v3.GlobalRoleBinding, *v3.GlobalRoleBindingList]
+// OIDCClientClient interface for managing OIDCClient resources in Kubernetes.
+type OIDCClientClient interface {
+	generic.NonNamespacedClientInterface[*v3.OIDCClient, *v3.OIDCClientList]
 }
 
-// GlobalRoleBindingCache interface for retrieving GlobalRoleBinding resources in memory.
-type GlobalRoleBindingCache interface {
-	generic.NonNamespacedCacheInterface[*v3.GlobalRoleBinding]
+// OIDCClientCache interface for retrieving OIDCClient resources in memory.
+type OIDCClientCache interface {
+	generic.NonNamespacedCacheInterface[*v3.OIDCClient]
 }
 
-// GlobalRoleBindingStatusHandler is executed for every added or modified GlobalRoleBinding. Should return the new status to be updated
-type GlobalRoleBindingStatusHandler func(obj *v3.GlobalRoleBinding, status v3.GlobalRoleBindingStatus) (v3.GlobalRoleBindingStatus, error)
+// OIDCClientStatusHandler is executed for every added or modified OIDCClient. Should return the new status to be updated
+type OIDCClientStatusHandler func(obj *v3.OIDCClient, status v3.OIDCClientStatus) (v3.OIDCClientStatus, error)
 
-// GlobalRoleBindingGeneratingHandler is the top-level handler that is executed for every GlobalRoleBinding event. It extends GlobalRoleBindingStatusHandler by a returning a slice of child objects to be passed to apply.Apply
-type GlobalRoleBindingGeneratingHandler func(obj *v3.GlobalRoleBinding, status v3.GlobalRoleBindingStatus) ([]runtime.Object, v3.GlobalRoleBindingStatus, error)
+// OIDCClientGeneratingHandler is the top-level handler that is executed for every OIDCClient event. It extends OIDCClientStatusHandler by a returning a slice of child objects to be passed to apply.Apply
+type OIDCClientGeneratingHandler func(obj *v3.OIDCClient, status v3.OIDCClientStatus) ([]runtime.Object, v3.OIDCClientStatus, error)
 
-// RegisterGlobalRoleBindingStatusHandler configures a GlobalRoleBindingController to execute a GlobalRoleBindingStatusHandler for every events observed.
+// RegisterOIDCClientStatusHandler configures a OIDCClientController to execute a OIDCClientStatusHandler for every events observed.
 // If a non-empty condition is provided, it will be updated in the status conditions for every handler execution
-func RegisterGlobalRoleBindingStatusHandler(ctx context.Context, controller GlobalRoleBindingController, condition condition.Cond, name string, handler GlobalRoleBindingStatusHandler) {
-	statusHandler := &globalRoleBindingStatusHandler{
+func RegisterOIDCClientStatusHandler(ctx context.Context, controller OIDCClientController, condition condition.Cond, name string, handler OIDCClientStatusHandler) {
+	statusHandler := &oIDCClientStatusHandler{
 		client:    controller,
 		condition: condition,
 		handler:   handler,
@@ -66,31 +66,31 @@ func RegisterGlobalRoleBindingStatusHandler(ctx context.Context, controller Glob
 	controller.AddGenericHandler(ctx, name, generic.FromObjectHandlerToHandler(statusHandler.sync))
 }
 
-// RegisterGlobalRoleBindingGeneratingHandler configures a GlobalRoleBindingController to execute a GlobalRoleBindingGeneratingHandler for every events observed, passing the returned objects to the provided apply.Apply.
+// RegisterOIDCClientGeneratingHandler configures a OIDCClientController to execute a OIDCClientGeneratingHandler for every events observed, passing the returned objects to the provided apply.Apply.
 // If a non-empty condition is provided, it will be updated in the status conditions for every handler execution
-func RegisterGlobalRoleBindingGeneratingHandler(ctx context.Context, controller GlobalRoleBindingController, apply apply.Apply,
-	condition condition.Cond, name string, handler GlobalRoleBindingGeneratingHandler, opts *generic.GeneratingHandlerOptions) {
-	statusHandler := &globalRoleBindingGeneratingHandler{
-		GlobalRoleBindingGeneratingHandler: handler,
-		apply:                              apply,
-		name:                               name,
-		gvk:                                controller.GroupVersionKind(),
+func RegisterOIDCClientGeneratingHandler(ctx context.Context, controller OIDCClientController, apply apply.Apply,
+	condition condition.Cond, name string, handler OIDCClientGeneratingHandler, opts *generic.GeneratingHandlerOptions) {
+	statusHandler := &oIDCClientGeneratingHandler{
+		OIDCClientGeneratingHandler: handler,
+		apply:                       apply,
+		name:                        name,
+		gvk:                         controller.GroupVersionKind(),
 	}
 	if opts != nil {
 		statusHandler.opts = *opts
 	}
 	controller.OnChange(ctx, name, statusHandler.Remove)
-	RegisterGlobalRoleBindingStatusHandler(ctx, controller, condition, name, statusHandler.Handle)
+	RegisterOIDCClientStatusHandler(ctx, controller, condition, name, statusHandler.Handle)
 }
 
-type globalRoleBindingStatusHandler struct {
-	client    GlobalRoleBindingClient
+type oIDCClientStatusHandler struct {
+	client    OIDCClientClient
 	condition condition.Cond
-	handler   GlobalRoleBindingStatusHandler
+	handler   OIDCClientStatusHandler
 }
 
 // sync is executed on every resource addition or modification. Executes the configured handlers and sends the updated status to the Kubernetes API
-func (a *globalRoleBindingStatusHandler) sync(key string, obj *v3.GlobalRoleBinding) (*v3.GlobalRoleBinding, error) {
+func (a *oIDCClientStatusHandler) sync(key string, obj *v3.OIDCClient) (*v3.OIDCClient, error) {
 	if obj == nil {
 		return obj, nil
 	}
@@ -129,8 +129,8 @@ func (a *globalRoleBindingStatusHandler) sync(key string, obj *v3.GlobalRoleBind
 	return obj, err
 }
 
-type globalRoleBindingGeneratingHandler struct {
-	GlobalRoleBindingGeneratingHandler
+type oIDCClientGeneratingHandler struct {
+	OIDCClientGeneratingHandler
 	apply apply.Apply
 	opts  generic.GeneratingHandlerOptions
 	gvk   schema.GroupVersionKind
@@ -139,12 +139,12 @@ type globalRoleBindingGeneratingHandler struct {
 }
 
 // Remove handles the observed deletion of a resource, cascade deleting every associated resource previously applied
-func (a *globalRoleBindingGeneratingHandler) Remove(key string, obj *v3.GlobalRoleBinding) (*v3.GlobalRoleBinding, error) {
+func (a *oIDCClientGeneratingHandler) Remove(key string, obj *v3.OIDCClient) (*v3.OIDCClient, error) {
 	if obj != nil {
 		return obj, nil
 	}
 
-	obj = &v3.GlobalRoleBinding{}
+	obj = &v3.OIDCClient{}
 	obj.Namespace, obj.Name = kv.RSplit(key, "/")
 	obj.SetGroupVersionKind(a.gvk)
 
@@ -158,13 +158,13 @@ func (a *globalRoleBindingGeneratingHandler) Remove(key string, obj *v3.GlobalRo
 		ApplyObjects()
 }
 
-// Handle executes the configured GlobalRoleBindingGeneratingHandler and pass the resulting objects to apply.Apply, finally returning the new status of the resource
-func (a *globalRoleBindingGeneratingHandler) Handle(obj *v3.GlobalRoleBinding, status v3.GlobalRoleBindingStatus) (v3.GlobalRoleBindingStatus, error) {
+// Handle executes the configured OIDCClientGeneratingHandler and pass the resulting objects to apply.Apply, finally returning the new status of the resource
+func (a *oIDCClientGeneratingHandler) Handle(obj *v3.OIDCClient, status v3.OIDCClientStatus) (v3.OIDCClientStatus, error) {
 	if !obj.DeletionTimestamp.IsZero() {
 		return status, nil
 	}
 
-	objs, newStatus, err := a.GlobalRoleBindingGeneratingHandler(obj, status)
+	objs, newStatus, err := a.OIDCClientGeneratingHandler(obj, status)
 	if err != nil {
 		return newStatus, err
 	}
@@ -185,7 +185,7 @@ func (a *globalRoleBindingGeneratingHandler) Handle(obj *v3.GlobalRoleBinding, s
 
 // isNewResourceVersion detects if a specific resource version was already successfully processed.
 // Only used if UniqueApplyForResourceVersion is set in generic.GeneratingHandlerOptions
-func (a *globalRoleBindingGeneratingHandler) isNewResourceVersion(obj *v3.GlobalRoleBinding) bool {
+func (a *oIDCClientGeneratingHandler) isNewResourceVersion(obj *v3.OIDCClient) bool {
 	if !a.opts.UniqueApplyForResourceVersion {
 		return true
 	}
@@ -198,7 +198,7 @@ func (a *globalRoleBindingGeneratingHandler) isNewResourceVersion(obj *v3.Global
 
 // storeResourceVersion keeps track of the latest resource version of an object for which Apply was executed
 // Only used if UniqueApplyForResourceVersion is set in generic.GeneratingHandlerOptions
-func (a *globalRoleBindingGeneratingHandler) storeResourceVersion(obj *v3.GlobalRoleBinding) {
+func (a *oIDCClientGeneratingHandler) storeResourceVersion(obj *v3.OIDCClient) {
 	if !a.opts.UniqueApplyForResourceVersion {
 		return
 	}
