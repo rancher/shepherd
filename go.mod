@@ -7,7 +7,7 @@ toolchain go1.24.2
 replace (
 	github.com/docker/distribution => github.com/docker/distribution v2.8.2+incompatible // rancher-machine requires a replace is set
 	k8s.io/api => k8s.io/api v0.32.2
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.31.2
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.32.2
 	k8s.io/apimachinery => k8s.io/apimachinery v0.32.2
 	k8s.io/apiserver => k8s.io/apiserver v0.32.2
 	k8s.io/cli-runtime => k8s.io/cli-runtime v0.32.2
