@@ -1,7 +1,7 @@
 package wait
 
 import (
-	"fmt"
+	"errors"
 
 	"k8s.io/apimachinery/pkg/watch"
 )
@@ -38,10 +38,10 @@ func WatchWait(watchInterface watch.Interface, check WatchCheckFunc) error {
 		select {
 		case event, open := <-watchInterface.ResultChan():
 			if !open {
-				return fmt.Errorf(TimeoutError)
+				return errors.New(TimeoutError)
 			}
 			if event.Type == watch.Error {
-				return fmt.Errorf(WatchConnectionError)
+				return errors.New(WatchConnectionError)
 			}
 
 			done, err := check(event)

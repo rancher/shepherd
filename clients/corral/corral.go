@@ -226,7 +226,7 @@ func CreateMultipleCorrals(ts *session.Session, commands []Args, debug, cleanup 
 		for _, err := range errStrings {
 			longString += err
 		}
-		formattedError = fmt.Errorf(longString)
+		formattedError = errors.New(longString)
 	}
 
 	logrus.Info("done with registration")

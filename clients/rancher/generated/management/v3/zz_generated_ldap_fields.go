@@ -14,6 +14,7 @@ const (
 	LdapFieldsFieldGroupSearchFilter               = "groupSearchFilter"
 	LdapFieldsFieldNestedGroupMembershipEnabled    = "nestedGroupMembershipEnabled"
 	LdapFieldsFieldPort                            = "port"
+	LdapFieldsFieldSearchUsingServiceAccount       = "searchUsingServiceAccount"
 	LdapFieldsFieldServers                         = "servers"
 	LdapFieldsFieldServiceAccountDistinguishedName = "serviceAccountDistinguishedName"
 	LdapFieldsFieldServiceAccountPassword          = "serviceAccountPassword"
@@ -22,6 +23,7 @@ const (
 	LdapFieldsFieldUserDisabledBitMask             = "userDisabledBitMask"
 	LdapFieldsFieldUserEnabledAttribute            = "userEnabledAttribute"
 	LdapFieldsFieldUserLoginAttribute              = "userLoginAttribute"
+	LdapFieldsFieldUserLoginFilter                 = "userLoginFilter"
 	LdapFieldsFieldUserMemberAttribute             = "userMemberAttribute"
 	LdapFieldsFieldUserNameAttribute               = "userNameAttribute"
 	LdapFieldsFieldUserObjectClass                 = "userObjectClass"
@@ -43,6 +45,7 @@ type LdapFields struct {
 	GroupSearchFilter               string   `json:"groupSearchFilter,omitempty" yaml:"groupSearchFilter,omitempty"`
 	NestedGroupMembershipEnabled    bool     `json:"nestedGroupMembershipEnabled,omitempty" yaml:"nestedGroupMembershipEnabled,omitempty"`
 	Port                            int64    `json:"port,omitempty" yaml:"port,omitempty"`
+	SearchUsingServiceAccount       bool     `json:"searchUsingServiceAccount,omitempty" yaml:"searchUsingServiceAccount,omitempty"`
 	Servers                         []string `json:"servers,omitempty" yaml:"servers,omitempty"`
 	ServiceAccountDistinguishedName string   `json:"serviceAccountDistinguishedName,omitempty" yaml:"serviceAccountDistinguishedName,omitempty"`
 	ServiceAccountPassword          string   `json:"serviceAccountPassword,omitempty" yaml:"serviceAccountPassword,omitempty"`
@@ -51,6 +54,7 @@ type LdapFields struct {
 	UserDisabledBitMask             int64    `json:"userDisabledBitMask,omitempty" yaml:"userDisabledBitMask,omitempty"`
 	UserEnabledAttribute            string   `json:"userEnabledAttribute,omitempty" yaml:"userEnabledAttribute,omitempty"`
 	UserLoginAttribute              string   `json:"userLoginAttribute,omitempty" yaml:"userLoginAttribute,omitempty"`
+	UserLoginFilter                 string   `json:"userLoginFilter,omitempty" yaml:"userLoginFilter,omitempty"`
 	UserMemberAttribute             string   `json:"userMemberAttribute,omitempty" yaml:"userMemberAttribute,omitempty"`
 	UserNameAttribute               string   `json:"userNameAttribute,omitempty" yaml:"userNameAttribute,omitempty"`
 	UserObjectClass                 string   `json:"userObjectClass,omitempty" yaml:"userObjectClass,omitempty"`

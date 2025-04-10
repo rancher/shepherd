@@ -1,6 +1,7 @@
 package pods
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -84,7 +85,7 @@ func IsPodReady(pod *v1.SteveAPIObject) (bool, error) {
 		}
 
 		if errorMessage != "" {
-			return true, fmt.Errorf(errorMessage)
+			return true, errors.New(errorMessage)
 		}
 	}
 

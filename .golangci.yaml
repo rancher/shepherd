@@ -38,4 +38,4 @@ issues:
   exclude-files:
     - ^*\.yaml$
     - ^*\.yml$
-  exclude-generated-strict: true
+  exclude-generated: strict
