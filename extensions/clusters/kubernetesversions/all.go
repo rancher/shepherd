@@ -233,7 +233,7 @@ func sortReleases(releases []interface{}) (allAvailableVersions []string) {
 	}
 
 	for _, v := range availableVersionsMap {
-		allAvailableVersions = append(allAvailableVersions, fmt.Sprintf("v"+v.String()))
+		allAvailableVersions = append(allAvailableVersions, fmt.Sprintf("v%s", v.String()))
 	}
 
 	return

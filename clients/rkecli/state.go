@@ -170,7 +170,7 @@ func NewStateFile(state *cluster.FullState, dirName string) (stateFilePath strin
 func GetFullState(client *rancher.Client) (state *cluster.FullState, err error) {
 	namespacedSecretClient := client.Steve.SteveType("secret").NamespacedSteveClient(cluster.SystemNamespace)
 
-	fullstateSecretID := fmt.Sprintf(cluster.SystemNamespace+"/%s", cluster.FullStateSecretName)
+	fullstateSecretID := fmt.Sprintf("%s/%s", cluster.SystemNamespace, cluster.FullStateSecretName)
 
 	secretResp, err := namespacedSecretClient.ByID(fullstateSecretID)
 	if err != nil {
@@ -208,5 +208,5 @@ func appendSSHPath(currentPath, newPath string) string {
 	ssh := ".ssh/"
 	currentPath = strings.TrimPrefix(currentPath, ssh)
 
-	return fmt.Sprintf(newPath + "/" + currentPath)
+	return fmt.Sprintf("%s/%s", newPath, currentPath)
 }

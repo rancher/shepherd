@@ -551,7 +551,7 @@ func logClusterInfoWithChanges(clusterID, clusterInfo string, summary summary.Su
 	newClusterInfo := fmt.Sprintf("ClusterID: %v, Message: %v, Error: %v, State: %v, Transitioning: %v", clusterID, summary.Message, summary.Error, summary.State, summary.Transitioning)
 
 	if clusterInfo != newClusterInfo {
-		logrus.Infof(newClusterInfo)
+		logrus.Info(newClusterInfo)
 		clusterInfo = newClusterInfo
 	}
 
