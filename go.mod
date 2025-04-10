@@ -6,12 +6,12 @@ toolchain go1.24.2
 
 replace (
 	github.com/docker/distribution => github.com/docker/distribution v2.8.2+incompatible // rancher-machine requires a replace is set
-	k8s.io/api => k8s.io/api v0.31.1
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.31.1
-	k8s.io/apimachinery => k8s.io/apimachinery v0.31.1
-	k8s.io/apiserver => k8s.io/apiserver v0.31.1
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.31.1
-	k8s.io/client-go => k8s.io/client-go v0.31.1
+	k8s.io/api => k8s.io/api v0.32.2
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.31.2
+	k8s.io/apimachinery => k8s.io/apimachinery v0.32.2
+	k8s.io/apiserver => k8s.io/apiserver v0.32.2
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.32.2
+	k8s.io/client-go => k8s.io/client-go v0.32.2
 )
 
 require (
@@ -46,10 +46,10 @@ require (
 	k8s.io/api v0.32.2
 	k8s.io/apimachinery v0.32.2
 	k8s.io/apiserver v0.32.2
-	k8s.io/cli-runtime v0.32.1
+	k8s.io/cli-runtime v0.32.2
 	k8s.io/client-go v12.0.0+incompatible
-	k8s.io/kube-aggregator v0.32.1
-	k8s.io/kubectl v0.32.1
+	k8s.io/kube-aggregator v0.32.2
+	k8s.io/kubectl v0.32.2
 	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738
 	sigs.k8s.io/cluster-api v1.9.5
 	sigs.k8s.io/yaml v1.4.0
@@ -106,7 +106,6 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
-	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
@@ -171,7 +170,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiextensions-apiserver v0.32.2 // indirect
-	k8s.io/code-generator v0.32.1 // indirect
+	k8s.io/code-generator v0.32.2 // indirect
 	k8s.io/component-base v0.32.2 // indirect
 	k8s.io/gengo v0.0.0-20250130153323-76c5745d3511 // indirect
 	k8s.io/gengo/v2 v2.0.0-20240911193312-2b36238f13e9 // indirect
