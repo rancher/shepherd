@@ -5,7 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/rancher/shepherd/clients/rancher/auth"
 	"io"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"net/http"
 	"strings"
 
@@ -25,12 +32,6 @@ import (
 	"github.com/rancher/shepherd/pkg/environmentflag"
 	"github.com/rancher/shepherd/pkg/session"
 	"github.com/rancher/shepherd/pkg/wrangler"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 // Client is the main rancher Client object that gives an end user access to the Provisioning and Management
@@ -47,7 +48,9 @@ type Client struct {
 	// Wrangler context to use to access management.cattle.io v3 API resources
 	WranglerContext *wrangler.Context
 	// CLI is the client used to interact with the Rancher CLI
-	CLI *ranchercli.Client
+	CLI  *ranchercli.Client
+	Auth *auth.Client // Auth is the auth client used to intaract with rancher
+
 	// Session is the session object used by the client to track all the resources being created by the client.
 	Session *session.Session
 	// Flags is the environment flags used by the client to test selectively against a rancher instance.
@@ -137,6 +140,13 @@ func newClient(c *Client, bearerToken string, config *Config, session *session.S
 
 	c.WranglerContext = wranglerContext
 
+	authClient, err := auth.NewClient(c.Management, session)
+	if err != nil {
+		return nil, err
+	}
+
+	c.Auth = authClient
+
 	splitBearerKey := strings.Split(bearerToken, ":")
 	token, err := c.Management.Token.ByID(splitBearerKey[0])
 	if err != nil {
@@ -220,7 +230,7 @@ func (c *Client) doAction(endpoint, action string, body []byte, output interface
 // AsUser accepts a user object, and then creates a token for said `user`. Then it instantiates and returns a Client using the token created.
 // This function uses the login action, and user must have a correct username and password combination.
 func (c *Client) AsUser(user *management.User) (*Client, error) {
-	returnedToken, err := c.login(user)
+	returnedToken, err := c.login(user, auth.LocalAuth)
 	if err != nil {
 		return nil, err
 	}
@@ -228,15 +238,15 @@ func (c *Client) AsUser(user *management.User) (*Client, error) {
 	return NewClient(returnedToken.Token, c.Session)
 }
 
-// AsUserForConfig accepts a Config and a user object, and then creates a token for said `user`. Then it instantiates and returns a Client using the token created.
+// AsAuthUser accepts a user object, and then creates a token for said `user`. Then it instantiates and returns a Client using the token created.
 // This function uses the login action, and user must have a correct username and password combination.
-func (c *Client) AsUserForConfig(rancherConfig *Config, user *management.User) (*Client, error) {
-	returnedToken, err := c.login(user)
+func (c *Client) AsAuthUser(user *management.User, authProvider auth.Provider) (*Client, error) {
+	returnedToken, err := c.login(user, authProvider)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewClientForConfig(returnedToken.Token, rancherConfig, c.Session)
+	return NewClient(returnedToken.Token, c.Session)
 }
 
 // ReLogin reinstantiates a Client to update its API schema. This function would be used for a non admin user that needs to be
@@ -369,7 +379,7 @@ func (c *Client) GetManagementWatchInterface(schemaType string, opts metav1.List
 }
 
 // login uses the local authentication provider to authenticate a user and return the subsequent token.
-func (c *Client) login(user *management.User) (*management.Token, error) {
+func (c *Client) login(user *management.User, providerOpt ...auth.Provider) (*management.Token, error) {
 	token := &management.Token{}
 	bodyContent, err := json.Marshal(struct {
 		Username string `json:"username"`
@@ -381,7 +391,19 @@ func (c *Client) login(user *management.User) (*management.Token, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = c.doAction("/v3-public/localProviders/local", "login", bodyContent, token)
+
+	// Use the provided provider if available, otherwise use the default login endpoint
+	var endpoint string
+	if len(providerOpt) > 0 {
+		// Use the specified provider
+		provider := providerOpt[0]
+		endpoint = fmt.Sprintf("/v3-public/%vProviders/%v", provider.String(), strings.ToLower(provider.String()))
+	} else {
+		// Use the default login endpoint when no provider is specified
+		endpoint = "/v3-public/localProviders/local"
+	}
+
+	err = c.doAction(endpoint, "login", bodyContent, token)
 	if err != nil {
 		return nil, err
 	}
