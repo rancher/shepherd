@@ -51,9 +51,10 @@ type Client struct {
 	// Session is the session object used by the client to track all the resources being created by the client.
 	Session *session.Session
 	// Flags is the environment flags used by the client to test selectively against a rancher instance.
-	Flags      *environmentflag.EnvironmentFlags
-	restConfig *rest.Config
-	UserID     string
+	Flags            *environmentflag.EnvironmentFlags
+	restConfig       *rest.Config
+	UserID           string
+	RancherInstances []*Client
 }
 
 // NewClient is the constructor to the initializing a rancher Client. It takes a bearer token and session.Session. If bearer token is not provided,
@@ -146,6 +147,38 @@ func newClient(c *Client, bearerToken string, config *Config, session *session.S
 	c.UserID = token.UserID
 
 	return c, nil
+}
+
+// RancherClients returns initialized clients for additional Rancher instances
+// configured in the rancher configuration file. If clients have already been
+// initialized, it returns the cached instances. Returns an empty slice if no
+// additional instances are configured or an error if initialization fails.
+func (c *Client) RancherClients() ([]*Client, error) {
+	if len(c.RancherInstances) > 0 {
+		return c.RancherInstances, nil
+	}
+
+	rancherConfig := new(Config)
+	config.LoadConfig(ConfigurationFileKey, rancherConfig)
+
+	if len(rancherConfig.RancherInstances) == 0 {
+		return []*Client{}, nil
+	}
+
+	c.RancherInstances = make([]*Client, 0, len(rancherConfig.RancherInstances))
+	for _, instance := range rancherConfig.RancherInstances {
+		fullConfig := &Config{
+			ConfigCommon: instance.ConfigCommon,
+		}
+
+		additionalClient, err := NewClientForConfig(instance.AdminToken, fullConfig, c.Session)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize additional Rancher instance %s: %v", instance.Host, err)
+		}
+		c.RancherInstances = append(c.RancherInstances, additionalClient)
+	}
+
+	return c.RancherInstances, nil
 }
 
 // newRestConfig is a constructor that sets ups rest.Config the configuration used by the Provisioning client.

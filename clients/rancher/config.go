@@ -3,8 +3,8 @@ package rancher
 // The json/yaml config key for the rancher config
 const ConfigurationFileKey = "rancher"
 
-// Config is configuration need to test against a rancher instance
-type Config struct {
+// ConfigCommon contains the common fields for both Config and InstanceConfig
+type ConfigCommon struct {
 	Host          string `yaml:"host" json:"host"`
 	AdminToken    string `yaml:"adminToken" json:"adminToken"`
 	AdminPassword string `yaml:"adminPassword" json:"adminPassword"`
@@ -15,4 +15,15 @@ type Config struct {
 	ClusterName   string `yaml:"clusterName" json:"clusterName" default:""`
 	ShellImage    string `yaml:"shellImage" json:"shellImage" default:""`
 	RancherCLI    bool   `yaml:"rancherCLI" json:"rancherCLI" default:"false"`
+}
+
+// Config is the configuration needed to test it against a rancher instance
+type Config struct {
+	ConfigCommon     `yaml:",inline"`
+	RancherInstances []InstanceConfig `yaml:"rancherInstances" json:"rancherInstances" default:"[]"`
+}
+
+// InstanceConfig represents configuration for additional Rancher instances
+type InstanceConfig struct {
+	ConfigCommon `yaml:",inline"`
 }
