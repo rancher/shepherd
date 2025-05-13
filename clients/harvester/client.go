@@ -62,18 +62,17 @@ func NewClientForConfig(bearerToken string, harvesterConfig *Config, session *se
 	}
 
 	var err error
-	restConfig := newRestConfig(bearerToken, c.HarvesterConfig)
-	c.restConfig = restConfig
+	c.restConfig = newRestConfig(bearerToken, c.HarvesterConfig)
 	c.Session = session
 
-	c.Steve, err = v1.NewClient(clientOptsV1(restConfig, c.HarvesterConfig))
+	c.Steve, err = v1.NewClient(clientOptsV1(c.restConfig, c.HarvesterConfig))
 	if err != nil {
 		return nil, err
 	}
 
 	c.Steve.Ops.Session = session
 
-	catalogClient, err := catalog.NewForConfig(restConfig, session)
+	catalogClient, err := catalog.NewForConfig(c.restConfig, session)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +82,7 @@ func NewClientForConfig(bearerToken string, harvesterConfig *Config, session *se
 	return c, nil
 }
 
-// newRestConfig is a constructor that sets ups rest.Config the configuration used by the Provisioning client.
+// newRestConfig is a constructor that sets up a rest.Config the configuration used by the Provisioning client.
 func newRestConfig(bearerToken string, harvesterConfig *Config) *rest.Config {
 	return &rest.Config{
 		Host:        harvesterConfig.Host,
@@ -94,7 +93,7 @@ func newRestConfig(bearerToken string, harvesterConfig *Config) *rest.Config {
 	}
 }
 
-// clientOptsV1 is a constructor that sets ups clientbase.ClientOpts the configuration used by the v1 harvester clients.
+// clientOptsV1 is a constructor that sets up a clientbase.ClientOpts the configuration used by the v1 harvester clients.
 func clientOptsV1(restConfig *rest.Config, harvesterConfig *Config) *clientbase.ClientOpts {
 	return &clientbase.ClientOpts{
 		URL:      fmt.Sprintf("https://%s/v1", harvesterConfig.Host),
