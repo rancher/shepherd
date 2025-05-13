@@ -9,7 +9,6 @@ import (
 
 	"github.com/rancher/shepherd/pkg/clientbase"
 	"github.com/rancher/shepherd/pkg/config"
-	"github.com/rancher/shepherd/pkg/environmentflag"
 	"github.com/rancher/shepherd/pkg/session"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
@@ -36,21 +35,34 @@ func NewClient(bearerToken string, session *session.Session) (*Client, error) {
 	harvesterConfig := new(Config)
 	config.LoadConfig(ConfigurationFileKey, harvesterConfig)
 
-	environmentFlags := environmentflag.NewEnvironmentFlags()
-	environmentflag.LoadEnvironmentFlags(environmentflag.ConfigurationFileKey, environmentFlags)
+	c, err := NewClientForConfig(bearerToken, harvesterConfig, session)
+	if err != nil {
+		return nil, err
+	}
 
+	return c, err
+}
+
+// NewClientForConfig is the constructor for initializing a rancher Client for the given config and session.
+func NewClientForConfig(bearerToken string, harvesterConfig *Config, session *session.Session) (*Client, error) {
 	if bearerToken == "" {
 		bearerToken = harvesterConfig.AdminToken
+	}
+
+	if harvesterConfig == nil {
+		harvesterConfig = new(Config)
 	}
 
 	c := &Client{
 		HarvesterConfig: harvesterConfig,
 	}
 
-	session.CleanupEnabled = *harvesterConfig.Cleanup
+	if session != nil {
+		session.CleanupEnabled = *c.HarvesterConfig.Cleanup
+	}
 
 	var err error
-	restConfig := newRestConfig(bearerToken, harvesterConfig)
+	restConfig := newRestConfig(bearerToken, c.HarvesterConfig)
 	c.restConfig = restConfig
 	c.Session = session
 
