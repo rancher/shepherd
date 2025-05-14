@@ -228,16 +228,39 @@ func (c *Client) AsUser(user *management.User) (*Client, error) {
 	return NewClient(returnedToken.Token, c.Session)
 }
 
+// AsUserForConfig accepts a Config and a user object, and then creates a token for said `user`. Then it instantiates and returns a Client using the token created.
+// This function uses the login action, and user must have a correct username and password combination.
+func (c *Client) AsUserForConfig(rancherConfig *Config, user *management.User) (*Client, error) {
+	returnedToken, err := c.login(user)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewClientForConfig(returnedToken.Token, rancherConfig, c.Session)
+}
+
 // ReLogin reinstantiates a Client to update its API schema. This function would be used for a non admin user that needs to be
 // "reloaded" inorder to have updated permissions for certain resources.
 func (c *Client) ReLogin() (*Client, error) {
 	return NewClient(c.restConfig.BearerToken, c.Session)
 }
 
+// ReLoginForconfig reinstantiates a Client to update its API schema with the same Config. This function would be used for a non admin user that needs to be
+// "reloaded" inorder to have updated permissions for certain resources.
+func (c *Client) ReLoginForConfig(rancherConfig *Config) (*Client, error) {
+	return NewClientForConfig(c.restConfig.BearerToken, rancherConfig, c.Session)
+}
+
 // WithSession accepts a session.Session and instantiates a new Client to reference this new session.Session. The main purpose is to use it
 // when created "sub sessions" when tracking resources created at a test case scope.
 func (c *Client) WithSession(session *session.Session) (*Client, error) {
 	return NewClient(c.restConfig.BearerToken, session)
+}
+
+// WithSessionForConfig accepts a Config and a session.Session and instantiates a new Client to reference this new session.Session. The main purpose is to use it
+// when created "sub sessions" when tracking resources created at a test case scope.
+func (c *Client) WithSessionForConfig(rancherConfig *Config, session *session.Session) (*Client, error) {
+	return NewClientForConfig(c.restConfig.BearerToken, rancherConfig, session)
 }
 
 // GetClusterCatalogClient is a function that takes a clusterID and instantiates a catalog client to directly communicate with that specific cluster.
