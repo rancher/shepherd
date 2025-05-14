@@ -29,10 +29,6 @@ var ConfigMapGroupVersionResource = schema.GroupVersionResource{
 	Resource: "configmaps",
 }
 
-type ConfigMapList struct {
-	Items []coreV1.ConfigMap
-}
-
 // CreateConfigMap is a helper function that uses the dynamic client to create a config map on a namespace for a specific cluster.
 // It registers a delete fuction.
 func CreateConfigMap(client *rancher.Client, clusterID, configMapName, description, namespace string, data, labels, annotations map[string]string) (*coreV1.ConfigMap, error) {
@@ -91,32 +87,24 @@ func NewConfigmapTemplate(configmapName, namespace string, annotations, labels, 
 	}
 }
 
-func ListConfigMaps(client *rancher.Client, clusterID, namespace string, opts metav1.ListOptions) (*ConfigMapList, error) {
-	configMapList := new(ConfigMapList)
-
+func ListConfigMaps(client *rancher.Client, clusterID, namespace string, opts metav1.ListOptions) (*coreV1.ConfigMapList, error) {
 	dynamicClient, err := client.GetDownStreamClusterClient(clusterID)
 	if err != nil {
 		return nil, err
 	}
 
 	configMapResource := dynamicClient.Resource(ConfigMapGroupVersionResource).Namespace(namespace)
-	configMaps, err := configMapResource.List(context.TODO(), opts)
+	unstructuredResp, err := configMapResource.List(context.TODO(), opts)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, unstructuredConfigMap := range configMaps.Items {
-		newConfigMap := &coreV1.ConfigMap{}
-
-		err := scheme.Scheme.Convert(&unstructuredConfigMap, newConfigMap, unstructuredConfigMap.GroupVersionKind())
-		if err != nil {
-			return nil, err
-		}
-
-		configMapList.Items = append(configMapList.Items, *newConfigMap)
+	newConfigMapList := &coreV1.ConfigMapList{}
+	err = scheme.Scheme.Convert(unstructuredResp, newConfigMapList, unstructuredResp.GroupVersionKind())
+	if err != nil {
+		return nil, err
 	}
-
-	return configMapList, nil
+	return newConfigMapList, nil
 }
 
 func GetConfigMapByName(client *rancher.Client, clusterID, configMapName, namespace string, getOpts metav1.GetOptions) (*coreV1.ConfigMap, error) {
