@@ -12,6 +12,7 @@ import (
 	k8Scheme "k8s.io/client-go/kubernetes/scheme"
 )
 
+// GetPods utilizes the upstream K8s corev1 client (from the rancher.Client) to get the given cluster's Pods based on any List options passed
 func GetPods(client *rancher.Client, clusterID string, namespace string, listOptions *metav1.ListOptions) ([]corev1.Pod, error) {
 
 	kubeConfig, err := GetKubeconfig(client, clusterID)
@@ -39,6 +40,7 @@ func GetPods(client *rancher.Client, clusterID string, namespace string, listOpt
 	return pods.Items, nil
 }
 
+// GetPodNames calls GetPods and filters the list of Pods and extracts their names into a []string
 func GetPodNames(client *rancher.Client, clusterID string, namespace string, listOptions *metav1.ListOptions) ([]string, error) {
 	pods, err := GetPods(client, clusterID, namespace, listOptions)
 	if err != nil {

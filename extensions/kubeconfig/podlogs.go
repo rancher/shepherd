@@ -74,6 +74,8 @@ func GetPodLogs(client *rancher.Client, clusterID string, podName string, namesp
 	return logs, nil
 }
 
+// GetPodLogsWithOpts fetches logs from a Kubernetes pod, with an optional PodLogOptions object that can be used to finetune which Logs get pulled.
+// Buffer size (e.g., '64KB', '8MB', '1GB') influences log reading; an empty string causes no buffering.
 func GetPodLogsWithOpts(client *rancher.Client, clusterID string, podName string, namespace string, bufferSizeStr string, opts *corev1.PodLogOptions) (string, error) {
 	var restConfig *restclient.Config
 
