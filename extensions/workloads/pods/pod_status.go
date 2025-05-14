@@ -64,7 +64,7 @@ func IsPodReady(pod *v1.SteveAPIObject) (bool, error) {
 		return false, err
 	}
 
-	if podStatus.ContainerStatuses == nil || len(podStatus.ContainerStatuses) == 0 {
+	if len(podStatus.ContainerStatuses) == 0 {
 		return false, nil
 	}
 
