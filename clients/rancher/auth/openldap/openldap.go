@@ -28,7 +28,7 @@ type OLDAPClient struct {
 	Config *Config
 }
 
-// NewOLDAP constructs OLDAP struct after it reads Open LDAP from the configuration file
+// NewOLDAP constructs OLDAP struct after it reads Open LDAP auth from the configuration file
 func NewOLDAP(client *management.Client, session *session.Session) (*OLDAPClient, error) {
 	ldapConfig := new(Config)
 	config.LoadConfig(ConfigurationFileKey, ldapConfig)
@@ -70,7 +70,7 @@ func (o *OLDAPClient) Update(
 	return o.client.AuthConfig.Update(existing, updates)
 }
 
-// Disable is a method of OLDAP, makes a request to disable Open LDAP
+// Disable is a method of OLDAP, makes a request to disable Open LDAP auth provider
 func (o *OLDAPClient) Disable() error {
 	var jsonResp map[string]any
 
