@@ -389,7 +389,7 @@ func (c *Client) GetManagementWatchInterface(schemaType string, opts metav1.List
 }
 
 // login uses the local authentication provider to authenticate a user and return the subsequent token.
-func (c *Client) login(user *management.User, provider auth.Provider) (*management.Token, error) {
+func (c *Client) login(user *management.User, providerOpt ...auth.Provider) (*management.Token, error) {
 	token := &management.Token{}
 	bodyContent, err := json.Marshal(struct {
 		Username string `json:"username"`
@@ -401,7 +401,18 @@ func (c *Client) login(user *management.User, provider auth.Provider) (*manageme
 	if err != nil {
 		return nil, err
 	}
-	endpoint := fmt.Sprintf("/v3-public/%vProviders/%v", provider.String(), strings.ToLower(provider.String()))
+
+	// Use the provided provider if available, otherwise use the default login endpoint
+	var endpoint string
+	if len(providerOpt) > 0 {
+		// Use the specified provider
+		provider := providerOpt[0]
+		endpoint = fmt.Sprintf("/v3-public/%vProviders/%v", provider.String(), strings.ToLower(provider.String()))
+	} else {
+		// Use the default login endpoint when no provider is specified
+		endpoint = "/v3-public/localProviders/local"
+	}
+
 	err = c.doAction(endpoint, "login", bodyContent, token)
 	if err != nil {
 		return nil, err
