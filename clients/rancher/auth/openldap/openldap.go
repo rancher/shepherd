@@ -3,8 +3,9 @@ package openldap
 import (
 	"fmt"
 
-	management "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
-	"github.com/rancher/shepherd/clients/rancher"
+	apisv3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
+
+	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	"github.com/rancher/shepherd/pkg/config"
 	"github.com/rancher/shepherd/pkg/session"
 )
@@ -12,6 +13,7 @@ import (
 type OLDAPOperations interface {
 	Enable() error
 	Disable() error
+	Update(existing, updates *management.AuthConfig) (*management.AuthConfig, error)
 }
 
 const (
@@ -19,28 +21,28 @@ const (
 	schemaType   = "openLdapConfigs"
 )
 
-type OLDAP struct {
-	Config *Config
-
+type OLDAPClient struct {
+	client  *management.Client
 	session *session.Session
-	client  *rancher.Client
+
+	Config *Config
 }
 
-// NewOLDAP constructs OLDAP struct after it reads Open LDAP from the configuration file
-func NewOLDAP(client *rancher.Client, ts *session.Session) (*OLDAP, error) {
+// NewOLDAP constructs OLDAP struct after it reads Open LDAP auth from the configuration file
+func NewOLDAP(client *management.Client, session *session.Session) (*OLDAPClient, error) {
 	ldapConfig := new(Config)
 	config.LoadConfig(ConfigurationFileKey, ldapConfig)
 
-	return &OLDAP{
-		Config:  ldapConfig,
-		session: ts,
+	return &OLDAPClient{
 		client:  client,
+		session: session,
+		Config:  ldapConfig,
 	}, nil
 }
 
 // Enable is a method of OLDAP, makes a request to the action with the given
 // configuration values
-func (o *OLDAP) Enable() error {
+func (o *OLDAPClient) Enable() error {
 	var jsonResp map[string]interface{}
 
 	url := o.newActionURL("testAndApply")
@@ -49,7 +51,7 @@ func (o *OLDAP) Enable() error {
 		return err
 	}
 
-	err = o.client.Management.Ops.DoModify("POST", url, enableActionInput, &jsonResp)
+	err = o.client.Ops.DoModify("POST", url, enableActionInput, &jsonResp)
 	if err != nil {
 		return err
 	}
@@ -61,28 +63,35 @@ func (o *OLDAP) Enable() error {
 	return nil
 }
 
-// Disable is a method of OLDAP, makes a request to disable Open LDAP
-func (o *OLDAP) Disable() error {
+// Update is a method of OLDAP, makes an update with the given configuration values
+func (o *OLDAPClient) Update(
+	existing, updates *management.AuthConfig,
+) (*management.AuthConfig, error) {
+	return o.client.AuthConfig.Update(existing, updates)
+}
+
+// Disable is a method of OLDAP, makes a request to disable Open LDAP auth provider
+func (o *OLDAPClient) Disable() error {
 	var jsonResp map[string]any
 
 	url := o.newActionURL("disable")
 	disableActionInput := o.newDisableInput()
 
-	return o.client.Management.Ops.DoModify("POST", url, &disableActionInput, &jsonResp)
+	return o.client.Ops.DoModify("POST", url, &disableActionInput, &jsonResp)
 }
 
-func (o *OLDAP) newActionURL(action string) string {
-	protocol := "https"
-
-	if *o.client.RancherConfig.Insecure {
-		protocol = "http"
-	}
-
-	return fmt.Sprintf("%v://%v/v3/%v/%v?action=%v", protocol, o.client.RancherConfig.Host, schemaType, resourceType, action)
+func (o *OLDAPClient) newActionURL(action string) string {
+	return fmt.Sprintf(
+		"%v/%v/%v?action=%v",
+		o.client.Opts.URL,
+		schemaType,
+		resourceType,
+		action,
+	)
 }
 
-func (o *OLDAP) newEnableInputFromConfig() (*management.LdapTestAndApplyInput, error) {
-	var resource management.LdapTestAndApplyInput
+func (o *OLDAPClient) newEnableInputFromConfig() (*apisv3.LdapTestAndApplyInput, error) {
+	var resource apisv3.LdapTestAndApplyInput
 
 	var server string
 	if o.Config.Hostname == "" && o.Config.IP == "" {
@@ -116,6 +125,6 @@ func (o *OLDAP) newEnableInputFromConfig() (*management.LdapTestAndApplyInput, e
 	return &resource, nil
 }
 
-func (o *OLDAP) newDisableInput() []byte {
+func (o *OLDAPClient) newDisableInput() []byte {
 	return []byte(`{"action": "disable"}`)
 }
