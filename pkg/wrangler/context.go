@@ -16,6 +16,7 @@ import (
 	"github.com/rancher/lasso/pkg/dynamic"
 	"github.com/rancher/norman/types"
 	clusterv3api "github.com/rancher/rancher/pkg/apis/cluster.cattle.io/v3"
+	extv1api "github.com/rancher/rancher/pkg/apis/ext.cattle.io/v1"
 	managementv3api "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
 	"github.com/rancher/shepherd/pkg/generated/controllers/apps"
 	appsv1 "github.com/rancher/shepherd/pkg/generated/controllers/apps/v1"
@@ -25,6 +26,8 @@ import (
 	clusterv3 "github.com/rancher/shepherd/pkg/generated/controllers/cluster.cattle.io/v3"
 	"github.com/rancher/shepherd/pkg/generated/controllers/core"
 	corev1 "github.com/rancher/shepherd/pkg/generated/controllers/core/v1"
+	"github.com/rancher/shepherd/pkg/generated/controllers/ext.cattle.io"
+	extv1 "github.com/rancher/shepherd/pkg/generated/controllers/ext.cattle.io/v1"
 	"github.com/rancher/shepherd/pkg/generated/controllers/management.cattle.io"
 	managementv3 "github.com/rancher/shepherd/pkg/generated/controllers/management.cattle.io/v3"
 	"github.com/rancher/shepherd/pkg/generated/controllers/rbac"
@@ -55,6 +58,7 @@ var (
 	localSchemeBuilder = runtime.SchemeBuilder{
 		managementv3api.AddToScheme,
 		clusterv3api.AddToScheme,
+		extv1api.AddToScheme,
 	}
 	AddToScheme = localSchemeBuilder.AddToScheme
 	Scheme      = runtime.NewScheme()
@@ -79,6 +83,7 @@ type Context struct {
 	Cluster             clusterv3.Interface
 	RBAC                rbacv1.Interface
 	Batch               batchv1.Interface
+	Ext                 extv1.Interface
 
 	CachedDiscovery         discovery.CachedDiscoveryInterface
 	RESTMapper              meta.RESTMapper
@@ -94,6 +99,7 @@ type Context struct {
 	rbac    *rbac.Factory
 	cluster *cluster.Factory
 	batch   *batch.Factory
+	ext     *ext.Factory
 
 	session *session.Session
 	started bool
@@ -160,8 +166,15 @@ func (w *Context) Start(ctx context.Context) error {
 
 func enableProtobuf(cfg *rest.Config) *rest.Config {
 	cpy := rest.CopyConfig(cfg)
-	cpy.AcceptContentTypes = "application/vnd.kubernetes.protobuf, application/json"
-	cpy.ContentType = "application/json"
+
+	if os.Getenv("DISABLE_PROTOBUF") == "true" {
+		cpy.AcceptContentTypes = "application/json"
+		cpy.ContentType = "application/json"
+	} else {
+		cpy.AcceptContentTypes = "application/vnd.kubernetes.protobuf, application/json"
+		cpy.ContentType = "application/json"
+	}
+
 	return cpy
 }
 
@@ -214,6 +227,11 @@ func NewContext(ctx context.Context, restConfig *rest.Config, ts *session.Sessio
 		return nil, err
 	}
 
+	ext, err := ext.NewFactoryFromConfigWithOptions(restConfig, opts)
+	if err != nil {
+		return nil, err
+	}
+
 	wContext := &Context{
 		RESTConfig:              restConfig,
 		Apply:                   apply,
@@ -224,6 +242,7 @@ func NewContext(ctx context.Context, restConfig *rest.Config, ts *session.Sessio
 		RBAC:                    rbac.Rbac().V1(),
 		Batch:                   batch.Batch().V1(),
 		Cluster:                 cluster.Cluster().V3(),
+		Ext:                     ext.Ext().V1(),
 		ControllerFactory:       controllerFactory,
 		controllerLock:          &sync.Mutex{},
 
@@ -232,6 +251,7 @@ func NewContext(ctx context.Context, restConfig *rest.Config, ts *session.Sessio
 		core:    core,
 		rbac:    rbac,
 		batch:   batch,
+		ext:     ext,
 		cluster: cluster,
 		session: ts,
 	}

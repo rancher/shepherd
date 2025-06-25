@@ -45,6 +45,7 @@ type Interface interface {
 	ClusterRoleTemplateBinding() ClusterRoleTemplateBindingController
 	ClusterTemplate() ClusterTemplateController
 	ClusterTemplateRevision() ClusterTemplateRevisionController
+	CognitoProvider() CognitoProviderController
 	ComposeConfig() ComposeConfigController
 	DynamicSchema() DynamicSchemaController
 	EtcdBackup() EtcdBackupController
@@ -149,6 +150,10 @@ func (v *version) ClusterTemplate() ClusterTemplateController {
 
 func (v *version) ClusterTemplateRevision() ClusterTemplateRevisionController {
 	return generic.NewController[*v3.ClusterTemplateRevision, *v3.ClusterTemplateRevisionList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "ClusterTemplateRevision"}, "clustertemplaterevisions", true, v.controllerFactory, v.ts)
+}
+
+func (v *version) CognitoProvider() CognitoProviderController {
+	return generic.NewNonNamespacedController[*v3.CognitoProvider, *v3.CognitoProviderList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "CognitoProvider"}, "cognitoproviders", v.controllerFactory, v.ts)
 }
 
 func (v *version) ComposeConfig() ComposeConfigController {
