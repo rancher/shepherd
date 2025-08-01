@@ -21,7 +21,7 @@ import (
 
 const (
 	hostRegex = "https://(.+)/v1"
-	duration  = 100 * time.Millisecond // duration of 100 miliseconds to be short since this is a fast check
+	duration  = 300 * time.Millisecond // duration of 100 miliseconds to be short since this is a fast check
 	factor    = 2                      // with a factor of 1
 	steps     = 12                     // only do 12 tries
 )
