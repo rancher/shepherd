@@ -57,6 +57,7 @@ func main() {
 		"FleetCattleControllerPath":        "./pkg/generated/controllers/fleet.cattle.io",
 		"RKECattleControllerPath":          "./pkg/generated/controllers/rke.cattle.io",
 		"ClusterXK8sControllerPath":        "./pkg/generated/controllers/cluster.x-k8s.io",
+		"ExtCattleControllerPath":          "./pkg/generated/controllers/ext.cattle.io",
 	}
 
 	controllergen.Run(args.Options{
@@ -116,6 +117,13 @@ func main() {
 				Types: []interface{}{
 					// All structs with an embedded ObjectMeta field will be picked up
 					"./vendor/github.com/rancher/rancher/pkg/apis/cluster.cattle.io/v3",
+				},
+			},
+			"ext.cattle.io": {
+				PackageName: "ext.cattle.io",
+				Types: []interface{}{
+					// All structs with an embedded ObjectMeta field will be picked up
+					"./vendor/github.com/rancher/rancher/pkg/apis/ext.cattle.io/v1",
 				},
 			},
 			"catalog.cattle.io": {
