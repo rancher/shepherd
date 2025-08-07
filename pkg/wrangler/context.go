@@ -26,8 +26,6 @@ import (
 	clusterv3 "github.com/rancher/shepherd/pkg/generated/controllers/cluster.cattle.io/v3"
 	"github.com/rancher/shepherd/pkg/generated/controllers/core"
 	corev1 "github.com/rancher/shepherd/pkg/generated/controllers/core/v1"
-	"github.com/rancher/shepherd/pkg/generated/controllers/ext.cattle.io"
-	extv1 "github.com/rancher/shepherd/pkg/generated/controllers/ext.cattle.io/v1"
 	"github.com/rancher/shepherd/pkg/generated/controllers/management.cattle.io"
 	managementv3 "github.com/rancher/shepherd/pkg/generated/controllers/management.cattle.io/v3"
 	"github.com/rancher/shepherd/pkg/generated/controllers/rbac"
@@ -83,7 +81,6 @@ type Context struct {
 	Cluster             clusterv3.Interface
 	RBAC                rbacv1.Interface
 	Batch               batchv1.Interface
-	Ext                 extv1.Interface
 
 	CachedDiscovery         discovery.CachedDiscoveryInterface
 	RESTMapper              meta.RESTMapper
@@ -99,7 +96,6 @@ type Context struct {
 	rbac    *rbac.Factory
 	cluster *cluster.Factory
 	batch   *batch.Factory
-	ext     *ext.Factory
 
 	session *session.Session
 	started bool
@@ -227,11 +223,6 @@ func NewContext(ctx context.Context, restConfig *rest.Config, ts *session.Sessio
 		return nil, err
 	}
 
-	ext, err := ext.NewFactoryFromConfigWithOptions(restConfig, opts)
-	if err != nil {
-		return nil, err
-	}
-
 	wContext := &Context{
 		RESTConfig:              restConfig,
 		Apply:                   apply,
@@ -242,7 +233,6 @@ func NewContext(ctx context.Context, restConfig *rest.Config, ts *session.Sessio
 		RBAC:                    rbac.Rbac().V1(),
 		Batch:                   batch.Batch().V1(),
 		Cluster:                 cluster.Cluster().V3(),
-		Ext:                     ext.Ext().V1(),
 		ControllerFactory:       controllerFactory,
 		controllerLock:          &sync.Mutex{},
 
@@ -251,7 +241,6 @@ func NewContext(ctx context.Context, restConfig *rest.Config, ts *session.Sessio
 		core:    core,
 		rbac:    rbac,
 		batch:   batch,
-		ext:     ext,
 		cluster: cluster,
 		session: ts,
 	}

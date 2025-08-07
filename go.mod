@@ -6,15 +6,18 @@ toolchain go1.24.5
 
 replace (
 	github.com/docker/distribution => github.com/docker/distribution v2.8.2+incompatible // rancher-machine requires a replace is set
-	k8s.io/api => k8s.io/api v0.33.1
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.33.1
-	k8s.io/apimachinery => k8s.io/apimachinery v0.33.1
-	k8s.io/apiserver => k8s.io/apiserver v0.33.1
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.33.1
-	k8s.io/client-go => k8s.io/client-go v0.33.1
-	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.33.1
-	k8s.io/kubectl => k8s.io/kubectl v0.33.1
-	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.10.2
+	github.com/docker/docker => github.com/docker/docker v20.10.27+incompatible // rancher-machine requires a replace is set
+	helm.sh/helm/v3 => github.com/rancher/helm/v3 v3.17.0-rancher1
+	k8s.io/api => k8s.io/api v0.32.2
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.32.2
+	k8s.io/apimachinery => k8s.io/apimachinery v0.32.2
+	k8s.io/apiserver => k8s.io/apiserver v0.32.2
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.32.2
+	k8s.io/client-go => k8s.io/client-go v0.32.2
+	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.32.2
+	k8s.io/kubectl => k8s.io/kubectl v0.32.2
+	oras.land/oras-go => oras.land/oras-go v1.2.2 // for docker 20.10.x compatibility
+	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.9.5
 )
 
 require (
@@ -31,15 +34,15 @@ require (
 	github.com/pkg/sftp v1.13.5
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.52.0
 	github.com/rancher/aks-operator v1.12.1-rc.1
-	github.com/rancher/apiserver v0.6.3
+	github.com/rancher/apiserver v0.5.2
 	github.com/rancher/eks-operator v1.12.1-rc.1
 	github.com/rancher/fleet/pkg/apis v0.13.0
 	github.com/rancher/gke-operator v1.12.1-rc.1
 	github.com/rancher/lasso v0.2.3
-	github.com/rancher/norman v0.7.0
-	github.com/rancher/rancher/pkg/apis v0.0.0-20250806114147-eec584a0f460
-	github.com/rancher/rke v1.8.0
-	github.com/rancher/system-upgrade-controller/pkg/apis v0.0.0-20250710162344-185ff9f785cd
+	github.com/rancher/norman v0.6.1
+	github.com/rancher/rancher/pkg/apis v0.0.0-20250806114138-bce2e6012afa
+	github.com/rancher/rke v1.8.5
+	github.com/rancher/system-upgrade-controller/pkg/apis v0.0.0-20250306000150-b1a9781accab
 	github.com/rancher/wrangler v1.1.2
 	github.com/rancher/wrangler/v3 v3.2.2
 	github.com/sirupsen/logrus v1.9.3
@@ -48,12 +51,12 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.33.2
 	k8s.io/apimachinery v0.33.2
-	k8s.io/apiserver v0.33.2
-	k8s.io/cli-runtime v0.33.1
+	k8s.io/apiserver v0.33.1
+	k8s.io/cli-runtime v0.32.2
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/kube-aggregator v0.33.1
-	k8s.io/kubectl v0.33.1
-	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
+	k8s.io/kubectl v0.32.2
+	k8s.io/utils v0.0.0-20250502105355-0f33e8f1c979
 	sigs.k8s.io/cluster-api v1.10.2
 	sigs.k8s.io/yaml v1.6.0
 )
@@ -102,6 +105,7 @@ require (
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/gnostic-models v0.6.9 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
+	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
@@ -176,7 +180,6 @@ require (
 	k8s.io/apiextensions-apiserver v0.33.1 // indirect
 	k8s.io/code-generator v0.33.1 // indirect
 	k8s.io/component-base v0.33.2 // indirect
-	k8s.io/component-helpers v0.33.1 // indirect
 	k8s.io/gengo v0.0.0-20250130153323-76c5745d3511 // indirect
 	k8s.io/gengo/v2 v2.0.0-20250207200755-1244d31929d7 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
