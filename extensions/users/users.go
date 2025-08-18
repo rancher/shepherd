@@ -49,6 +49,22 @@ func UserConfig() (user *management.User) {
 	return
 }
 
+// RefreshGroupMembership is helper function that sends a POST request to user action refresh auth provider access
+func RefreshGroupMembership(client *rancher.Client) error {
+	endpoint := fmt.Sprintf("https://%v/v3/%v?action=%v", client.RancherConfig.Host, "users", "refreshauthprovideraccess")
+
+	var jsonResp map[string]any
+
+	bodyContent := []byte(`{}`)
+
+	err := client.Management.Ops.DoModify("POST", endpoint, &bodyContent, &jsonResp)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // CreateUserWithRole is helper function that creates a user with a role or multiple roles
 func CreateUserWithRole(rancherClient *rancher.Client, user *management.User, roles ...string) (*management.User, error) {
 	createdUser, err := rancherClient.Management.User.Create(user)
@@ -76,9 +92,7 @@ func CreateUserWithRole(rancherClient *rancher.Client, user *management.User, ro
 // AddProjectMember is a helper function that adds a project role to `user`. It uses the watch.WatchWait to ensure BackingNamespaceCreated is true.
 // If a list of ResourceAttributes is given, then the function blocks until all
 // attributes are allowed by SelfSubjectAccessReviews OR the function times out.
-func AddProjectMember(rancherClient *rancher.Client, project *management.Project,
-	user *management.User, projectRole string, attrs []*authzv1.ResourceAttributes,
-) error {
+func AddProjectMember(rancherClient *rancher.Client, project *management.Project, user *management.User, projectRole string, attrs []*authzv1.ResourceAttributes) error {
 	role := &management.ProjectRoleTemplateBinding{
 		ProjectID:       project.ID,
 		UserPrincipalID: user.PrincipalIDs[0],
@@ -87,6 +101,9 @@ func AddProjectMember(rancherClient *rancher.Client, project *management.Project
 
 	projectID := strings.Split(project.ID, ":")
 	namespace := string(projectID[0])
+	if project.BackingNamespace != "" {
+		namespace = project.BackingNamespace
+	}
 	name := string(projectID[1])
 
 	adminClient, err := rancher.NewClient(rancherClient.RancherConfig.AdminToken, rancherClient.Session)
@@ -186,9 +203,7 @@ func RemoveProjectMember(rancherClient *rancher.Client, user *management.User) e
 // AddClusterRoleToUser is a helper function that adds a cluster role to `user`.
 // If a list of ResourceAttributes is given, then the function blocks until all
 // attributes are allowed by SelfSubjectAccessReviews OR the function times out.
-func AddClusterRoleToUser(rancherClient *rancher.Client, cluster *management.Cluster,
-	user *management.User, clusterRole string, attrs []*authzv1.ResourceAttributes,
-) error {
+func AddClusterRoleToUser(rancherClient *rancher.Client, cluster *management.Cluster, user *management.User, clusterRole string, attrs []*authzv1.ResourceAttributes) error {
 	role := &management.ClusterRoleTemplateBinding{
 		ClusterID:       cluster.Resource.ID,
 		UserPrincipalID: user.PrincipalIDs[0],
