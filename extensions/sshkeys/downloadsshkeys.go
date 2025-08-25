@@ -1,109 +1,101 @@
 package sshkeys
 
 import (
+	"archive/zip"
+	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
-	"regexp"
 
-	provv1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
 	"github.com/rancher/shepherd/clients/rancher"
 	steveV1 "github.com/rancher/shepherd/clients/rancher/v1"
-	"github.com/rancher/shepherd/extensions/clusters"
-	kubeapinodes "github.com/rancher/shepherd/extensions/kubeapi/nodes"
+	"github.com/rancher/shepherd/extensions/defaults/namespaces"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/rancher/shepherd/pkg/nodes"
-	corev1 "k8s.io/api/core/v1"
 )
 
 const (
-	privateKeySSHKeyRegExPattern              = `-----BEGIN RSA PRIVATE KEY-{3,}\n([\s\S]*?)\n-{3,}END RSA PRIVATE KEY-----`
-	ClusterMachineConstraintResourceSteveType = "cluster.x-k8s.io.machine"
-	ClusterMachineAnnotation                  = "cluster.x-k8s.io/machine"
-
-	rootUser = "root"
+	ClusterMachineAnnotation = "cluster.x-k8s.io/machine"
+	sshConfigFile            = "config.json"
+	sshKeyFile               = "id_rsa"
 )
 
-// DownloadSSHKeys is a helper function that takes a client, the machinePoolNodeName to download
-// the ssh key for a particular node.
-func DownloadSSHKeys(client *rancher.Client, machinePoolNodeName string) ([]byte, error) {
-	machinePoolNodeNameName := fmt.Sprintf("fleet-default/%s", machinePoolNodeName)
-	machine, err := client.Steve.SteveType(ClusterMachineConstraintResourceSteveType).ByID(machinePoolNodeNameName)
+// DownloadSSHCredentials is a helper function that downloads SSH credentials from a rancher machine and returns the SSHKey, Username and IP
+func DownloadSSHCredentials(client *rancher.Client, machinePoolNodeName string) (key, username, ip string, err error) {
+	machine, err := client.Steve.SteveType(stevetypes.Machine).ByID(namespaces.FleetDefault + "/" + machinePoolNodeName)
 	if err != nil {
-		return nil, err
+		return "", "", "", err
 	}
 
 	sshKeyLink := machine.Links["sshkeys"]
 
 	req, err := http.NewRequest("GET", sshKeyLink, nil)
 	if err != nil {
-		return nil, err
+		return "", "", "", err
 	}
 
 	req.Header.Add("Authorization", "Bearer "+client.RancherConfig.AdminToken)
 
 	resp, err := client.Management.APIBaseClient.Ops.Client.Do(req)
 	if err != nil {
-		return nil, err
+		return "", "", "", err
 	}
 	defer resp.Body.Close()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return "", "", "", err
 	}
 
-	privateSSHKeyRegEx := regexp.MustCompile(privateKeySSHKeyRegExPattern)
-	privateSSHKey := privateSSHKeyRegEx.FindString(string(bodyBytes))
+	zipReader, err := zip.NewReader(bytes.NewReader(bodyBytes), int64(len(bodyBytes)))
+	if err != nil {
+		return "", "", "", err
+	}
 
-	return []byte(privateSSHKey), err
+	var sshConfigJson []byte
+	var sshKey []byte
+	for _, file := range zipReader.File {
+		rc, err := file.Open()
+		if err != nil {
+			return "", "", "", err
+		}
+		defer rc.Close()
+
+		content, err := io.ReadAll(rc)
+		if err != nil {
+			return "", "", "", err
+		}
+
+		if machinePoolNodeName+"/"+sshConfigFile == file.Name {
+			sshConfigJson = content
+		} else if machinePoolNodeName+"/"+sshKeyFile == file.Name {
+			sshKey = content
+		}
+	}
+
+	var sshConfig map[string]any
+	err = json.Unmarshal(sshConfigJson, &sshConfig)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	return string(sshKey), sshConfig["SSHUser"].(string), sshConfig["IPAddress"].(string), err
 }
 
 // GetSSHNodeFromMachine returns the v1/node object given a steve/v1/machine object.
-func GetSSHNodeFromMachine(client *rancher.Client, sshUser string, machine *steveV1.SteveAPIObject) (*nodes.Node, error) {
+func GetSSHNodeFromMachine(client *rancher.Client, machine *steveV1.SteveAPIObject) (*nodes.Node, error) {
 	machineName := machine.Annotations[ClusterMachineAnnotation]
-	sshkey, err := DownloadSSHKeys(client, machineName)
+	sshKey, sshUser, sshIPAddress, err := DownloadSSHCredentials(client, machineName)
 	if err != nil {
 		return nil, err
 	}
-
-	newNode := &corev1.Node{}
-	err = steveV1.ConvertToK8sType(machine.JSONResp, newNode)
-	if err != nil {
-		return nil, err
-	}
-
-	nodeIP := kubeapinodes.GetNodeIP(newNode, corev1.NodeExternalIP)
 
 	clusterNode := &nodes.Node{
 		NodeID:          machine.ID,
-		PublicIPAddress: nodeIP,
+		PublicIPAddress: sshIPAddress,
 		SSHUser:         sshUser,
-		SSHKey:          sshkey,
+		SSHKey:          []byte(sshKey),
 	}
 
 	return clusterNode, nil
-}
-
-// GetSSHUser gets the ssh user from a given clusterObject.
-func GetSSHUser(client *rancher.Client, clusterObject *steveV1.SteveAPIObject) (string, error) {
-	clusterSpec := &provv1.ClusterSpec{}
-	err := steveV1.ConvertToK8sType(clusterObject.Spec, clusterSpec)
-	if err != nil {
-		return "", err
-	}
-
-	dynamicSchema := clusterSpec.RKEConfig.MachinePools[0].DynamicSchemaSpec
-	var data clusters.DynamicSchemaSpec
-	err = json.Unmarshal([]byte(dynamicSchema), &data)
-	if err != nil {
-		return "", err
-	}
-
-	sshUser := data.ResourceFields.SSHUser.Default.StringValue
-	if sshUser == "" {
-		sshUser = rootUser
-	}
-
-	return sshUser, nil
 }
