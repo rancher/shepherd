@@ -14,6 +14,8 @@ import (
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/stevestates"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/rancher/shepherd/extensions/workloads/pods"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	"github.com/rancher/shepherd/pkg/wait"
@@ -96,7 +98,6 @@ func IsProvisioningClusterReady(event watch.Event) (ready bool, err error) {
 	for _, condition := range cluster.Status.Conditions {
 		if condition.Type == "Updated" && condition.Status == corev1.ConditionTrue {
 			updated = true
-			logrus.Infof("Cluster status is active!")
 		}
 	}
 
@@ -281,13 +282,12 @@ func DeleteRKE1Cluster(client *rancher.Client, clusterID string) error {
 // DeleteK3SRKE2Cluster is a "helper" functions that takes a rancher client, and the non-rke1 cluster ID as parameters to delete
 // the cluster.
 func DeleteK3SRKE2Cluster(client *rancher.Client, clusterID string) error {
-	cluster, err := client.Steve.SteveType(ProvisioningSteveResourceType).ByID(clusterID)
+	cluster, err := client.Steve.SteveType(stevetypes.Provisioning).ByID(clusterID)
 	if err != nil {
 		return err
 	}
 
-	logrus.Infof("Deleting cluster %s...", cluster.Name)
-	err = client.Steve.SteveType(ProvisioningSteveResourceType).Delete(cluster)
+	err = client.Steve.SteveType(stevetypes.Provisioning).Delete(cluster)
 	if err != nil {
 		return err
 	}
@@ -551,7 +551,7 @@ func logClusterInfoWithChanges(clusterID, clusterInfo string, summary summary.Su
 	newClusterInfo := fmt.Sprintf("ClusterID: %v, Message: %v, Error: %v, State: %v, Transitioning: %v", clusterID, summary.Message, summary.Error, summary.State, summary.Transitioning)
 
 	if clusterInfo != newClusterInfo {
-		logrus.Infof(newClusterInfo)
+		logrus.Trace(newClusterInfo)
 		clusterInfo = newClusterInfo
 	}
 
@@ -562,17 +562,16 @@ func logClusterInfoWithChanges(clusterID, clusterInfo string, summary summary.Su
 func WatchAndWaitForCluster(client *rancher.Client, steveID string) error {
 	var clusterResp *v1.SteveAPIObject
 	err := kwait.PollUntilContextTimeout(context.TODO(), 1*time.Second, defaults.TenMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
-		clusterResp, err = client.Steve.SteveType(ProvisioningSteveResourceType).ByID(steveID)
+		clusterResp, err = client.Steve.SteveType(stevetypes.Provisioning).ByID(steveID)
 		if err != nil {
 			return false, err
 		}
 		state := clusterResp.ObjectMeta.State.Name
-		return state != "active", nil
+		return state != stevestates.Active, nil
 	})
 	if err != nil {
 		return err
 	}
-	logrus.Infof("waiting for cluster to be up...")
 
 	adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
 	if err != nil {
