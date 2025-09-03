@@ -20,7 +20,6 @@ func Default(client *rancher.Client, provider string, kubernetesVersions []strin
 		}
 
 		defaultVersion := defaultVersionData.Value
-		logrus.Infof("default rke1 kubernetes version is: %v", defaultVersion)
 
 		if kubernetesVersions == nil {
 			kubernetesVersions = append(kubernetesVersions, defaultVersion)
@@ -41,7 +40,6 @@ func Default(client *rancher.Client, provider string, kubernetesVersions []strin
 		}
 
 		defaultVersion := `v` + defaultVersionData.Value
-		logrus.Infof("default rke2 kubernetes version is: %v", defaultVersion)
 
 		if kubernetesVersions == nil {
 			kubernetesVersions = append(kubernetesVersions, defaultVersion)
@@ -62,7 +60,6 @@ func Default(client *rancher.Client, provider string, kubernetesVersions []strin
 		}
 
 		defaultVersion := `v` + defaultVersionData.Value
-		logrus.Infof("default k3s kubernetes version is: %v", defaultVersion)
 
 		if kubernetesVersions == nil {
 			kubernetesVersions = append(kubernetesVersions, defaultVersion)
