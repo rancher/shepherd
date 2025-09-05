@@ -25,7 +25,7 @@ func WaitForResourceDeletion(client *v1.Client, v1Resource *v1.SteveAPIObject, i
 		_, err = client.SteveType(v1Resource.Type).ByID(v1Resource.ID)
 		if err != nil {
 			if strings.Contains(err.Error(), notFound) {
-				logrus.Infof("%s(%s) is deleted", v1Resource.Kind, v1Resource.Name)
+				logrus.Tracef("%s(%s) is deleted", v1Resource.Kind, v1Resource.Name)
 				return true, nil
 			} else {
 				return false, err
@@ -44,7 +44,7 @@ func WaitForResourceDeletion(client *v1.Client, v1Resource *v1.SteveAPIObject, i
 
 // WaitForResourceState waits for a given steve object to be reach a desired state.
 func WaitForResourceState(client *v1.Client, v1Resource *v1.SteveAPIObject, desiredState string, interval, timeout time.Duration) error {
-	logrus.Infof("Waiting for %s(%s) to reach a %s state", v1Resource.Kind, v1Resource.Name, desiredState)
+	logrus.Tracef("Waiting for %s(%s) to reach a %s state", v1Resource.Kind, v1Resource.Name, desiredState)
 	err := kwait.PollUntilContextTimeout(context.TODO(), interval, timeout, true, func(ctx context.Context) (done bool, err error) {
 		clusterResp, err := client.SteveType(v1Resource.Type).ByID(v1Resource.ID)
 		if err != nil {
@@ -52,7 +52,7 @@ func WaitForResourceState(client *v1.Client, v1Resource *v1.SteveAPIObject, desi
 		}
 
 		if clusterResp.ObjectMeta.State.Name == desiredState {
-			logrus.Infof("%s(%s) is %s", v1Resource.Kind, v1Resource.Name, desiredState)
+			logrus.Tracef("%s(%s) is %s", v1Resource.Kind, v1Resource.Name, desiredState)
 			return true, nil
 		}
 
@@ -74,7 +74,7 @@ func CreateAndWaitForResource(client *rancher.Client, clusterID, v1ResourceType 
 		return nil, err
 	}
 
-	logrus.Infof("Creating %s(%s)", resource.Kind, resource.Name)
+	logrus.Tracef("Creating %s(%s)", resource.Kind, resource.Name)
 
 	if interval != 0 && timeout != 0 {
 		err := WaitForResourceState(steveClient, resource, desiredState, interval, timeout)
