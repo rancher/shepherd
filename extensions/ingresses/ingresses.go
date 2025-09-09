@@ -12,6 +12,7 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/defaults"
+	"github.com/rancher/shepherd/extensions/defaults/stevetypes"
 	"github.com/rancher/shepherd/extensions/workloads/pods"
 	"github.com/sirupsen/logrus"
 	networking "k8s.io/api/networking/v1"
@@ -76,7 +77,7 @@ func IsIngressExternallyAccessible(client *rancher.Client, hostname string, path
 
 // CreateIngress will create an Ingress object in the downstream cluster.
 func CreateIngress(client *v1.Client, ingressName string, ingressTemplate networking.Ingress) (*v1.SteveAPIObject, error) {
-	podClient := client.SteveType(pod)
+	podClient := client.SteveType(stevetypes.Pod)
 	err := kwait.PollUntilContextTimeout(context.TODO(), 15*time.Second, defaults.FiveMinuteTimeout, true, func(context.Context) (done bool, err error) {
 		newPods, err := podClient.List(nil)
 		if err != nil {
@@ -103,7 +104,7 @@ func CreateIngress(client *v1.Client, ingressName string, ingressTemplate networ
 	}
 
 	logrus.Infof("Create Ingress: %v", ingressName)
-	ingressResp, err := client.SteveType(IngressSteveType).Create(ingressTemplate)
+	ingressResp, err := client.SteveType(stevetypes.Ingress).Create(ingressTemplate)
 	if err != nil {
 		logrus.Errorf("Failed to create ingress: %v", err)
 
