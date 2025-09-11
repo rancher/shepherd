@@ -15,16 +15,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # This step generates an installation token for the rancher-rancher-pr-and-push GitHub App.
-      # The token needs 'actions: write' permission on rancher/rancher to dispatch a workflow.
-      - name: Generate token for rancher/rancher
-        id: generate_token
-        uses: tibdex/create-github-app-token@8b57193a49a366a338d5356359a21c314e0c453c # v1.10.0
+      - name: Retrieve token from vault
+        uses: rancher-eio/read-vault-secrets@main
         with:
-          app_id: ${{ secrets.RANCHER_RANCHER_PR_APP_ID }}
-          private_key: ${{ secrets.RANCHER_RANCHER_PR_PRIVATE_KEY }}
-          owner: rancher
-          repositories: rancher
+          secrets: |
+            secret/data/github/repo/${{ github.repository }}/github-token/credentials token | PAT_TOKEN ;
 
       - name: Dispatch 'Go get' workflow in rancher/rancher
         run: |
@@ -36,4 +31,4 @@ jobs:
             -F goget_version=${{ github.sha }} \
             -F source_author=${{ github.actor }}
         env:
-          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+          GH_TOKEN: ${{ env.PAT_TOKEN }}
