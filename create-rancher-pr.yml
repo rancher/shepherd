@@ -1,0 +1,69 @@
+name: Create Rancher PR
+
+# This workflow triggers on a push to the main branch. It updates the
+# rancher/shepherd dependency in the rancher/rancher repository and opens a PR.
+on:
+  push:
+    branches:
+      - main-demo-branch
+
+jobs:
+  create-rancher-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Get short SHA
+        id: sha
+        run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      # This step generates an installation token for the rancher-rancher-pr-and-push GitHub App.
+      # The token is scoped to the rancher/rancher repository and has permissions to create a PR.
+      - name: Generate token for rancher/rancher
+        id: generate_token
+        uses: actions/create-github-app-token@8b57193a49a366a338d5356359a21c314e0c453c # v1.10.0
+        with:
+          app_id: ${{ secrets.RANCHER_RANCHER_PR_APP_ID }}
+          private_key: ${{ secrets.RANCHER_RANCHER_PR_PRIVATE_KEY }}
+
+      - name: Checkout rancher/rancher
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          repository: rancher/rancher
+          token: ${{ steps.generate_token.outputs.token }}
+          path: rancher
+          # The rancher/rancher repository uses 'main' as its default branch
+          ref: main
+
+      - name: Setup Go
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        with:
+          go-version-file: 'rancher/go.mod'
+
+      - name: Update dependency and tidy
+        run: |
+          cd rancher
+          # Update the dependency to the specific commit that triggered this workflow
+          go get github.com/rancher/shepherd@${{ github.sha }}
+          go mod tidy
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@6d6857d36972b6550d32945403d109c03d529642 # v6.0.2
+        with:
+          path: rancher
+          repository: rancher/rancher
+          token: ${{ steps.generate_token.outputs.token }}
+          commit-message: "chore(deps): Update rancher/shepherd to ${{ steps.sha.outputs.short_sha }}"
+          title: "chore(deps): Update rancher/shepherd to ${{ steps.sha.outputs.short_sha }}"
+          body: |
+            This PR updates the `rancher/shepherd` dependency to the latest commit on the `main` branch.
+
+            **Updating to commit:** `${{ steps.sha.outputs.short_sha }}`
+
+            ---
+            *This PR was automatically created by the `create-rancher-pr` workflow in the `rancher/shepherd` repository.*
+          branch: "chore/shepherd-${{ steps.sha.outputs.short_sha }}"
+          base: "main"
+          delete-branch: true
+          labels: "automation"
