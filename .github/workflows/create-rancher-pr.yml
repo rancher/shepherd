@@ -10,6 +10,11 @@ on:
 
 jobs:
   dispatch-to-rancher:
+    permissions:
+      # This is required for the vault action to get an OIDC token
+      id-token: write
+      # This is required to checkout the repository
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
