@@ -82,6 +82,7 @@ func NewClient(bearerToken string, session *session.Session) (*Client, error) {
 }
 
 // NewClientForConfig is the constructor for initializing a rancher Client for the given config and session.
+// demo commit to see trigger REMOVE LATER
 func NewClientForConfig(bearerToken string, rancherConfig *Config, session *session.Session) (*Client, error) {
 	environmentFlags := environmentflag.NewEnvironmentFlags()
 	environmentflag.LoadEnvironmentFlags(environmentflag.ConfigurationFileKey, environmentFlags)
