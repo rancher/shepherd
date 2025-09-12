@@ -1,31 +1,106 @@
 name: Create Rancher PR
 
 # This workflow triggers on a push to the main branch. It updates the
-# rancher/shepherd dependency in the rancher/rancher repository by dispatching
-# a downstream workflow.
+# rancher/shepherd dependency in the rancher/rancher repository and opens a PR.
 on:
   push:
     branches:
-      - main-demo-branch
+      - main
 
 jobs:
-  dispatch-to-rancher:
-    permissions:
-      # This is required to checkout the repository
-      contents: read
+  create-rancher-pr:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      # Checkout the current repo (shepherd) to get the commit SHA
+      - name: Checkout shepherd
         uses: actions/checkout@v4
 
-      - name: Dispatch 'Go get' workflow in rancher/rancher
+      - name: Get short SHA
+        id: sha
+        run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      # Checkout the target repo (rancher/rancher) where the PR will be created
+      - name: Checkout rancher/rancher
+        uses: actions/checkout@v4
+        with:
+          repository: rancher/rancher
+          token: ${{ secrets.PAT_TOKEN }}
+          path: rancher
+          ref: main
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'rancher/go.mod'
+
+      - name: Create branch, update, and push changes
+        id: update_and_push
+        working-directory: ./rancher
         run: |
-          echo "Dispatching to rancher/rancher on branch main for shepherd commit ${{ github.sha }}"
-          gh workflow run "Go get" \
-            --repo rancher/rancher \
-            --ref main \
-            -F goget_module=github.com/rancher/shepherd \
-            -F goget_version=${{ github.sha }} \
-            -F source_author=${{ github.actor }}
-        env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          BRANCH_NAME="chore/shepherd-${{ steps.sha.outputs.short_sha }}"
+          echo "branch_name=${BRANCH_NAME}" >> $GITHUB_OUTPUT
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          echo "Creating and switching to new branch: ${BRANCH_NAME}"
+          git checkout -b ${BRANCH_NAME}
+
+          echo "Updating rancher/shepherd to commit ${{ github.sha }}"
+          go get github.com/rancher/shepherd@${{ github.sha }}
+          go mod tidy
+
+          # Check for changes
+          if [[ -z $(git status --porcelain) ]]; then
+            echo "No changes to commit."
+            echo "changes_exist=false" >> $GITHUB_ENV
+          else
+            echo "Changes detected. Committing and pushing."
+            echo "changes_exist=true" >> $GITHUB_ENV
+            git add go.mod go.sum
+            git commit -m "chore(deps): Update rancher/shepherd to ${{ steps.sha.outputs.short_sha }}"
+            git push origin ${BRANCH_NAME}
+          fi
+
+      - name: Create Pull Request
+        if: env.changes_exist == 'true'
+        id: cpr
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAT_TOKEN }}
+          script: |
+            const source_author = `${{ github.actor }}`;
+            let body = `This PR updates the \`rancher/shepherd\` dependency to commit \`${{ github.sha }}\`.\n\n`;
+            body += `Automated pull request created by the \`create-rancher-pr\` workflow in \`rancher/shepherd\`.\n\n`;
+            if ( source_author ) {
+              body += `Source Author: @${ source_author }`;
+            }
+            const { data: pr } = await github.rest.pulls.create({
+              title: "chore(deps): Update rancher/shepherd to ${{ steps.sha.outputs.short_sha }}",
+              body: body,
+              owner: "rancher",
+              repo: "rancher",
+              base: "main",
+              head: "${{ steps.update_and_push.outputs.branch_name }}"
+            });
+            await github.rest.issues.addLabels({
+              owner: "rancher",
+              repo: "rancher",
+              issue_number: pr.number,
+              labels: ["automation", "status/auto-created"],
+            });
+            if ( source_author ) {
+              await github.rest.issues.addAssignees({
+                owner: "rancher",
+                repo: "rancher",
+                issue_number: pr.number,
+                assignees: [source_author],
+              });
+            }
+            console.log(`Created new pull request: ${pr.html_url}`);
+            return pr.html_url;
+
+      - name: Check outputs
+        if: env.changes_exist == 'true'
+        run: |
+          echo "Pull Request URL - ${{ steps.cpr.outputs.result }}"
