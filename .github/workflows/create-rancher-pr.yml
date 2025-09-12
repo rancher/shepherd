@@ -11,20 +11,12 @@ on:
 jobs:
   dispatch-to-rancher:
     permissions:
-      # This is required for the vault action to get an OIDC token
-      id-token: write
       # This is required to checkout the repository
       contents: read
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Retrieve token from vault
-        uses: rancher-eio/read-vault-secrets@main
-        with:
-          secrets: |
-            secret/data/github/${{ github.repository }}/github-token/credentials token | PAT_TOKEN ;
 
       - name: Dispatch 'Go get' workflow in rancher/rancher
         run: |
@@ -36,4 +28,4 @@ jobs:
             -F goget_version=${{ github.sha }} \
             -F source_author=${{ github.actor }}
         env:
-          GH_TOKEN: ${{ env.PAT_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
