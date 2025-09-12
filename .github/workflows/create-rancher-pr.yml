@@ -5,7 +5,7 @@ name: Create Rancher PR
 on:
   push:
     branches:
-      - main
+      - main-demo-branch
 
 jobs:
   create-rancher-pr:
