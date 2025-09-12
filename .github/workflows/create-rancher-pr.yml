@@ -69,7 +69,7 @@ jobs:
         uses: rancher-eio/read-vault-secrets@main
         with:
           secrets: |
-            secret/data/github/repo/${{ github.repository }}/github-token/credentials token | PAT_TOKEN ;
+            secret/data/github/repo/rancher/rke/github-token/credentials token | PAT_TOKEN ;
       - name: Create Pull Request
         if: env.changes_exist == 'true'
         id: cpr
