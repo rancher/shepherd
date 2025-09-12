@@ -46,9 +46,8 @@ jobs:
           echo "Creating and switching to new branch: ${BRANCH_NAME}"
           git checkout -b ${BRANCH_NAME}
 
-          echo "Updating rancher/shepherd to commit ${{ github.sha }}"
-          # go get github.com/rancher/shepherd@${{ github.sha }}
-          go get github.com/rancher/shepherd@$latest
+          echo "Updating rancher/shepherd to latest"
+          go get github.com/rancher/shepherd@latest
           go mod tidy
 
           # Check for changes
@@ -59,7 +58,7 @@ jobs:
             echo "Changes detected. Committing and pushing."
             echo "changes_exist=true" >> $GITHUB_ENV
             git add go.mod go.sum
-            git commit -m "chore(deps): Update rancher/shepherd to ${{ steps.sha.outputs.short_sha }}"
+            git commit -m "chore(deps): Update rancher/shepherd to latest"
             git push origin ${BRANCH_NAME}
           fi
 
@@ -71,13 +70,13 @@ jobs:
           github-token: ${{ secrets.PAT_TOKEN }}
           script: |
             const source_author = `${{ github.actor }}`;
-            let body = `This PR updates the \`rancher/shepherd\` dependency to commit \`${{ github.sha }}\`.\n\n`;
+            let body = `This PR updates the \`rancher/shepherd\` dependency to the latest version.\n\n`;
             body += `Automated pull request created by the \`create-rancher-pr\` workflow in \`rancher/shepherd\`.\n\n`;
             if ( source_author ) {
               body += `Source Author: @${ source_author }`;
             }
             const { data: pr } = await github.rest.pulls.create({
-              title: "chore(deps): Update rancher/shepherd to ${{ steps.sha.outputs.short_sha }}",
+              title: "chore(deps): Update rancher/shepherd to latest",
               body: body,
               owner: "rancher",
               repo: "rancher",
