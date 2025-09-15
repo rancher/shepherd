@@ -54,7 +54,8 @@ jobs:
           git checkout -b ${BRANCH_NAME}
 
           echo "Updating rancher/shepherd to commit ${{ github.sha }}"
-          go get github.com/rancher/shepherd@${{ github.sha }}
+          # go get github.com/rancher/shepherd@${{ github.sha }}
+          go get github.com/rancher/shepherd@latest
           go mod tidy
 
           # Check for changes
