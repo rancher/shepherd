@@ -27,6 +27,12 @@ jobs:
         id: sha
         run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
+      - name: Retrieve token from vault
+        uses: rancher-eio/read-vault-secrets@main
+        with:
+          secrets: |
+            secret/data/github/repo/${{ github.repository }}/github-token/credentials token | PAT_TOKEN ;
+
       # Checkout the target repo (rancher/rancher) where the PR will be created
       - name: Checkout rancher/rancher
         uses: actions/checkout@v4
@@ -34,6 +40,7 @@ jobs:
           repository: rancher/rancher
           path: rancher
           ref: main
+          token: ${{ env.PAT_TOKEN }}
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -66,14 +73,9 @@ jobs:
             echo "Changes detected. Committing and pushing."
             echo "changes_exist=true" >> $GITHUB_ENV
             git add go.mod go.sum
-            git commit -m "chore(deps): Update rancher/shepherd to ${{ steps.sha.outputs.short_sha }}"
+            git commit -m "shepherd-githubaction: Update rancher/shepherd to ${{ steps.sha.outputs.short_sha }}"
             git push origin ${BRANCH_NAME}
           fi
-      - name: Retrieve token from vault
-        uses: rancher-eio/read-vault-secrets@main
-        with:
-          secrets: |
-            secret/data/github/repo/${{ github.repository }}/github-token/credentials token | PAT_TOKEN ;
       - name: Create Pull Request
         if: env.changes_exist == 'true'
         id: cpr
