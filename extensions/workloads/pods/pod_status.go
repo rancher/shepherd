@@ -78,9 +78,9 @@ func IsPodReady(pod *v1.SteveAPIObject) (bool, error) {
 	if phase == corev1.PodFailed || phase == corev1.PodUnknown {
 		var errorMessage string
 		for _, containerStatus := range podStatus.ContainerStatuses {
-			// Rancher deploys multiple hlem-operation jobs to do the same task. If one job succeeds, the others end in a terminated status.
+			// Rancher deploys multiple helm-operation jobs to do the same task. If one job succeeds, the others end in a terminated status.
 			if containerStatus.State.Terminated == nil {
-				errorMessage += fmt.Sprintf("ERROR: %s: %s\n", pod.Name, podStatus)
+				errorMessage += fmt.Sprintf("ERROR: %s: %s, %s\n", pod.Name, podStatus.Message, podStatus.Reason)
 			}
 		}
 
