@@ -30,8 +30,8 @@ jobs:
       - name: Retrieve token from vault
         uses: rancher-eio/read-vault-secrets@main
         with:
-          secrets: |
-            secret/data/github/repo/${{ github.repository }}/github-token/credentials token | PAT_TOKEN ;
+        secrets: |
+          github/token/rancher--rancher--pull_requests--write token | GH_TOKEN
 
       # Checkout the target repo (rancher/rancher) where the PR will be created
       - name: Checkout rancher/rancher
