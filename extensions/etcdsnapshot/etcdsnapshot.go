@@ -254,7 +254,7 @@ func RestoreRKE2K3SSnapshot(client *rancher.Client, snapshotRestore *rkev1.ETCDS
 		return err
 	}
 
-	err = kwait.PollUntilContextTimeout(context.TODO(), 1*time.Second, defaults.TwoMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
+	err = kwait.PollUntilContextTimeout(context.TODO(), 1*time.Second, defaults.ThirtyMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
 		clusterResp, err := client.Steve.SteveType(ProvisioningSteveResouceType).ByID(updatedCluster.ID)
 		if err != nil {
 			return false, err
