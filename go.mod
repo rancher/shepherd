@@ -36,7 +36,7 @@ require (
 	github.com/rancher/fleet/pkg/apis v0.13.0
 	github.com/rancher/gke-operator v1.12.1-rc.1
 	github.com/rancher/lasso v0.2.3
-	github.com/rancher/norman v0.7.0
+	github.com/rancher/norman v0.6.1
 	github.com/rancher/rancher/pkg/apis v0.0.0-20250806114147-eec584a0f460
 	github.com/rancher/rke v1.8.0
 	github.com/rancher/system-upgrade-controller/pkg/apis v0.0.0-20250710162344-185ff9f785cd
