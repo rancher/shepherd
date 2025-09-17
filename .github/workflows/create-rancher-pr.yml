@@ -93,7 +93,7 @@ jobs:
             }
           
             const { data: pr } = await github.rest.pulls.create({
-              title: "chore(deps): Update rancher/shepherd to latest",
+              title: "shepherd-githubaction: Update rancher/shepherd to latest",
               body: body,
               owner: "rancher",
               repo: "rancher",
@@ -112,6 +112,13 @@ jobs:
               repo: "rancher",
               issue_number: pr.number,
               assignees: [source_author],
+            });
+            // Request reviewers for the pull request
+            await github.rest.pulls.requestReviewers({
+              owner: "rancher",
+              repo: "rancher",
+              pull_number: pr.number,
+              reviewers: ["hamistao", "slickwarren", "Priyashetty17"],
             });
             console.log(`Created new pull request: ${pr.html_url}`);
             return pr.html_url;
