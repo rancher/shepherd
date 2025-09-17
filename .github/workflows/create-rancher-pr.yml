@@ -5,7 +5,7 @@ name: Create Rancher PR
 on:
   push:
     branches:
-      - main
+      - main-demo-branch
 env:
   INPUT_SOURCE_URL: ${{ github.event.inputs.source_url }}
   INPUT_SOURCE_AUTHOR: ${{ github.event.inputs.source_author }}
