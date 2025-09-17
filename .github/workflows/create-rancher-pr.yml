@@ -93,7 +93,7 @@ jobs:
             }
           
             const { data: pr } = await github.rest.pulls.create({
-              title: "shepherd-githubaction: Update rancher/shepherd to latest",
+              title: "[main] test shepherd-githubaction: Update rancher/shepherd to latest",
               body: body,
               owner: "rancher",
               repo: "rancher",
