@@ -15,6 +15,8 @@ replace (
 	k8s.io/apiserver => k8s.io/apiserver v0.31.6
 	k8s.io/cli-runtime => k8s.io/cli-runtime v0.31.6
 	k8s.io/client-go => k8s.io/client-go v0.31.6
+	k8s.io/code-generator => k8s.io/code-generator v0.31.6
+	k8s.io/component-base => k8s.io/component-base v0.31.6
 	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.31.6
 )
 
@@ -152,8 +154,6 @@ require (
 	go.etcd.io/etcd/client/v2 v2.305.13 // indirect
 	go.etcd.io/etcd/client/v3 v3.5.16 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	go.opentelemetry.io/otel v1.29.0 // indirect
-	go.opentelemetry.io/otel/trace v1.29.0 // indirect
 	go.starlark.net v0.0.0-20230525235612-a134d8f9ddca // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
@@ -184,7 +184,7 @@ require (
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f // indirect
 	k8s.io/kubernetes v1.31.6 // indirect
-	k8s.io/pod-security-admission v0.31.1 // indirect
+	k8s.io/pod-security-admission v0.31.6 // indirect
 	sigs.k8s.io/cli-utils v0.37.2 // indirect
 	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect
 	sigs.k8s.io/kustomize/api v0.17.2 // indirect
