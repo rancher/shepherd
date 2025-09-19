@@ -6,12 +6,16 @@ toolchain go1.23.7
 
 replace (
 	github.com/docker/distribution => github.com/docker/distribution v2.8.2+incompatible // rancher-machine requires a replace is set
+	github.com/docker/docker => github.com/docker/docker v20.10.27+incompatible // rancher-machine requires a replace is set
+	go.opentelemetry.io/otel => go.opentelemetry.io/otel v1.28.0
+	go.opentelemetry.io/otel/trace => go.opentelemetry.io/otel/trace v1.28.0
 	k8s.io/api => k8s.io/api v0.31.6
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.31.6
 	k8s.io/apimachinery => k8s.io/apimachinery v0.31.6
 	k8s.io/apiserver => k8s.io/apiserver v0.31.6
 	k8s.io/cli-runtime => k8s.io/cli-runtime v0.31.6
 	k8s.io/client-go => k8s.io/client-go v0.31.6
+	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.31.6
 )
 
 require (
@@ -76,7 +80,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
-	github.com/docker/docker v20.10.25+incompatible // indirect
+	github.com/docker/docker v25.0.6+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.1 // indirect
@@ -118,8 +122,8 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
-	github.com/moby/spdystream v0.5.0 // indirect
-	github.com/moby/sys/mount v0.2.0 // indirect
+	github.com/moby/spdystream v0.4.0 // indirect
+	github.com/moby/sys/mount v0.3.3 // indirect
 	github.com/moby/sys/mountinfo v0.7.1 // indirect
 	github.com/moby/term v0.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -179,7 +183,7 @@ require (
 	k8s.io/gengo/v2 v2.0.0-20240911193312-2b36238f13e9 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f // indirect
-	k8s.io/kubernetes v1.31.1 // indirect
+	k8s.io/kubernetes v1.31.6 // indirect
 	k8s.io/pod-security-admission v0.31.1 // indirect
 	sigs.k8s.io/cli-utils v0.37.2 // indirect
 	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect
