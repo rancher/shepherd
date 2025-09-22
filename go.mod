@@ -2,17 +2,20 @@ module github.com/rancher/shepherd
 
 go 1.23.0
 
-toolchain go1.23.7
+toolchain go1.23.12
 
 replace (
+	github.com/rancher/wrangler/v3 => github.com/rancher/wrangler/v3 v3.0.1
 	k8s.io/api => k8s.io/api v0.30.10
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.30.10
 	k8s.io/apimachinery => k8s.io/apimachinery v0.30.10
 	k8s.io/apiserver => k8s.io/apiserver v0.30.10
 	k8s.io/cli-runtime => k8s.io/cli-runtime v0.30.10
 	k8s.io/client-go => k8s.io/client-go v0.30.10
+	k8s.io/code-generator => k8s.io/code-generator v0.30.10
 	k8s.io/component-base => k8s.io/component-base v0.30.10
 	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.30.10
+	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20230717233707-2695361300d9
 	k8s.io/kubectl => k8s.io/kubectl v0.30.10
 	sigs.k8s.io/structured-merge-diff/v4 => sigs.k8s.io/structured-merge-diff/v4 v4.4.1
 )
@@ -36,8 +39,8 @@ require (
 	github.com/rancher/gke-operator v1.9.10
 	github.com/rancher/lasso v0.2.1
 	github.com/rancher/norman v0.3.1
-	github.com/rancher/rancher/pkg/apis v0.0.0-20250724093328-9bc8d70e5db2
-	github.com/rancher/rke v1.6.12-rc.1
+	github.com/rancher/rancher/pkg/apis v0.0.0-20250826201537-0192450794b5
+	github.com/rancher/rke v1.6.12
 	github.com/rancher/system-upgrade-controller/pkg/apis v0.0.0-20240301001845-4eacc2dabbde
 	github.com/rancher/wrangler v1.1.2
 	github.com/rancher/wrangler/v3 v3.1.0
@@ -122,7 +125,7 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
-	github.com/moby/spdystream v0.4.0 // indirect
+	github.com/moby/spdystream v0.2.0 // indirect
 	github.com/moby/sys/mount v0.2.0 // indirect
 	github.com/moby/sys/mountinfo v0.6.2 // indirect
 	github.com/moby/term v0.5.0 // indirect
@@ -147,10 +150,10 @@ require (
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/xlab/treeprint v1.2.0 // indirect
 	github.com/zclconf/go-cty v1.14.1 // indirect
-	go.etcd.io/etcd/api/v3 v3.5.14 // indirect
-	go.etcd.io/etcd/client/pkg/v3 v3.5.14 // indirect
+	go.etcd.io/etcd/api/v3 v3.5.13 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.5.13 // indirect
 	go.etcd.io/etcd/client/v2 v2.305.10 // indirect
-	go.etcd.io/etcd/client/v3 v3.5.14 // indirect
+	go.etcd.io/etcd/client/v3 v3.5.13 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.starlark.net v0.0.0-20230525235612-a134d8f9ddca // indirect
 	go.uber.org/multierr v1.11.0 // indirect
@@ -175,7 +178,7 @@ require (
 	k8s.io/code-generator v0.31.1 // indirect
 	k8s.io/component-base v0.31.1 // indirect
 	k8s.io/gengo v0.0.0-20240826214909-a7b603a56eb7 // indirect
-	k8s.io/gengo/v2 v2.0.0-20240826214909-a7b603a56eb7 // indirect
+	k8s.io/gengo/v2 v2.0.0-20240228010128-51d4e06bde70 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f // indirect
 	k8s.io/kubernetes v1.30.10 // indirect
