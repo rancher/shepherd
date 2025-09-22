@@ -33,14 +33,14 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.13.5
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.52.0
-	github.com/rancher/aks-operator v1.11.6-rc.1
+	github.com/rancher/aks-operator v1.11.6
 	github.com/rancher/apiserver v0.5.2
-	github.com/rancher/eks-operator v1.11.6-rc.1
+	github.com/rancher/eks-operator v1.11.6
 	github.com/rancher/fleet/pkg/apis v0.12.3
-	github.com/rancher/gke-operator v1.11.6-rc.1
+	github.com/rancher/gke-operator v1.11.6
 	github.com/rancher/lasso v0.2.4
 	github.com/rancher/norman v0.5.2
-	github.com/rancher/rancher/pkg/apis v0.0.0-20250910191434-2cc7a8b7e1a3
+	github.com/rancher/rancher/pkg/apis v0.0.0-20250919133431-8e6245f06426
 	github.com/rancher/rke v1.8.5
 	github.com/rancher/system-upgrade-controller/pkg/apis v0.0.0-20250306000150-b1a9781accab
 	github.com/rancher/wrangler v1.1.2
@@ -170,7 +170,7 @@ require (
 	golang.org/x/text v0.28.0 // indirect
 	golang.org/x/time v0.10.0 // indirect
 	golang.org/x/tools v0.36.0 // indirect
-	golang.org/x/tools/go/expect v0.1.0-deprecated // indirect
+	golang.org/x/tools/go/expect v0.1.1-deprecated // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20241209162323-e6fa225c2576 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250207221924-e9438ea467c6 // indirect
 	google.golang.org/grpc v1.70.0 // indirect
