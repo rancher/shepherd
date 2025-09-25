@@ -11,7 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/rancher/shepherd/clients/dynamic"
+	shepherdDynamic "github.com/rancher/shepherd/clients/dynamic"
 	"github.com/rancher/shepherd/extensions/unstructured"
 	"github.com/rancher/shepherd/pkg/wait"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -54,7 +54,7 @@ func CreateJobAndRunKubectlCommands(clusterID, jobname string, job *batchv1.Job,
 	ts := client.Session.NewSession()
 	defer ts.Cleanup()
 
-	downClient, err := dynamic.NewForConfig(ts, restConfig)
+	downClient, err := shepherdDynamic.NewForConfig(ts, restConfig)
 	if err != nil {
 		return err
 	}
