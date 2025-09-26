@@ -26,12 +26,14 @@ type SSHPath struct {
 
 // Node is a configuration of node that is from an outside cloud provider
 type Node struct {
-	NodeID           string `json:"nodeID" yaml:"nodeID"`
-	PublicIPAddress  string `json:"publicIPAddress" yaml:"publicIPAddress"`
-	PrivateIPAddress string `json:"privateIPAddress" yaml:"privateIPAddress"`
-	SSHUser          string `json:"sshUser" yaml:"sshUser"`
-	SSHKeyName       string `json:"sshKeyName" yaml:"sshKeyName"`
-	SSHKey           []byte
+	NodeID             string `json:"nodeID" yaml:"nodeID"`
+	PublicIPAddress    string `json:"publicIPAddress" yaml:"publicIPAddress"`
+	PrivateIPAddress   string `json:"privateIPAddress" yaml:"privateIPAddress"`
+	PublicIPv6Address  string `json:"publicIPv6Address" yaml:"publicIPv6Address"`
+	PrivateIPv6Address string `json:"privateIPv6Address" yaml:"privateIPv6Address"`
+	SSHUser            string `json:"sshUser" yaml:"sshUser"`
+	SSHKeyName         string `json:"sshKeyName" yaml:"sshKeyName"`
+	SSHKey             []byte
 }
 
 // ExternalNodeConfig is a struct that is a collection of the node configurations
