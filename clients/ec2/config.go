@@ -17,6 +17,7 @@ type AWSEC2Config struct {
 	AWSRegionAZ        string   `json:"awsRegionAZ" yaml:"awsRegionAZ"`
 	AWSAMI             string   `json:"awsAMI" yaml:"awsAMI"`
 	AWSSecurityGroups  []string `json:"awsSecurityGroups" yaml:"awsSecurityGroups"`
+	AWSSubnetID        string   `json:"awsSubnetID" yaml:"awsSubnetID"`
 	AWSSSHKeyName      string   `json:"awsSSHKeyName" yaml:"awsSSHKeyName"`
 	AWSCICDInstanceTag string   `json:"awsCICDInstanceTag" yaml:"awsCICDInstanceTag"`
 	AWSIAMProfile      string   `json:"awsIAMProfile" yaml:"awsIAMProfile"`
