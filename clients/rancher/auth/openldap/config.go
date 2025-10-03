@@ -11,7 +11,7 @@ type Config struct {
 	Hostname       string          `json:"hostname"       yaml:"hostname"`
 	IP             string          `json:"IP"             yaml:"IP"`
 	ServiceAccount *ServiceAccount `json:"serviceAccount" yaml:"serviceAccount"`
-	Group          *Group          `json:"group"          yaml:"group"`
+	Groups         *Groups         `json:"groups"          yaml:"groups"`
 	Users          *Users          `json:"users"          yaml:"users"`
 	AccessMode     string          `json:"accessMode"     yaml:"accessMode"     default:"unrestricted"`
 }
@@ -22,9 +22,12 @@ type ServiceAccount struct {
 }
 
 // Users represents  LDAP Groups, used in test scenarios for validating Groups search.
-type Group struct {
-	ObjectClass            string `json:"objectClass"            yaml:"objectClass"`
-	MemberMappingAttribute string `json:"memberMappingAttribute" yaml:"memberMappingAttribute"`
+type Groups struct {
+	ObjectClass                  string `json:"objectClass"            yaml:"objectClass"`
+	MemberMappingAttribute       string `json:"memberMappingAttribute" yaml:"memberMappingAttribute"`
+	NestedGroupMembershipEnabled bool   `json:"nestedGroupMembershipEnabled,omitempty" yaml:"nestedGroupMembershipEnabled,omitempty"`
+	SearchDirectGroupMemberships bool   `json:"searchDirectGroupMemberships,omitempty" yaml:"searchDirectGroupMemberships,omitempty"`
+	SearchBase                   string `json:"searchBase" yaml:"searchBase"`
 }
 
 // Users represents  LDAP users, used in test scenarios for validating users search.

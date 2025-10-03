@@ -106,6 +106,7 @@ func (o *OLDAPClient) newEnableInputFromConfig() (*apisv3.LdapTestAndApplyInput,
 	resource.AccessMode = o.Config.AccessMode
 
 	resource.UserSearchBase = o.Config.Users.SearchBase
+	resource.GroupSearchBase = o.Config.Groups.SearchBase
 
 	if o.Config.Users.Admin.Username == "" || o.Config.Users.Admin.Password == "" {
 		return nil, fmt.Errorf("admin username or password are empty, please provide them")
@@ -119,8 +120,9 @@ func (o *OLDAPClient) newEnableInputFromConfig() (*apisv3.LdapTestAndApplyInput,
 	resource.ServiceAccountDistinguishedName = o.Config.ServiceAccount.DistinguishedName
 	resource.ServiceAccountPassword = o.Config.ServiceAccount.Password
 
-	resource.GroupMemberUserAttribute = o.Config.Group.MemberMappingAttribute
-	resource.GroupObjectClass = o.Config.Group.ObjectClass
+	resource.GroupMemberUserAttribute = o.Config.Groups.MemberMappingAttribute
+	resource.NestedGroupMembershipEnabled = o.Config.Groups.NestedGroupMembershipEnabled
+	resource.GroupObjectClass = o.Config.Groups.ObjectClass
 
 	return &resource, nil
 }
