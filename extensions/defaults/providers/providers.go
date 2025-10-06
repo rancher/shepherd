@@ -1,6 +1,7 @@
 package providers
 
 const (
+	Alibaba      = "alibaba"
 	AWS          = "aws"
 	Azure        = "azure"
 	DigitalOcean = "do"
