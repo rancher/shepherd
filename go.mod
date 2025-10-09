@@ -33,11 +33,11 @@ require (
 	github.com/rancher/aks-operator v1.12.1
 	github.com/rancher/apiserver v0.7.0
 	github.com/rancher/eks-operator v1.12.1
-	github.com/rancher/fleet/pkg/apis v0.13.0
+	github.com/rancher/fleet/pkg/apis v0.14.0-alpha.3
 	github.com/rancher/gke-operator v1.12.1
 	github.com/rancher/lasso v0.2.3
 	github.com/rancher/norman v0.7.0
-	github.com/rancher/rancher/pkg/apis v0.0.0-20250922122247-9da0f4e2209e
+	github.com/rancher/rancher/pkg/apis v0.0.0-20251009161653-d783f1db5adc
 	github.com/rancher/rke v1.8.0-rc.4
 	github.com/rancher/system-upgrade-controller/pkg/apis v0.0.0-20250710162344-185ff9f785cd
 	github.com/rancher/wrangler v1.1.2
