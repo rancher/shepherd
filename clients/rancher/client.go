@@ -13,6 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rancher/norman/httperror"
+	v3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
 	frameworkDynamic "github.com/rancher/shepherd/clients/dynamic"
 	"github.com/rancher/shepherd/clients/ec2"
 	"github.com/rancher/shepherd/clients/rancher/catalog"
@@ -238,6 +239,16 @@ func (c *Client) AsUser(user *management.User) (*Client, error) {
 	return NewClient(returnedToken.Token, c.Session)
 }
 
+// AsPublicAPIUser accepts a v3 user object, and then creates a token for said `user`. Then it instantiates and returns a Client using the token created.
+func (c *Client) AsPublicAPIUser(user *v3.User, password string) (*Client, error) {
+	returnedToken, err := c.loginPublicAPIUser(user, password, auth.LocalAuth)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewClient(returnedToken.Token, c.Session)
+}
+
 // AsAuthUser accepts a user object, and then creates a token for said `user`. Then it instantiates and returns a Client using the token created.
 // This function uses the login action, and user must have a correct username and password combination.
 func (c *Client) AsAuthUser(user *management.User, authProvider auth.Provider) (*Client, error) {
@@ -378,26 +389,36 @@ func (c *Client) GetManagementWatchInterface(schemaType string, opts metav1.List
 	return dynamicClient.Resource(groupVersionResource).Watch(context.TODO(), opts)
 }
 
-// login uses the local authentication provider to authenticate a user and return the subsequent token.
-func (c *Client) login(user *management.User, provider auth.Provider) (*management.Token, error) {
+// loginWithCredentials uses the local authentication provider to authenticate a user and return the token.
+func (c *Client) loginWithCredentials(username, password string, provider auth.Provider) (*management.Token, error) {
 	token := &management.Token{}
 	bodyContent, err := json.Marshal(struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	}{
-		Username: user.Username,
-		Password: user.Password,
+		Username: username,
+		Password: password,
 	})
 	if err != nil {
 		return nil, err
 	}
+
 	endpoint := fmt.Sprintf("/v3-public/%vProviders/%v", provider.String(), strings.ToLower(provider.String()))
-	err = c.doAction(endpoint, "login", bodyContent, token)
-	if err != nil {
+	if err := c.doAction(endpoint, "login", bodyContent, token); err != nil {
 		return nil, err
 	}
 
 	return token, nil
+}
+
+// login uses the local authentication provider to authenticate a user and return the token.
+func (c *Client) login(user *management.User, provider auth.Provider) (*management.Token, error) {
+	return c.loginWithCredentials(user.Username, user.Password, provider)
+}
+
+// loginPublicAPIUser uses the local authentication provider to authenticate a v3 user and return the token.
+func (c *Client) loginPublicAPIUser(user *v3.User, password string, provider auth.Provider) (*management.Token, error) {
+	return c.loginWithCredentials(user.Username, password, provider)
 }
 
 // IsConnected is a helper function that pings rancher ping endpoint with the management, steve and rest clients.
