@@ -193,18 +193,19 @@ func CreateRKE1Cluster(client *rancher.Client, rke1Cluster *management.Cluster) 
 // CreateK3SRKE2Cluster is a "helper" functions that takes a rancher client, and the rke2 cluster config as parameters. This function
 // registers a delete cluster fuction with a wait.WatchWait to ensure the cluster is removed cleanly.
 func CreateK3SRKE2Cluster(client *rancher.Client, rke2Cluster *apisV1.Cluster) (*v1.SteveAPIObject, error) {
-	cluster, err := client.Steve.SteveType(ProvisioningSteveResourceType).Create(rke2Cluster)
+	cluster, err := client.Steve.SteveType(stevetypes.Provisioning).Create(rke2Cluster)
 	if err != nil {
 		return nil, err
 	}
 
-	err = kwait.Poll(500*time.Millisecond, 2*time.Minute, func() (done bool, err error) {
+	err = kwait.PollUntilContextTimeout(context.TODO(), 5*time.Second, 2*time.Minute, false, func(ctx context.Context) (done bool, err error) {
 		client, err = client.ReLogin()
 		if err != nil {
-			return false, err
+			logrus.Warning("Failed to create client, retrying")
+			return false, nil
 		}
 
-		_, err = client.Steve.SteveType(ProvisioningSteveResourceType).ByID(cluster.ID)
+		_, err = client.Steve.SteveType(stevetypes.Provisioning).ByID(cluster.ID)
 		if err != nil {
 			return false, nil
 		}
@@ -241,7 +242,7 @@ func CreateK3SRKE2Cluster(client *rancher.Client, rke2Cluster *apisV1.Cluster) (
 			return err
 		}
 
-		err = client.Steve.SteveType(ProvisioningSteveResourceType).Delete(cluster)
+		err = client.Steve.SteveType(stevetypes.Provisioning).Delete(cluster)
 		if err != nil {
 			return err
 		}
