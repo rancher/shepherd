@@ -3,8 +3,9 @@ package auth
 type Provider string
 
 const (
-	LocalAuth    Provider = "local"
-	OpenLDAPAuth Provider = "openLdap"
+	LocalAuth           Provider = "local"
+	OpenLDAPAuth        Provider = "openLdap"
+	ActiveDirectoryAuth Provider = "activeDirectory"
 )
 
 // String stringer for the AuthProvider
