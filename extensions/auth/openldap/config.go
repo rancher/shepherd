@@ -19,8 +19,10 @@ type ServiceAccount struct {
 }
 
 type Group struct {
-	ObjectClass            string `json:"objectClass" yaml:"objectClass"`
-	MemberMappingAttribute string `json:"memberMappingAttribute" yaml:"memberMappingAttribute"`
+	ObjectClass                  string `json:"objectClass"            yaml:"objectClass"`
+	MemberMappingAttribute       string `json:"memberMappingAttribute" yaml:"memberMappingAttribute"`
+	NestedGroupMembershipEnabled bool   `json:"nestedGroupMembershipEnabled,omitempty" yaml:"nestedGroupMembershipEnabled,omitempty"`
+	SearchDirectGroupMemberships bool   `json:"searchDirectGroupMemberships,omitempty" yaml:"searchDirectGroupMemberships,omitempty"`
 }
 
 type User struct {
