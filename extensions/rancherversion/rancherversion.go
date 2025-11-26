@@ -1,6 +1,7 @@
 package rancherversion
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -10,8 +11,16 @@ import (
 // RequestRancherVersion Requests the rancher version from the rancher server, parses the returned json and returns a
 // Config object, or an error.
 func RequestRancherVersion(rancherURL string) (*Config, error) {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}
+
+	client := &http.Client{Transport: tr}
+
 	var httpURL = "https://" + rancherURL + "/rancherversion"
-	req, err := http.Get(httpURL)
+	req, err := client.Get(httpURL)
 	if err != nil {
 		return nil, err
 	}
