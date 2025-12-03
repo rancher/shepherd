@@ -3,8 +3,6 @@ package openldap
 import (
 	"fmt"
 
-	apisv3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
-
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	"github.com/rancher/shepherd/pkg/config"
 	"github.com/rancher/shepherd/pkg/session"
@@ -90,8 +88,9 @@ func (o *OLDAPClient) newActionURL(action string) string {
 	)
 }
 
-func (o *OLDAPClient) newEnableInputFromConfig() (*apisv3.LdapTestAndApplyInput, error) {
-	var resource apisv3.LdapTestAndApplyInput
+func (o *OLDAPClient) newEnableInputFromConfig() (*management.OpenLdapTestAndApplyInput, error) {
+	var input management.OpenLdapTestAndApplyInput
+	var ldapConfig management.LdapConfig
 
 	var server string
 	if o.Config.Hostname == "" && o.Config.IP == "" {
@@ -102,29 +101,26 @@ func (o *OLDAPClient) newEnableInputFromConfig() (*apisv3.LdapTestAndApplyInput,
 		server = o.Config.IP
 	}
 
-	resource.Enabled = true
-	resource.AccessMode = o.Config.AccessMode
-
-	resource.UserSearchBase = o.Config.Users.SearchBase
-	resource.GroupSearchBase = o.Config.Groups.SearchBase
+	ldapConfig.Enabled = true
+	ldapConfig.AccessMode = o.Config.AccessMode
+	ldapConfig.UserSearchBase = o.Config.Users.SearchBase
+	ldapConfig.GroupSearchBase = o.Config.Groups.SearchBase
+	ldapConfig.Servers = []string{server}
+	ldapConfig.ServiceAccountDistinguishedName = o.Config.ServiceAccount.DistinguishedName
+	ldapConfig.ServiceAccountPassword = o.Config.ServiceAccount.Password
+	ldapConfig.GroupMemberUserAttribute = o.Config.Groups.MemberMappingAttribute
+	ldapConfig.NestedGroupMembershipEnabled = o.Config.Groups.NestedGroupMembershipEnabled
+	ldapConfig.GroupObjectClass = o.Config.Groups.ObjectClass
 
 	if o.Config.Users.Admin.Username == "" || o.Config.Users.Admin.Password == "" {
 		return nil, fmt.Errorf("admin username or password are empty, please provide them")
 	}
 
-	resource.Username = o.Config.Users.Admin.Username
-	resource.Password = o.Config.Users.Admin.Password
+	input.LdapConfig = &ldapConfig
+	input.Username = o.Config.Users.Admin.Username
+	input.Password = o.Config.Users.Admin.Password
 
-	resource.Servers = []string{server}
-
-	resource.ServiceAccountDistinguishedName = o.Config.ServiceAccount.DistinguishedName
-	resource.ServiceAccountPassword = o.Config.ServiceAccount.Password
-
-	resource.GroupMemberUserAttribute = o.Config.Groups.MemberMappingAttribute
-	resource.NestedGroupMembershipEnabled = o.Config.Groups.NestedGroupMembershipEnabled
-	resource.GroupObjectClass = o.Config.Groups.ObjectClass
-
-	return &resource, nil
+	return &input, nil
 }
 
 func (o *OLDAPClient) newDisableInput() []byte {
