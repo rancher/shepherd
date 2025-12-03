@@ -51,10 +51,7 @@ func CreateJobAndRunKubectlCommands(clusterID, jobname string, job *batchv1.Job,
 	}
 	restConfig.ContentConfig.NegotiatedSerializer = serializer.NewCodecFactory(k8Scheme.Scheme)
 
-	ts := client.Session.NewSession()
-	defer ts.Cleanup()
-
-	downClient, err := dynamic.NewForConfig(ts, restConfig)
+	downClient, err := dynamic.NewForConfig(client.Session, restConfig)
 	if err != nil {
 		return err
 	}
