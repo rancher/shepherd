@@ -47,7 +47,7 @@ func (ts *Session) Cleanup() {
 		// due to using a stale cache
 		var backoff = wait.Backoff{
 			Duration: 100 * time.Millisecond,
-			Factor:   1,
+			Factor:   2,
 			Jitter:   0,
 			Steps:    5,
 		}
