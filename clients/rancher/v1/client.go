@@ -62,11 +62,18 @@ type SteveAPIObject struct {
 	Status          any `json:"status,omitempty" yaml:"status,omitempty"`
 }
 
+type SteveAPISummaryItem struct {
+	JSONResp map[string]any
+	Property string         `json:"property,omitempty"`
+	Counts   map[string]int `json:"counts,omitempty"`
+}
+
 // SteveCollection is the collection type of the SteveAPIObjects
 type SteveCollection struct {
 	types.Collection
-	Data   []SteveAPIObject `json:"data,omitempty"`
-	client *SteveClient
+	Data    []SteveAPIObject      `json:"data,omitempty"`
+	Summary []SteveAPISummaryItem `json:"summary,omitempty"`
+	client  *SteveClient
 }
 
 // SteveClient is the client used to access Steve API endpoints
@@ -230,14 +237,19 @@ func (c *SteveClient) List(query url.Values) (*SteveCollection, error) {
 		return nil, err
 	}
 
-	err = ConvertToK8sType(jsonResp, resp)
-	if err != nil {
+	if err = ConvertToK8sType(jsonResp, resp); err != nil {
 		return nil, err
 	}
 
 	steveList := jsonResp["data"]
 	for index, item := range steveList.([]any) {
 		resp.Data[index].JSONResp = item.(map[string]any)
+	}
+	steveSummary, okSummary := jsonResp["summary"]
+	if okSummary {
+		for index, item := range steveSummary.([]any) {
+			resp.Summary[index].JSONResp = item.(map[string]any)
+		}
 	}
 	return resp, err
 }
