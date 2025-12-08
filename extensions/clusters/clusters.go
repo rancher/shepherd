@@ -29,10 +29,10 @@ import (
 )
 
 const (
-	FleetSteveResourceType               = "fleet.cattle.io.cluster"
-	PodSecurityAdmissionSteveResoureType = "management.cattle.io.podsecurityadmissionconfigurationtemplate"
-	ProvisioningSteveResourceType        = "provisioning.cattle.io.cluster"
-	ErrMsgListDownstreamClusters         = "Couldn't list downstream clusters"
+	FleetSteveResourceType                = "fleet.cattle.io.cluster"
+	PodSecurityAdmissionSteveResourceType = "management.cattle.io.podsecurityadmissionconfigurationtemplate"
+	ProvisioningSteveResourceType         = "provisioning.cattle.io.cluster"
+	ErrMsgListDownstreamClusters          = "Couldn't list downstream clusters"
 
 	active                   = "active"
 	localcluster             = "fleet-local/local"
