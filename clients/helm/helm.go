@@ -104,3 +104,28 @@ func AddHelmRepo(name, url string) error {
 
 	return nil
 }
+
+// IsReleaseExists checks if a Helm release with the given releaseName exists in the specified namespace.
+func IsReleaseExists(releaseName, namespace string) (bool, error) {
+
+	commandArgs := []string{
+		"list",
+		"--namespace",
+		namespace,
+		"--filter",
+		releaseName,
+		"--output",
+		"json",
+	}
+
+	msg, err := exec.Command(helmCmd, commandArgs...).CombinedOutput()
+	if err != nil {
+		return false, errors.Wrap(err, "IsReleaseExists: "+string(msg))
+	}
+
+	if string(msg) == "[]" || len(msg) == 0 {
+		return false, nil
+	}
+
+	return true, nil
+}
