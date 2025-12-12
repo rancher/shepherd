@@ -104,3 +104,13 @@ func AddHelmRepo(name, url string) error {
 
 	return nil
 }
+
+// UpdateHelmRepo updates the specified helm repository using the helm repo update command.
+func UpdateHelmRepo(name string) error {
+	msg, err := exec.Command(helmCmd, "repo", "update", name).CombinedOutput()
+	if err != nil {
+		return errors.Wrap(err, "UpdateHelmRepo: "+string(msg))
+	}
+
+	return nil
+}
