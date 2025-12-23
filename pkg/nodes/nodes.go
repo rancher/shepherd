@@ -52,7 +52,6 @@ func formatAddress(ipAddress string) string {
 // SCPFileToNode copies a file from the local machine to the specific node created.
 func (n *Node) SCPFileToNode(localPath, remotePath string) error {
 	signer, err := ssh.ParsePrivateKey(n.SSHKey)
-
 	if err != nil {
 		return err
 	}
@@ -127,13 +126,15 @@ func (n *Node) ExecuteCommand(command string) (string, error) {
 	if err != nil {
 		return outputString, err
 	}
+	defer client.Close()
 
 	session, err := client.NewSession()
 	if err != nil {
 		return outputString, err
 	}
+	defer session.Close()
 
-	output, err = session.Output(command)
+	output, err = session.CombinedOutput(command)
 	outputString = string(output)
 	return outputString, err
 }
