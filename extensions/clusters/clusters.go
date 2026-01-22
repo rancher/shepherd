@@ -43,7 +43,7 @@ const (
 
 // GetV1ProvisioningClusterByName is a helper function that returns the cluster ID by name
 func GetV1ProvisioningClusterByName(client *rancher.Client, clusterName string) (string, error) {
-	clusterList, err := client.Steve.SteveType(ProvisioningSteveResourceType).List(nil)
+	clusterList, err := client.Steve.SteveType(ProvisioningSteveResourceType).ListAll(nil)
 	if err != nil {
 		return "", err
 	}
@@ -59,7 +59,7 @@ func GetV1ProvisioningClusterByName(client *rancher.Client, clusterName string) 
 
 // GetClusterIDByName is a helper function that returns the cluster ID by name
 func GetClusterIDByName(client *rancher.Client, clusterName string) (string, error) {
-	clusterList, err := client.Management.Cluster.List(&types.ListOpts{})
+	clusterList, err := client.Management.Cluster.ListAll(&types.ListOpts{})
 	if err != nil {
 		return "", err
 	}
@@ -75,7 +75,7 @@ func GetClusterIDByName(client *rancher.Client, clusterName string) (string, err
 
 // GetClusterNameByID is a helper function that returns the cluster ID by name
 func GetClusterNameByID(client *rancher.Client, clusterID string) (string, error) {
-	clusterList, err := client.Management.Cluster.List(&types.ListOpts{})
+	clusterList, err := client.Management.Cluster.ListAll(&types.ListOpts{})
 	if err != nil {
 		return "", err
 	}
@@ -98,6 +98,7 @@ func IsProvisioningClusterReady(event watch.Event) (ready bool, err error) {
 	for _, condition := range cluster.Status.Conditions {
 		if condition.Type == "Updated" && condition.Status == corev1.ConditionTrue {
 			updated = true
+			logrus.Infof("[%s/%s] Cluster status is active!", cluster.Namespace, cluster.Name)
 		}
 	}
 
@@ -115,7 +116,7 @@ func IsHostedProvisioningClusterReady(event watch.Event) (ready bool, err error)
 	}
 	for _, cond := range cluster.Status.Conditions {
 		if cond.Type == "Ready" && cond.Status == "True" {
-			logrus.Infof("Cluster status is active!")
+			logrus.Infof("[%s/%s] Cluster status is active!", cluster.Namespace, cluster.Name)
 			return true, nil
 		}
 	}
@@ -143,7 +144,6 @@ func CreateRKE1Cluster(client *rancher.Client, rke1Cluster *management.Cluster) 
 		}
 		return true, nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +211,6 @@ func CreateK3SRKE2Cluster(client *rancher.Client, rke2Cluster *apisV1.Cluster) (
 
 		return true, nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -231,7 +230,6 @@ func CreateK3SRKE2Cluster(client *rancher.Client, rke2Cluster *apisV1.Cluster) (
 			FieldSelector:  "metadata.name=" + cluster.ObjectMeta.Name,
 			TimeoutSeconds: &defaults.WatchTimeoutSeconds,
 		})
-
 		if err != nil {
 			return err
 		}
@@ -287,6 +285,7 @@ func DeleteK3SRKE2Cluster(client *rancher.Client, clusterID string) error {
 		return err
 	}
 
+	logrus.Infof("[%s/%s] Deleting cluster...", cluster.ObjectMeta.Namespace, cluster.ObjectMeta.Name)
 	err = client.Steve.SteveType(stevetypes.Provisioning).Delete(cluster)
 	if err != nil {
 		return err
@@ -336,7 +335,7 @@ func UpdateK3SRKE2Cluster(client *rancher.Client, cluster *v1.SteveAPIObject, up
 
 	updatedCluster.ObjectMeta.ResourceVersion = updateCluster.ObjectMeta.ResourceVersion
 
-	logrus.Infof("Updating cluster...")
+	logrus.Infof("[%s/%s] Updating cluster...", updateCluster.ObjectMeta.Namespace, updateCluster.ObjectMeta.Name)
 	cluster, err = client.Steve.SteveType(ProvisioningSteveResourceType).Update(cluster, updatedCluster)
 	if err != nil {
 		return nil, err
@@ -365,19 +364,18 @@ func UpdateK3SRKE2Cluster(client *rancher.Client, cluster *v1.SteveAPIObject, up
 				return false, err
 			}
 
-			_, err = proxyClient.SteveType(pods.PodResourceSteveType).List(nil)
+			_, err = proxyClient.SteveType(pods.PodResourceSteveType).ListAll(nil)
 			if err != nil {
 				return false, nil
 			}
 
-			logrus.Infof("Cluster has been successfully updated!")
+			logrus.Infof("[%s/%s] Cluster has been successfully updated!, cluster", updatedCluster.Namespace, updatedCluster.Name)
 
 			return true, nil
 		}
 
 		return false, nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -460,7 +458,6 @@ func WaitClusterUntilUpgrade(client *rancher.Client, clusterID string) (err erro
 			return false, nil
 		} else if summarizedCluster.Error && !isClusterInaccessible(summarizedCluster.Message, acceptableErrorMessages) {
 			return false, errors.Wrap(err, clusterErrorStateMessage)
-
 		}
 
 		return false, nil
