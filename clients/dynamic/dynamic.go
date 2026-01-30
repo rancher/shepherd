@@ -104,9 +104,7 @@ func (c *ResourceClient) Create(ctx context.Context, obj *unstructured.Unstructu
 
 	if needsCleanup(obj) {
 		c.ts.RegisterCleanupFunc(func() error {
-			// Using this policy avoids a flood of useless warnings on test logs.
-			orphanPolicy := metav1.DeletePropagationOrphan
-			err := c.Delete(context.TODO(), unstructuredObj.GetName(), metav1.DeleteOptions{PropagationPolicy: &orphanPolicy}, subresources...)
+			err := c.Delete(context.TODO(), unstructuredObj.GetName(), metav1.DeleteOptions{}, subresources...)
 			if errors.IsNotFound(err) {
 				return nil
 			}
