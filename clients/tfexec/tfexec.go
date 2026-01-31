@@ -218,14 +218,14 @@ func (c *Client) ApplyPlanJSON(w io.Writer, opts ...tfexec.ApplyOption) error {
 // Output effectively runs the `terraform output -json` command
 // It takes any number of tfexec.OutputOptions as inputs and respects them.
 // This function will parse the machine-readable JSON into a []map[string]any that can be further manipulated.
-// Returns a []map[string]any of the generated output, and an error if any
-func (c *Client) Output(opts ...tfexec.OutputOption) ([]map[string]any, error) {
+// Returns a map[string]any of the generated output, and an error if any
+func (c *Client) Output(opts ...tfexec.OutputOption) (map[string]any, error) {
 	outputs, err := c.Terraform.Output(context.Background(), opts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "Output: ")
 	}
 
-	var parsedOutput []map[string]any
+	parsedOutput := make(map[string]any)
 	for key, output := range outputs {
 		var val any
 
@@ -234,9 +234,13 @@ func (c *Client) Output(opts ...tfexec.OutputOption) ([]map[string]any, error) {
 			return nil, errors.Wrap(err, "Output: ")
 		}
 
-		tempMap := map[string]any{key: val}
-		parsedOutput = append(parsedOutput, tempMap)
+		parsedOutput[key] = val
 	}
+
+	if len(parsedOutput) == 0 && len(outputs) > 0 {
+		return parsedOutput, errors.New("Output: Failed to parse output into map[string]any")
+	}
+
 	return parsedOutput, nil
 }
 
