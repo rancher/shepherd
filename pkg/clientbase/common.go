@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
@@ -23,6 +24,9 @@ import (
 const (
 	SELF       = "self"
 	COLLECTION = "collection"
+	duration   = 300 * time.Millisecond // duration of 100 miliseconds to be short since this is a fast check
+	factor     = 2                      // with a factor of 1
+	steps      = 12                     // only do 12 tries
 )
 
 var Debug = false
@@ -53,6 +57,7 @@ type ClientOpts struct {
 	SecretKey  string
 	TokenKey   string
 	Timeout    time.Duration
+	Backoff    *wait.Backoff
 	HTTPClient *http.Client
 	WSDialer   *websocket.Dialer
 	CACerts    string
@@ -166,6 +171,41 @@ func appendFilters(urlString string, filters map[string]interface{}) (string, er
 }
 
 func NewAPIClient(opts *ClientOpts) (APIBaseClient, error) {
+	// Retry logic to wait for schemas to stabilize (become available and consistent)
+	if opts.Backoff == nil {
+		opts.Backoff = &wait.Backoff{
+			Factor:   factor,
+			Jitter:   0,
+			Steps:    steps,
+			Duration: duration,
+		}
+	}
+
+	var baseClient APIBaseClient
+	var previousTypesLength int
+	err := wait.ExponentialBackoff(*opts.Backoff, func() (done bool, err error) {
+		baseClient, err = newAPIClientInternal(opts)
+		if err != nil {
+			return false, nil
+		}
+
+		typesLength := len(baseClient.Types)
+		if previousTypesLength == typesLength {
+			return true, nil
+		}
+
+		previousTypesLength = typesLength
+		return false, nil
+	})
+
+	if err != nil {
+		return baseClient, err
+	}
+
+	return baseClient, nil
+}
+
+func newAPIClientInternal(opts *ClientOpts) (APIBaseClient, error) {
 	var err error
 
 	result := APIBaseClient{
