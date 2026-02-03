@@ -171,13 +171,26 @@ func (c *Client) ProxyDownstream(clusterID string) (*Client, error) {
 	proxyHost := fmt.Sprintf("https://%s/k8s/clusters/%s/v1", host, clusterID)
 	updatedOpts.URL = proxyHost
 
-	baseClient, err := clientbase.NewAPIClient(&updatedOpts)
-	if err != nil {
-		return nil, err
+	backoff := wait.Backoff{
+		Duration: duration,
+		Factor:   factor,
+		Jitter:   0,
+		Steps:    steps,
 	}
 
+	var createErr error
+	var baseClient clientbase.APIBaseClient
+	err := wait.ExponentialBackoff(backoff, func() (finished bool, err error) {
+		baseClient, createErr = clientbase.NewAPIClient(&updatedOpts)
+		if createErr != nil {
+			return false, nil
+		}
+
+		return true, nil
+	})
+
 	if err != nil {
-		return nil, fmt.Errorf("failed creating Proxy Client. Backoff error: %v", err)
+		return nil, fmt.Errorf("failed creating Proxy Client. Backoff error: %v", createErr)
 	}
 
 	client := &Client{
