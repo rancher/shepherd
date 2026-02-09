@@ -1,11 +1,11 @@
 name: Create Rancher PR
 
-# This workflow triggers on a push to the main branch. It updates the
+# This workflow triggers on a push to the release/v2.13 branch. It updates the
 # rancher/shepherd dependency in the rancher/rancher repository and opens a PR.
 on:
   push:
     branches:
-      - main
+      - release/v2.13
 env:
   INPUT_SOURCE_URL: ${{ github.event.inputs.source_url }}
   INPUT_SOURCE_AUTHOR: ${{ github.event.inputs.source_author }}
@@ -39,7 +39,7 @@ jobs:
         with:
           repository: rancher/rancher
           path: rancher
-          ref: main
+          ref: release/v2.13
           token: ${{ env.GH_TOKEN }}
 
       - name: Setup Go
@@ -92,11 +92,11 @@ jobs:
             }
           
             const { data: pr } = await github.rest.pulls.create({
-              title: "[main] shepherd-githubaction: Update rancher/shepherd to latest version",
+              title: "[release/v2.13] shepherd-githubaction: Update rancher/shepherd to latest version",
               body: body,
               owner: "rancher",
               repo: "rancher",
-              base: "main",
+              base: "release/v2.13",
               head: "${{ steps.update_and_push.outputs.branch_name }}"
             });
             await github.rest.issues.addLabels({
