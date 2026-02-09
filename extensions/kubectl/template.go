@@ -68,7 +68,7 @@ func CreateJobAndRunKubectlCommands(clusterID, jobname string, job *batchv1.Job,
 
 	rb := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "rancher-install-cluster-admin",
+			Name: namegen.AppendRandomString("rancher-install-cluster-admin"),
 		},
 		Subjects: []rbacv1.Subject{
 			{
