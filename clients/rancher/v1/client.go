@@ -10,20 +10,15 @@ import (
 	"net/url"
 	"regexp"
 	"sort"
-	"time"
 
 	"github.com/rancher/apiserver/pkg/types"
 	normantypes "github.com/rancher/norman/types"
 	"github.com/rancher/shepherd/pkg/clientbase"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
 	hostRegex = "https://(.+)/v1"
-	duration  = 300 * time.Millisecond // duration of 100 miliseconds to be short since this is a fast check
-	factor    = 2                      // with a factor of 1
-	steps     = 12                     // only do 12 tries
 )
 
 // State is the Steve specific field in the rancher Steve API
@@ -103,38 +98,9 @@ type Client struct {
 }
 
 func NewClient(opts *clientbase.ClientOpts) (*Client, error) {
-	// sometimes it is necessary to retry the GetCollectionURL due to the schema not being updated
-	// fast enough after a cluster has been provisioned
-	var backoff = wait.Backoff{
-		Duration: duration,
-		Factor:   factor,
-		Jitter:   0,
-		Steps:    steps,
-	}
-
-	var baseClient clientbase.APIBaseClient
-	var previousTypesLength int
-	var count int
-	err := wait.ExponentialBackoff(backoff, func() (done bool, err error) {
-		baseClient, err = clientbase.NewAPIClient(opts)
-		if err != nil {
-			return false, err
-		}
-
-		typesLength := len(baseClient.Types)
-		if previousTypesLength == typesLength {
-			count += 1
-		}
-		if count > 4 {
-			return true, nil
-		}
-
-		previousTypesLength = typesLength
-		return false, nil
-	})
-
+	baseClient, err := clientbase.NewAPIClient(opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed creating Client. Backoff error: %v", err)
+		return nil, fmt.Errorf("failed creating Client: %v", err)
 	}
 
 	client := &Client{
