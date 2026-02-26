@@ -186,6 +186,11 @@ func NewAPIClient(opts *ClientOpts) (APIBaseClient, error) {
 	err := wait.ExponentialBackoff(*opts.Backoff, func() (done bool, err error) {
 		baseClient, err = newAPIClientInternal(opts)
 		if err != nil {
+			if apiErr, ok := err.(*APIError); ok {
+				if apiErr.StatusCode == http.StatusUnauthorized || apiErr.StatusCode == http.StatusForbidden {
+					return false, err
+				}
+			}
 			return false, nil
 		}
 
