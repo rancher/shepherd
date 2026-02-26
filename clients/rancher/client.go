@@ -102,10 +102,12 @@ func newClient(c *Client, bearerToken string, config *Config, session *session.S
 	if session != nil {
 		session.CleanupEnabled = *config.Cleanup
 	}
+
 	var err error
 	restConfig := newRestConfig(bearerToken, config)
 	c.restConfig = restConfig
 	c.Session = session
+
 	c.Management, err = management.NewClient(clientOpts(restConfig, c.RancherConfig))
 	if err != nil {
 		return nil, err
@@ -140,6 +142,7 @@ func newClient(c *Client, bearerToken string, config *Config, session *session.S
 	}
 
 	c.WranglerContext = wranglerContext
+
 	auth, err := auth.NewClient(c.Management, session)
 	if err != nil {
 		return nil, err
@@ -148,12 +151,25 @@ func newClient(c *Client, bearerToken string, config *Config, session *session.S
 	c.Auth = auth
 
 	splitBearerKey := strings.Split(bearerToken, ":")
-	token, err := c.Management.Token.ByID(splitBearerKey[0])
-	if err != nil {
-		return nil, err
+	if len(splitBearerKey) < 2 {
+		return nil, fmt.Errorf("invalid bearer token format: expected <tokenID>:<secret> or ext/<tokenID>:<secret>")
 	}
 
-	c.UserID = token.UserID
+	tokenID := splitBearerKey[0]
+	if strings.HasPrefix(tokenID, "ext/") {
+		tokenID = strings.TrimPrefix(tokenID, "ext/")
+		tokenObj, err := c.WranglerContext.Ext.Token().Get(tokenID, metav1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to lookup ext token: %w", err)
+		}
+		c.UserID = tokenObj.Spec.UserID
+	} else {
+		tokenObj, err := c.Management.Token.ByID(tokenID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to lookup token: %w", err)
+		}
+		c.UserID = tokenObj.UserID
+	}
 
 	return c, nil
 }
