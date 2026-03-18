@@ -124,72 +124,6 @@ func IsHostedProvisioningClusterReady(event watch.Event) (ready bool, err error)
 	return false, nil
 }
 
-// CreateRKE1Cluster is a "helper" functions that takes a rancher client, and the rke1 cluster config as parameters. This function
-// registers a delete cluster fuction with a wait.WatchWait to ensure the cluster is removed cleanly.
-func CreateRKE1Cluster(client *rancher.Client, rke1Cluster *management.Cluster) (*management.Cluster, error) {
-	cluster, err := client.Management.Cluster.Create(rke1Cluster)
-	if err != nil {
-		return nil, err
-	}
-
-	err = kwait.Poll(500*time.Millisecond, 2*time.Minute, func() (done bool, err error) {
-		client, err = client.ReLogin()
-		if err != nil {
-			return false, err
-		}
-
-		_, err = client.Management.Cluster.ByID(cluster.ID)
-		if err != nil {
-			return false, nil
-		}
-		return true, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	client.Session.RegisterCleanupFunc(func() error {
-		adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
-		if err != nil {
-			return err
-		}
-
-		clusterResp, err := client.Management.Cluster.ByID(cluster.ID)
-		if err != nil {
-			return err
-		}
-
-		client, err = client.ReLogin()
-		if err != nil {
-			return err
-		}
-
-		err = client.Management.Cluster.Delete(clusterResp)
-		if err != nil {
-			return err
-		}
-
-		watchInterface, err := adminClient.GetManagementWatchInterface(management.ClusterType, metav1.ListOptions{
-			FieldSelector:  "metadata.name=" + clusterResp.ID,
-			TimeoutSeconds: &defaults.WatchTimeoutSeconds,
-		})
-		if err != nil {
-			return err
-		}
-
-		return wait.WatchWait(watchInterface, func(event watch.Event) (ready bool, err error) {
-			if event.Type == watch.Error {
-				return false, fmt.Errorf("there was an error deleting cluster")
-			} else if event.Type == watch.Deleted {
-				return true, nil
-			}
-			return false, nil
-		})
-	})
-
-	return cluster, nil
-}
-
 // CreateK3SRKE2Cluster is a "helper" functions that takes a rancher client, and the rke2 cluster config as parameters. This function
 // registers a delete cluster fuction with a wait.WatchWait to ensure the cluster is removed cleanly.
 func CreateK3SRKE2Cluster(client *rancher.Client, rke2Cluster *apisV1.Cluster) (*v1.SteveAPIObject, error) {
@@ -261,23 +195,6 @@ func CreateK3SRKE2Cluster(client *rancher.Client, rke2Cluster *apisV1.Cluster) (
 	return cluster, nil
 }
 
-// DeleteKE1Cluster is a "helper" functions that takes a rancher client, and the rke1 cluster ID as parameters to delete
-// the cluster.
-func DeleteRKE1Cluster(client *rancher.Client, clusterID string) error {
-	cluster, err := client.Management.Cluster.ByID(clusterID)
-	if err != nil {
-		return err
-	}
-
-	logrus.Infof("Deleting cluster %s...", cluster.Name)
-	err = client.Management.Cluster.Delete(cluster)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // DeleteK3SRKE2Cluster is a "helper" functions that takes a rancher client, and the non-rke1 cluster ID as parameters to delete
 // the cluster.
 func DeleteK3SRKE2Cluster(client *rancher.Client, clusterID string) error {
@@ -293,38 +210,6 @@ func DeleteK3SRKE2Cluster(client *rancher.Client, clusterID string) error {
 	}
 
 	return nil
-}
-
-// UpdateRKE1Cluster is a "helper" functions that takes a rancher client, old rke1 cluster config, and the new rke1 cluster config as parameters.
-func UpdateRKE1Cluster(client *rancher.Client, cluster, updatedCluster *management.Cluster) (*management.Cluster, error) {
-	logrus.Infof("Updating cluster...")
-	newCluster, err := client.Management.Cluster.Update(cluster, updatedCluster)
-	if err != nil {
-		return nil, err
-	}
-
-	err = kwait.PollUntilContextTimeout(context.TODO(), 500*time.Millisecond, defaults.ThirtyMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
-		client, err = client.ReLogin()
-		if err != nil {
-			return false, err
-		}
-
-		clusterResp, err := client.Management.Cluster.ByID(newCluster.ID)
-		if err != nil {
-			return false, err
-		}
-
-		if clusterResp.State == active {
-			return true, nil
-		}
-
-		return false, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return cluster, nil
 }
 
 // UpdateK3SRKE2Cluster is a "helper" functions that takes a rancher client, old rke2/k3s cluster config, and the new rke2/k3s cluster config as parameters.
@@ -606,29 +491,6 @@ func GetProvisioningClusterByName(client *rancher.Client, clusterName string, na
 	}
 
 	return cluster, clusterObj, nil
-}
-
-// WaitForActiveCluster is a "helper" function that waits for the cluster to reach the active state.
-// The function accepts a Rancher client and a cluster ID as parameters.
-func WaitForActiveRKE1Cluster(client *rancher.Client, clusterID string) error {
-	err := kwait.Poll(500*time.Millisecond, 30*time.Minute, func() (done bool, err error) {
-		client, err = client.ReLogin()
-		if err != nil {
-			return false, err
-		}
-		clusterResp, err := client.Management.Cluster.ByID(clusterID)
-		if err != nil {
-			return false, err
-		}
-		if clusterResp.State == active {
-			return true, nil
-		}
-		return false, nil
-	})
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 // ListDownstreamClusters is a helper function to get the name of the downstream clusters

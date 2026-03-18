@@ -15,29 +15,15 @@ import (
 )
 
 const (
-	rke1VersionsSetting = "k8s-versions-current"
-	rke2ReleasePath     = "v1-rke2-release/releases"
-	k3sReleasePath      = "v1-k3s-release/releases"
-	gkeVersionPath      = "meta/gkeVersions"
-	aksVersionPath      = "meta/aksVersions"
-	eksVersionsFileURL  = "raw.githubusercontent.com/rancher/dashboard/refs/heads/master/pkg/eks/assets/data/eks-versions.js"
+	rke2ReleasePath    = "v1-rke2-release/releases"
+	k3sReleasePath     = "v1-k3s-release/releases"
+	gkeVersionPath     = "meta/gkeVersions"
+	aksVersionPath     = "meta/aksVersions"
+	eksVersionsFileURL = "raw.githubusercontent.com/rancher/dashboard/refs/heads/master/pkg/eks/assets/data/eks-versions.js"
 
 	eksVersionsSliceRegex      = `\[(?:'\d+\.\d+',?\s*)+\]`
 	eksVersionsSliceItemsRegex = `(?s)'(.*?)'`
 )
-
-// ListRKE1AllVersions is a function that uses the management client to list and return all RKE1 versions.
-func ListRKE1AllVersions(client *rancher.Client) (allAvailableVersions []string, err error) {
-	setting, err := client.Management.Setting.ByID(rke1VersionsSetting)
-	if err != nil {
-		return
-	}
-	allAvailableVersions = strings.Split(setting.Value, ",")
-
-	sort.Strings(allAvailableVersions)
-
-	return
-}
 
 // ListRKE2AllVersions is a function that uses the management client and releases endpoint to list and return all RKE2 versions.
 func ListRKE2AllVersions(client *rancher.Client) (allAvailableVersions []string, err error) {

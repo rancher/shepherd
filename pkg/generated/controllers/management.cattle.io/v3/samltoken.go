@@ -1,5 +1,5 @@
 /*
-Copyright 2025 Rancher Labs, Inc.
+Copyright 2026 Rancher Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,15 +25,15 @@ import (
 
 // SamlTokenController interface for managing SamlToken resources.
 type SamlTokenController interface {
-	generic.NonNamespacedControllerInterface[*v3.SamlToken, *v3.SamlTokenList]
+	generic.ControllerInterface[*v3.SamlToken, *v3.SamlTokenList]
 }
 
 // SamlTokenClient interface for managing SamlToken resources in Kubernetes.
 type SamlTokenClient interface {
-	generic.NonNamespacedClientInterface[*v3.SamlToken, *v3.SamlTokenList]
+	generic.ClientInterface[*v3.SamlToken, *v3.SamlTokenList]
 }
 
 // SamlTokenCache interface for retrieving SamlToken resources in memory.
 type SamlTokenCache interface {
-	generic.NonNamespacedCacheInterface[*v3.SamlToken]
+	generic.CacheInterface[*v3.SamlToken]
 }
