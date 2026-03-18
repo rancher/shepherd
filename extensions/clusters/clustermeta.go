@@ -11,7 +11,6 @@ type KubernetesProvider string
 const (
 	local = "local"
 
-	rke  = "rke"
 	k3s  = "k3s"
 	rke2 = "rke2"
 	aks  = "aks"
@@ -19,7 +18,6 @@ const (
 	gke  = "gke"
 
 	// KubernetesProvider string enums are to determine cluster's provider.
-	KubernetesProviderRKE  KubernetesProvider = rke
 	KubernetesProviderRKE2 KubernetesProvider = rke2
 	KubernetesProviderK3S  KubernetesProvider = k3s
 	KubernetesProviderAKS  KubernetesProvider = aks
@@ -83,8 +81,6 @@ func GetClusterProvider(client *rancher.Client, clusterID string) (provider Kube
 	}
 
 	switch cluster.Provider {
-	case rke:
-		provider = KubernetesProviderRKE
 	case k3s:
 		provider = KubernetesProviderK3S
 	case rke2:

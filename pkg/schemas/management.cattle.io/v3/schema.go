@@ -6,7 +6,6 @@ import (
 	aksv1 "github.com/rancher/aks-operator/pkg/apis/aks.cattle.io/v1"
 	eksv1 "github.com/rancher/eks-operator/pkg/apis/eks.cattle.io/v1"
 	gkev1 "github.com/rancher/gke-operator/pkg/apis/gke.cattle.io/v1"
-	rketypes "github.com/rancher/rke/types"
 
 	"github.com/rancher/norman/types"
 	m "github.com/rancher/norman/types/mapper"
@@ -42,14 +41,11 @@ var (
 		Init(userTypes).
 		Init(projectNetworkPolicyTypes).
 		Init(globalTypes).
-		Init(rkeTypes).
 		Init(composeType).
 		Init(kontainerTypes).
-		Init(etcdBackupTypes).
 		Init(credTypes).
 		Init(mgmtSecretTypes).
 		Init(clusterTemplateTypes).
-		Init(driverMetadataTypes).
 		Init(encryptionTypes).
 		Init(fleetTypes).
 		Init(notificationTypes)
@@ -60,29 +56,6 @@ var (
 
 func fleetTypes(schemas *types.Schemas) *types.Schemas {
 	return schemas.MustImport(&Version, v3.FleetWorkspace{})
-}
-
-func rkeTypes(schemas *types.Schemas) *types.Schemas {
-	return schemas.AddMapperForType(&Version, rketypes.BaseService{}, m.Drop{Field: "image"}).
-		AddMapperForType(&Version, v1.Taint{},
-			m.Enum{Field: "effect", Options: []string{
-				string(v1.TaintEffectNoSchedule),
-				string(v1.TaintEffectPreferNoSchedule),
-				string(v1.TaintEffectNoExecute),
-			}},
-			m.Required{Fields: []string{
-				"effect",
-				"value",
-				"key",
-			}},
-			m.ReadOnly{Field: "timeAdded"},
-		).
-		MustImport(&Version, rketypes.ExtraEnv{}).
-		MustImport(&Version, rketypes.ExtraVolume{}).
-		MustImport(&Version, rketypes.ExtraVolumeMount{}).
-		MustImport(&Version, rketypes.LinearAutoscalerParams{}).
-		MustImport(&Version, rketypes.DeploymentStrategy{}).
-		MustImport(&Version, rketypes.DaemonSetUpdateStrategy{})
 }
 
 func schemaTypes(schemas *types.Schemas) *types.Schemas {
@@ -114,16 +87,6 @@ func mgmtSecretTypes(schemas *types.Schemas) *types.Schemas {
 			return field
 		})
 	})
-}
-
-func driverMetadataTypes(schemas *types.Schemas) *types.Schemas {
-	return schemas.
-		AddMapperForType(&Version, v3.RkeK8sSystemImage{}, m.Drop{Field: "namespaceId"}).
-		AddMapperForType(&Version, v3.RkeK8sServiceOption{}, m.Drop{Field: "namespaceId"}).
-		AddMapperForType(&Version, v3.RkeAddon{}, m.Drop{Field: "namespaceId"}).
-		MustImport(&Version, v3.RkeK8sSystemImage{}).
-		MustImport(&Version, v3.RkeK8sServiceOption{}).
-		MustImport(&Version, v3.RkeAddon{})
 }
 
 func nativeNodeTypes(schemas *types.Schemas) *types.Schemas {
@@ -187,9 +150,6 @@ func clusterTypes(schemas *types.Schemas) *types.Schemas {
 		AddMapperForType(&Version, v3.ClusterRegistrationToken{},
 			&m.Embed{Field: "status"},
 		).
-		AddMapperForType(&Version, rketypes.RancherKubernetesEngineConfig{},
-			m.Drop{Field: "systemImages"},
-		).
 		MustImport(&Version, v3.Cluster{}).
 		MustImport(&Version, v3.ClusterRegistrationToken{}).
 		MustImport(&Version, v3.GenerateKubeConfigOutput{}).
@@ -207,15 +167,6 @@ func clusterTypes(schemas *types.Schemas) *types.Schemas {
 				From: "envVar",
 				To:   "agentEnvVar",
 			}).
-		MustImportAndCustomize(&Version, rketypes.ETCDService{}, func(schema *types.Schema) {
-			schema.MustCustomizeField("extraArgs", func(field types.Field) types.Field {
-				field.Default = map[string]interface{}{
-					"election-timeout":   "5000",
-					"heartbeat-interval": "500",
-				}
-				return field
-			})
-		}).
 		MustImportAndCustomize(&Version, gkev1.GKEClusterConfigSpec{}, func(schema *types.Schema) {
 			schema.MustCustomizeField("labels", func(field types.Field) types.Field {
 				field.Pointer = true
@@ -377,9 +328,6 @@ func nodeTypes(schemas *types.Schemas) *types.Schemas {
 			&m.SliceMerge{From: []string{"conditions", "nodeConditions"}, To: "conditions"}).
 		AddMapperForType(&Version, v3.Node{},
 			&m.Embed{Field: "status"},
-			&m.Move{From: "rkeNode/user", To: "sshUser"},
-			&m.ReadOnly{Field: "sshUser"},
-			&m.Drop{Field: "rkeNode"},
 			&m.Drop{Field: "labels"},
 			&m.Drop{Field: "annotations"},
 			&m.Move{From: "nodeLabels", To: "labels"},
@@ -736,10 +684,6 @@ func kontainerTypes(schemas *types.Schemas) *types.Schemas {
 		})
 }
 
-func etcdBackupTypes(schemas *types.Schemas) *types.Schemas {
-	return schemas.MustImport(&Version, v3.EtcdBackup{})
-}
-
 func clusterTemplateTypes(schemas *types.Schemas) *types.Schemas {
 	return schemas.
 		TypeName("clusterTemplate", v3.ClusterTemplate{}).
@@ -765,10 +709,9 @@ func clusterTemplateTypes(schemas *types.Schemas) *types.Schemas {
 }
 
 func encryptionTypes(schemas *types.Schemas) *types.Schemas {
-	return schemas.MustImport(&Version, rketypes.SecretsEncryptionConfig{}).
-		MustImport(&Version, apiserver.Key{}, struct {
-			Secret string `norman:"type=password"`
-		}{}).MustImport(&Version, apiserver.KMSConfiguration{}, struct {
+	return schemas.MustImport(&Version, apiserver.Key{}, struct {
+		Secret string `norman:"type=password"`
+	}{}).MustImport(&Version, apiserver.KMSConfiguration{}, struct {
 		Timeout string
 	}{})
 }
