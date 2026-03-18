@@ -13,18 +13,6 @@ import (
 // and error if any.
 func (bc *BundledCluster) ListAvailableVersions(client *rancher.Client) (versions []string, err error) {
 	switch bc.Meta.Provider {
-	case clusters.KubernetesProviderRKE:
-		if bc.Meta.IsImported {
-			versions, err = available.ListRKE1ImportedAvailableVersions(client, bc.V3)
-			if err != nil {
-				return
-			}
-		} else {
-			versions, err = available.ListRKE1AvailableVersions(client, bc.V3)
-			if err != nil {
-				return
-			}
-		}
 	case clusters.KubernetesProviderRKE2:
 		if bc.Meta.IsImported {
 			versions, err = available.ListRKE2AvailableVersions(client, bc.V1)

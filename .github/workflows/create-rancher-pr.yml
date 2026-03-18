@@ -18,7 +18,7 @@ jobs:
       # This is required to checkout the repository
       contents: read
     runs-on: ubuntu-latest
-    steps:
+    steps:   
       # Checkout the current repo (shepherd) to get the commit SHA
       - name: Checkout shepherd
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
