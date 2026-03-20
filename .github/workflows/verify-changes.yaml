@@ -40,6 +40,6 @@ jobs:
         uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84 # v6.5.2
         with:
           # Patch version isn't needed; https://github.com/golangci/golangci-lint-action?tab=readme-ov-file#internals
-          version: v1.64.6
+          version: v1.64.8
           # Skip cache cause: https://github.com/golangci/golangci-lint-action/issues/135
           skip-cache: true
