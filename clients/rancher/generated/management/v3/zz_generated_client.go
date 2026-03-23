@@ -10,7 +10,6 @@ type Client struct {
 	NodePool                                  NodePoolOperations
 	Node                                      NodeOperations
 	NodeDriver                                NodeDriverOperations
-	NodeTemplate                              NodeTemplateOperations
 	PodSecurityAdmissionConfigurationTemplate PodSecurityAdmissionConfigurationTemplateOperations
 	Project                                   ProjectOperations
 	GlobalRole                                GlobalRoleOperations
@@ -37,8 +36,6 @@ type Client struct {
 	KontainerDriver                           KontainerDriverOperations
 	CloudCredential                           CloudCredentialOperations
 	ManagementSecret                          ManagementSecretOperations
-	ClusterTemplate                           ClusterTemplateOperations
-	ClusterTemplateRevision                   ClusterTemplateRevisionOperations
 	FleetWorkspace                            FleetWorkspaceOperations
 	RancherUserNotification                   RancherUserNotificationOperations
 }
@@ -56,7 +53,6 @@ func NewClient(opts *clientbase.ClientOpts) (*Client, error) {
 	client.NodePool = newNodePoolClient(client)
 	client.Node = newNodeClient(client)
 	client.NodeDriver = newNodeDriverClient(client)
-	client.NodeTemplate = newNodeTemplateClient(client)
 	client.PodSecurityAdmissionConfigurationTemplate = newPodSecurityAdmissionConfigurationTemplateClient(client)
 	client.Project = newProjectClient(client)
 	client.GlobalRole = newGlobalRoleClient(client)
@@ -83,8 +79,6 @@ func NewClient(opts *clientbase.ClientOpts) (*Client, error) {
 	client.KontainerDriver = newKontainerDriverClient(client)
 	client.CloudCredential = newCloudCredentialClient(client)
 	client.ManagementSecret = newManagementSecretClient(client)
-	client.ClusterTemplate = newClusterTemplateClient(client)
-	client.ClusterTemplateRevision = newClusterTemplateRevisionClient(client)
 	client.FleetWorkspace = newFleetWorkspaceClient(client)
 	client.RancherUserNotification = newRancherUserNotificationClient(client)
 

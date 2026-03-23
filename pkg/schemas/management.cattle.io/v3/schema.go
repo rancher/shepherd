@@ -45,7 +45,6 @@ var (
 		Init(kontainerTypes).
 		Init(credTypes).
 		Init(mgmtSecretTypes).
-		Init(clusterTemplateTypes).
 		Init(encryptionTypes).
 		Init(fleetTypes).
 		Init(notificationTypes)
@@ -322,7 +321,6 @@ func nodeTypes(schemas *types.Schemas) *types.Schemas {
 	return schemas.
 		AddMapperForType(&Version, v3.NodeSpec{}, &m.Embed{Field: "internalNodeSpec"}).
 		AddMapperForType(&Version, v3.NodeStatus{},
-			&m.Drop{Field: "nodeTemplateSpec"},
 			&m.Embed{Field: "internalNodeStatus"},
 			&m.Drop{Field: "config"},
 			&m.SliceMerge{From: []string{"conditions", "nodeConditions"}, To: "conditions"}).
@@ -341,7 +339,6 @@ func nodeTypes(schemas *types.Schemas) *types.Schemas {
 			m.Copy{From: "namespaceId", To: "clusterName"},
 			m.DisplayName{}).
 		AddMapperForType(&Version, v3.NodeDriver{}, m.DisplayName{}).
-		AddMapperForType(&Version, v3.NodeTemplate{}, m.DisplayName{}).
 		MustImport(&Version, v3.PublicEndpoint{}).
 		MustImportAndCustomize(&Version, v3.NodePool{}, func(schema *types.Schema) {
 			schema.ResourceFields["driver"] = types.Field{
@@ -385,9 +382,6 @@ func nodeTypes(schemas *types.Schemas) *types.Schemas {
 			schema.ResourceActions["deactivate"] = types.Action{
 				Output: "nodeDriver",
 			}
-		}).
-		MustImportAndCustomize(&Version, v3.NodeTemplate{}, func(schema *types.Schema) {
-			delete(schema.ResourceFields, "namespaceId")
 		})
 }
 
@@ -680,30 +674,6 @@ func kontainerTypes(schemas *types.Schemas) *types.Schemas {
 			}
 			schema.CollectionActions = map[string]types.Action{
 				"refresh": {},
-			}
-		})
-}
-
-func clusterTemplateTypes(schemas *types.Schemas) *types.Schemas {
-	return schemas.
-		TypeName("clusterTemplate", v3.ClusterTemplate{}).
-		TypeName("clusterTemplateRevision", v3.ClusterTemplateRevision{}).
-		AddMapperForType(&Version, v3.ClusterTemplate{}, m.Drop{Field: "namespaceId"}, m.DisplayName{}).
-		AddMapperForType(&Version, v3.ClusterTemplateRevision{},
-			m.Drop{Field: "namespaceId"},
-			&m.Embed{Field: "status"},
-			m.DisplayName{}).
-		MustImport(&Version, v3.ClusterTemplateQuestionsOutput{}).
-		MustImport(&Version, v3.ClusterTemplate{}).
-		MustImportAndCustomize(&Version, v3.ClusterTemplateRevision{}, func(schema *types.Schema) {
-			schema.ResourceActions = map[string]types.Action{
-				"disable": {},
-				"enable":  {},
-			}
-			schema.CollectionActions = map[string]types.Action{
-				"listquestions": {
-					Output: "clusterTemplateQuestionsOutput",
-				},
 			}
 		})
 }
