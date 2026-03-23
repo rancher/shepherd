@@ -7,11 +7,9 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/rancher/norman/types"
 	apisV1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
 	rkev1 "github.com/rancher/rancher/pkg/apis/rke.cattle.io/v1"
 	"github.com/rancher/shepherd/clients/rancher"
-	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	rancherv1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/clusters"
 	"github.com/rancher/shepherd/extensions/defaults"
@@ -28,73 +26,6 @@ const (
 	active                       = "active"
 	readyStatus                  = "Resource is ready"
 )
-
-// CreateRKE1Snapshot is a helper function to create a snapshot on an RKE1 cluster. Returns error if any.
-func CreateRKE1Snapshot(client *rancher.Client, clusterName string) ([]management.EtcdBackup, error) {
-
-	updateTimestamp := time.Now().UTC()
-
-	clusterID, err := clusters.GetClusterIDByName(client, clusterName)
-	if err != nil {
-		return nil, err
-	}
-
-	clusterResp, err := client.Management.Cluster.ByID(clusterID)
-	if err != nil {
-		return nil, err
-	}
-
-	logrus.Infof("Creating snapshot...")
-	err = client.Management.Cluster.ActionBackupEtcd(clusterResp)
-	if err != nil {
-		return nil, err
-	}
-
-	var snapshots []management.EtcdBackup
-	err = kwait.PollUntilContextTimeout(context.TODO(), 5*time.Second, defaults.FiveMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
-		snapshotManagementObjList, err := client.Management.EtcdBackup.ListAll(&types.ListOpts{
-			Filters: map[string]interface{}{
-				"clusterId": clusterID,
-			},
-		})
-		if err != nil {
-			return false, nil
-		}
-
-		snapshots = []management.EtcdBackup{}
-		for _, snapshot := range snapshotManagementObjList.Data {
-
-			snapshotObj, err := client.Management.EtcdBackup.ByID(snapshot.ID)
-			if err != nil {
-				return false, nil
-			}
-
-			if snapshotObj.State != active {
-				return false, nil
-			}
-
-			snapshotTime, err := time.Parse(time.RFC3339, snapshot.Created)
-			if err != nil {
-				return false, err
-			}
-
-			// time.Parse doesn't include nanoseconds, but time.Now() does. Rounding up by 1 Second.
-			snapshotTime = snapshotTime.Add(time.Second)
-
-			if snapshotTime.Compare(updateTimestamp) > -1 {
-				snapshots = append(snapshots, snapshot)
-			}
-		}
-
-		if len(snapshots) == 0 {
-			return false, nil
-		}
-
-		return true, nil
-	})
-
-	return snapshots, err
-}
 
 // CreateRKE2K3SSnapshot is a helper function to create a snapshot on an RKE2 or k3s cluster.
 // returns the list of snapshots and an error, if any.
@@ -174,60 +105,6 @@ func CreateRKE2K3SSnapshot(client *rancher.Client, clusterName string) ([]ranche
 	// not registering cleanup func; users do not delete snapshots through rancher
 
 	return snapshots, err
-}
-
-// RestoreRKE1Snapshot is a helper function to restore a snapshot on an RKE1 cluster. Returns error if any.
-func RestoreRKE1Snapshot(client *rancher.Client, clusterName string, snapshotRestore *management.RestoreFromEtcdBackupInput) error {
-	clusterID, err := clusters.GetClusterIDByName(client, clusterName)
-	if err != nil {
-		return err
-	}
-
-	cluster, err := client.Management.Cluster.ByID(clusterID)
-	if err != nil {
-		return err
-	}
-
-	logrus.Infof("Restoring snapshot: %v", snapshotRestore.EtcdBackupID)
-	err = client.Management.Cluster.ActionRestoreFromEtcdBackup(cluster, snapshotRestore)
-	if err != nil {
-		return err
-	}
-
-	err = kwait.PollUntilContextTimeout(context.TODO(), 1*time.Second, defaults.OneMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
-		clusterResp, err := client.Management.Cluster.ByID(cluster.ID)
-		if err != nil {
-			return false, nil
-		}
-
-		if clusterResp.State != active {
-			return true, nil
-		}
-
-		return false, nil
-	})
-	if err != nil {
-		return err
-	}
-
-	// Timeout is specifically set to 30 minutes due to expected behavior with RKE1 nodes.
-	err = kwait.PollUntilContextTimeout(context.TODO(), 5*time.Second, defaults.ThirtyMinuteTimeout, true, func(ctx context.Context) (done bool, err error) {
-		clusterResp, err := client.Management.Cluster.ByID(cluster.ID)
-		if err != nil {
-			return false, nil
-		}
-
-		if clusterResp.State == active {
-			return true, nil
-		}
-
-		return false, nil
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // RestoreRKE2K3SSnapshot is a helper function to restore a snapshot on an RKE2 or k3s cluster. Returns error if any.
