@@ -21,21 +21,21 @@ jobs:
     steps:
       # Checkout the current repo (shepherd) to get the commit SHA
       - name: Checkout shepherd
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Get short SHA
         id: sha
         run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Retrieve token from vault
-        uses: rancher-eio/read-vault-secrets@main
+        uses: rancher-eio/read-vault-secrets@0da85151ad1f19ed7986c41587e45aac1ace74b6 # v3
         with:
           secrets: |
             github/token/rancher--rancher--pull_requests--write token | GH_TOKEN
 
       # Checkout the target repo (rancher/rancher) where the PR will be created
       - name: Checkout rancher/rancher
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           repository: rancher/rancher
           path: rancher
@@ -43,7 +43,7 @@ jobs:
           token: ${{ env.GH_TOKEN }}
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           go-version-file: 'rancher/go.mod'
 
@@ -78,7 +78,7 @@ jobs:
       - name: Create Pull Request
         if: env.changes_exist == 'true'
         id: cpr
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         with:
           github-token: ${{ env.GH_TOKEN }}
           script: |
@@ -92,7 +92,7 @@ jobs:
             }
           
             const { data: pr } = await github.rest.pulls.create({
-              title: "[release/v2.13] shepherd-githubaction: Update rancher/shepherd to latest version",
+              title: "[v2.13] shepherd-githubaction: Update rancher/shepherd to latest version",
               body: body,
               owner: "rancher",
               repo: "rancher",
