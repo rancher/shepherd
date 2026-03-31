@@ -1,25 +1,25 @@
 package k3d
 
 import (
-	"context"
 	"fmt"
 	"os/exec"
 
 	"github.com/pkg/errors"
-	apisV1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
-	"github.com/rancher/wrangler/pkg/randomtoken"
-	"github.com/sirupsen/logrus"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-
+	apisV3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
 	"github.com/rancher/shepherd/clients/rancher"
+	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	"github.com/rancher/shepherd/extensions/clusters"
-	"github.com/rancher/shepherd/extensions/defaults"
 	"github.com/rancher/shepherd/pkg/config"
 	"github.com/rancher/shepherd/pkg/session"
 	"github.com/rancher/shepherd/pkg/wait"
+	"github.com/rancher/wrangler/pkg/randomtoken"
+	"github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 var importTimeout = int64(60 * 20)
@@ -93,29 +93,26 @@ func ImportImage(image, clusterName string) error {
 }
 
 // CreateAndImportK3DCluster creates a new k3d cluster and imports it into rancher.
-func CreateAndImportK3DCluster(client *rancher.Client, name, image, hostname string, servers, agents int, importImage bool) (*apisV1.Cluster, error) {
+func CreateAndImportK3DCluster(client *rancher.Client, name, image, hostname string, servers, agents int, importImage bool) (*apisV3.Cluster, error) {
 	var err error
 
 	name = defaultName(name)
 
-	// create the provisioning cluster
-	logrus.Infof("Creating provisioning cluster...")
-	cluster := &apisV1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: "fleet-default",
-		},
+	// create the v3 management cluster
+	logrus.Infof("Creating v3 management cluster...")
+	v3Cluster := &management.Cluster{
+		Name: name,
 	}
-	clusterObj, err := client.Steve.SteveType(clusters.ProvisioningSteveResourceType).Create(cluster)
+	v3ClusterResp, err := client.Management.Cluster.Create(v3Cluster)
 	if err != nil {
-		return nil, errors.Wrap(err, "CreateAndImportK3DCluster: failed to create provisioning cluster")
+		return nil, errors.Wrap(err, "CreateAndImportK3DCluster: failed to create v3 management cluster")
 	}
 
 	// create the k3d cluster
 	logrus.Infof("Creating K3D cluster...")
 	downRest, err := CreateK3DCluster(client.Session, name, hostname, servers, agents)
 	if err != nil {
-		_ = client.Steve.SteveType(clusters.ProvisioningSteveResourceType).Delete(clusterObj)
+		_ = client.Management.Cluster.Delete(v3ClusterResp)
 		return nil, errors.Wrap(err, "CreateAndImportK3DCluster: failed to create k3d cluster")
 	}
 
@@ -127,60 +124,52 @@ func CreateAndImportK3DCluster(client *rancher.Client, name, image, hostname str
 		}
 	}
 
-	kubeProvisioningClient, err := client.GetKubeAPIProvisioningClient()
-	if err != nil {
-		return nil, errors.Wrap(err, "CreateAndImportK3DCluster: failed to instantiate kube api provisioning client")
-	}
-	// wait for the provisioning cluster
-	logrus.Infof("Waiting for provisioning cluster...")
-	clusterWatch, err := kubeProvisioningClient.Clusters("fleet-default").Watch(context.TODO(), metav1.ListOptions{
-		FieldSelector:  "metadata.name=" + name,
-		TimeoutSeconds: &defaults.WatchTimeoutSeconds,
+	// wait for the v3 management cluster to be created
+	logrus.Infof("Waiting for v3 management cluster...")
+	clusterWatch, err := client.GetManagementWatchInterface(management.ClusterType, metav1.ListOptions{
+		FieldSelector:  "metadata.name=" + v3ClusterResp.ID,
+		TimeoutSeconds: &importTimeout,
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "CreateAndImportK3DCluster: failed to watch for the imported cluster")
+		return nil, errors.Wrap(err, "CreateAndImportK3DCluster: failed to watch for v3 management cluster")
 	}
 
-	var impCluster *apisV1.Cluster
+	var v3ClusterObj *apisV3.Cluster
 	err = wait.WatchWait(clusterWatch, func(event watch.Event) (bool, error) {
-		cluster := event.Object.(*apisV1.Cluster)
-		if cluster.Name == name {
-			impCluster, err = kubeProvisioningClient.Clusters("fleet-default").Get(context.TODO(), name, metav1.GetOptions{})
-			return true, err
+		clusterUnstructured := event.Object.(*unstructured.Unstructured)
+		cluster := &apisV3.Cluster{}
+		err := runtime.DefaultUnstructuredConverter.FromUnstructured(clusterUnstructured.Object, cluster)
+		if err != nil {
+			return false, err
 		}
-
+		if cluster.Name == v3ClusterResp.ID {
+			v3ClusterObj = cluster
+			return true, nil
+		}
 		return false, nil
-
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "CreateAndImportK3DCluster: failed to watch for management cluster")
+		return nil, errors.Wrap(err, "CreateAndImportK3DCluster: failed to watch for v3 management cluster")
 	}
 
 	// import the k3d cluster
 	logrus.Infof("Importing cluster...")
-	err = clusters.ImportCluster(client, impCluster, downRest)
+	err = clusters.ImportCluster(client, v3ClusterResp.ID, downRest)
 	if err != nil {
 		return nil, errors.Wrap(err, "CreateAndImportK3DCluster: failed to import cluster")
 	}
 
 	// wait for the imported cluster to be ready
 	logrus.Infof("Waiting for imported cluster...")
-	clusterWatch, err = kubeProvisioningClient.Clusters("fleet-default").Watch(context.TODO(), metav1.ListOptions{
-		FieldSelector:  "metadata.name=" + name,
-		TimeoutSeconds: &importTimeout,
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "CreateAndImportK3DCluster: failed to instantiate the watcher for the cluster")
-	}
 
-	checkFunc := clusters.IsImportedClusterReady
-	err = wait.WatchWait(clusterWatch, checkFunc)
-
+	// After Rancher 2.11 (dc049dae81), v3 conditions are no longer synced to v1.
+	// We need to watch v3 management cluster directly since that's what gets updated.
+	err = clusters.WaitForImportedClusterReady(client, v3ClusterResp.ID)
 	if err != nil {
 		return nil, errors.Wrap(err, "CreateAndImportK3DCluster: failed to wait for imported cluster ready status")
 	}
 
-	return impCluster, nil
+	return v3ClusterObj, nil
 }
 
 // defaultName returns a random string if name is empty, otherwise name is returned unmodified.
