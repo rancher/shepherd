@@ -12,6 +12,11 @@ import (
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
 
+const (
+	RancherDeploymentName      = "rancher"
+	RancherDeploymentNamespace = "cattle-system"
+)
+
 // GetDeploymentByName returns a Deployment by name and namespace using wrangler context.
 func GetDeploymentByName(client *rancher.Client, clusterID, deploymentNamespace, deploymentName string) (*appsv1.Deployment, error) {
 	clusterContext, err := extclusterapi.GetClusterWranglerContext(client, clusterID)
@@ -41,6 +46,7 @@ func WaitForDeploymentActive(client *rancher.Client, clusterID, deploymentNamesp
 
 		desired := *deployment.Spec.Replicas
 		return deployment.Status.UpdatedReplicas == desired &&
+			deployment.Status.ReadyReplicas == desired &&
 			deployment.Status.AvailableReplicas == desired &&
 			deployment.Status.Replicas == desired, nil
 	})
