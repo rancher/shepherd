@@ -2,6 +2,7 @@ package auth
 
 import (
 	"github.com/rancher/shepherd/clients/rancher/auth/activedirectory"
+	"github.com/rancher/shepherd/clients/rancher/auth/oidc"
 	"github.com/rancher/shepherd/clients/rancher/auth/openldap"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	"github.com/rancher/shepherd/pkg/session"
@@ -10,6 +11,7 @@ import (
 type Client struct {
 	OLDAP           *openldap.OLDAPClient
 	ActiveDirectory *activedirectory.Client
+	OIDC            *oidc.APIClient
 }
 
 // NewClient constructs the Auth Provider Struct
@@ -27,5 +29,6 @@ func NewClient(mgmt *management.Client, session *session.Session) (*Client, erro
 	return &Client{
 		OLDAP:           oLDAP,
 		ActiveDirectory: activeDirectory,
+		OIDC:            oidc.NewAPIClient(mgmt.Opts.URL, session),
 	}, nil
 }
