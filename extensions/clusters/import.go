@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/rancher/norman/types"
-	apisV1 "github.com/rancher/rancher/pkg/apis/provisioning.cattle.io/v1"
 	"github.com/rancher/shepherd/clients/dynamic"
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
@@ -16,7 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	apisV3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
-
+	"github.com/sirupsen/logrus"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -57,7 +56,7 @@ var (
 )
 
 // ImportCluster creates a job using the given rest config that applies the import yaml from the given management cluster.
-func ImportCluster(client *rancher.Client, cluster *apisV1.Cluster, rest *rest.Config) error {
+func ImportCluster(client *rancher.Client, clusterID string, rest *rest.Config) error {
 	// create a sub session to clean up after we apply the manifest
 	ts := client.Session.NewSession()
 	defer ts.Cleanup()
@@ -72,7 +71,7 @@ func ImportCluster(client *rancher.Client, cluster *apisV1.Cluster, rest *rest.C
 	var token management.ClusterRegistrationToken
 	err := kwait.ExponentialBackoff(backoff, func() (finished bool, err error) {
 		res, err := client.Management.ClusterRegistrationToken.List(&types.ListOpts{Filters: map[string]interface{}{
-			"clusterId": cluster.Status.ClusterName,
+			"clusterId": clusterID,
 		}})
 		if err != nil {
 			return false, err
@@ -239,27 +238,38 @@ func IsClusterImported(client *rancher.Client, clusterID string) (isImported boo
 
 // IsImportedClusterReady is basic check function that would be used for the wait.WatchWait func in pkg/wait.
 // This functions just waits until an imported cluster becomes ready.
+// After Rancher 2.11 (dc049dae81), v3 conditions are no longer synced to v1, so we must
+// watch the v3 management cluster directly.
 func IsImportedClusterReady(event watch.Event) (ready bool, err error) {
-	cluster := event.Object.(*apisV1.Cluster)
-	var readyCondition bool
-	ready = cluster.Status.Ready
-	agentDeployed := cluster.Status.AgentDeployed
+	clusterUnstructured := event.Object.(*unstructured.Unstructured)
+	cluster := &apisV3.Cluster{}
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(clusterUnstructured.Object, cluster)
+	if err != nil {
+		return false, err
+	}
+
+	// Count required conditions on v3 cluster
 	var numSuccess int
 	for _, condition := range cluster.Status.Conditions {
-		if condition.Type == "Ready" && condition.Status == corev1.ConditionTrue {
+		if condition.Type == "AgentDeployed" && condition.Status == "True" {
 			numSuccess++
 		}
-		if condition.Type == "SystemAccountCreated" && condition.Status == corev1.ConditionTrue {
+		if condition.Type == "Ready" && condition.Status == "True" {
 			numSuccess++
 		}
-		if condition.Type == "ServiceAccountSecretsMigrated" && condition.Status == corev1.ConditionTrue {
+		if condition.Type == "SystemAccountCreated" && condition.Status == "True" {
+			numSuccess++
+		}
+		if condition.Type == "ServiceAccountSecretsMigrated" && condition.Status == "True" {
 			numSuccess++
 		}
 	}
 
-	if numSuccess == 3 {
-		readyCondition = true
+	// All 4 conditions must be True
+	if numSuccess == 4 {
+		logrus.Infof("v3 cluster %s is ready!", cluster.Name)
+		return true, nil
 	}
 
-	return ready && readyCondition && agentDeployed, nil
+	return false, nil
 }
