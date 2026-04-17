@@ -20,6 +20,8 @@ import (
 	managementv3api "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
 	"github.com/rancher/shepherd/pkg/generated/controllers/apps"
 	appsv1 "github.com/rancher/shepherd/pkg/generated/controllers/apps/v1"
+	"github.com/rancher/shepherd/pkg/generated/controllers/autoscaling"
+	autoscalingv2 "github.com/rancher/shepherd/pkg/generated/controllers/autoscaling/v2"
 	"github.com/rancher/shepherd/pkg/generated/controllers/batch"
 	batchv1 "github.com/rancher/shepherd/pkg/generated/controllers/batch/v1"
 	"github.com/rancher/shepherd/pkg/generated/controllers/cluster.cattle.io"
@@ -76,6 +78,7 @@ type Context struct {
 	Apply               apply.Apply
 	Dynamic             *dynamic.Controller
 	Mgmt                managementv3.Interface
+	Autoscaling         autoscalingv2.Interface
 	Apps                appsv1.Interface
 	ControllerFactory   controller.SharedControllerFactory
 	MultiClusterManager MultiClusterManager
@@ -93,13 +96,14 @@ type Context struct {
 
 	RESTClientGetter genericclioptions.RESTClientGetter
 
-	mgmt    *management.Factory
-	apps    *apps.Factory
-	core    *core.Factory
-	rbac    *rbac.Factory
-	cluster *cluster.Factory
-	batch   *batch.Factory
-	ext     *ext.Factory
+	mgmt        *management.Factory
+	autoscaling *autoscaling.Factory
+	apps        *apps.Factory
+	core        *core.Factory
+	rbac        *rbac.Factory
+	cluster     *cluster.Factory
+	batch       *batch.Factory
+	ext         *ext.Factory
 
 	session *session.Session
 	started bool
@@ -202,6 +206,11 @@ func NewContext(ctx context.Context, restConfig *rest.Config, ts *session.Sessio
 		return nil, err
 	}
 
+	autoscaling, err := autoscaling.NewFactoryFromConfigWithOptions(restConfig, opts)
+	if err != nil {
+		return nil, err
+	}
+
 	apps, err := apps.NewFactoryFromConfigWithOptions(restConfig, opts)
 	if err != nil {
 		return nil, err
@@ -237,6 +246,7 @@ func NewContext(ctx context.Context, restConfig *rest.Config, ts *session.Sessio
 		Apply:                   apply,
 		SharedControllerFactory: controllerFactory,
 		Mgmt:                    mgmt.Management().V3(),
+		Autoscaling:             autoscaling.Autoscaling().V2(),
 		Apps:                    apps.Apps().V1(),
 		Core:                    core.Core().V1(),
 		RBAC:                    rbac.Rbac().V1(),
@@ -246,14 +256,15 @@ func NewContext(ctx context.Context, restConfig *rest.Config, ts *session.Sessio
 		ControllerFactory:       controllerFactory,
 		controllerLock:          &sync.Mutex{},
 
-		mgmt:    mgmt,
-		apps:    apps,
-		core:    core,
-		rbac:    rbac,
-		batch:   batch,
-		ext:     ext,
-		cluster: cluster,
-		session: ts,
+		mgmt:        mgmt,
+		autoscaling: autoscaling,
+		apps:        apps,
+		core:        core,
+		rbac:        rbac,
+		batch:       batch,
+		ext:         ext,
+		cluster:     cluster,
+		session:     ts,
 	}
 
 	return wContext, nil
