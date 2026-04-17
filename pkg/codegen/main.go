@@ -26,6 +26,7 @@ import (
 	controllergen "github.com/rancher/wrangler/v3/pkg/controller-gen"
 	"github.com/rancher/wrangler/v3/pkg/controller-gen/args"
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -45,6 +46,7 @@ func main() {
 	}
 
 	generatedControllerPaths := map[string]string{
+		"AutoscalingControllerPath":        "./pkg/generated/controllers/autoscaling",
 		"AppsControllerPath":               "./pkg/generated/controllers/apps",
 		"CoreControllerPath":               "./pkg/generated/controllers/core",
 		"RBACControllerPath":               "./pkg/generated/controllers/rbac",
@@ -64,6 +66,11 @@ func main() {
 		OutputPackage: "github.com/rancher/shepherd/pkg/generated",
 		Boilerplate:   "pkg/codegen/boilerplate.go.txt",
 		Groups: map[string]args.Group{
+			autoscalingv2.GroupName: {
+				Types: []interface{}{
+					autoscalingv2.HorizontalPodAutoscaler{},
+				},
+			},
 			appsv1.GroupName: {
 				Types: []interface{}{
 					appsv1.ControllerRevision{},
