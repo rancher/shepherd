@@ -159,8 +159,6 @@ func clusterTypes(schemas *types.Schemas) *types.Schemas {
 		MustImport(&Version, v3.ImportYamlOutput{}).
 		MustImport(&Version, v3.ExportOutput{}).
 		MustImport(&Version, v3.RestoreFromEtcdBackupInput{}).
-		MustImport(&Version, v3.SaveAsTemplateInput{}).
-		MustImport(&Version, v3.SaveAsTemplateOutput{}).
 		AddMapperForType(&Version, v1.EnvVar{},
 			&m.Move{
 				From: "envVar",
@@ -340,15 +338,6 @@ func nodeTypes(schemas *types.Schemas) *types.Schemas {
 			m.DisplayName{}).
 		AddMapperForType(&Version, v3.NodeDriver{}, m.DisplayName{}).
 		MustImport(&Version, v3.PublicEndpoint{}).
-		MustImportAndCustomize(&Version, v3.NodePool{}, func(schema *types.Schema) {
-			schema.ResourceFields["driver"] = types.Field{
-				Type:     "string",
-				CodeName: "Driver",
-				Create:   false,
-				Update:   false,
-			}
-		}).
-		MustImport(&Version, v3.NodeDrainInput{}).
 		MustImportAndCustomize(&Version, v3.Node{}, func(schema *types.Schema) {
 			labelField := schema.ResourceFields["labels"]
 			labelField.Create = true

@@ -62,7 +62,6 @@ type Interface interface {
 	ManagedChart() ManagedChartController
 	Node() NodeController
 	NodeDriver() NodeDriverController
-	NodePool() NodePoolController
 	OIDCClient() OIDCClientController
 	OIDCProvider() OIDCProviderController
 	OpenLdapProvider() OpenLdapProviderController
@@ -213,10 +212,6 @@ func (v *version) Node() NodeController {
 
 func (v *version) NodeDriver() NodeDriverController {
 	return generic.NewNonNamespacedController[*v3.NodeDriver, *v3.NodeDriverList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "NodeDriver"}, "nodedrivers", v.controllerFactory, v.ts)
-}
-
-func (v *version) NodePool() NodePoolController {
-	return generic.NewController[*v3.NodePool, *v3.NodePoolList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "NodePool"}, "nodepools", true, v.controllerFactory, v.ts)
 }
 
 func (v *version) OIDCClient() OIDCClientController {
