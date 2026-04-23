@@ -32,6 +32,8 @@ import (
 	extv1 "github.com/rancher/shepherd/pkg/generated/controllers/ext.cattle.io/v1"
 	"github.com/rancher/shepherd/pkg/generated/controllers/management.cattle.io"
 	managementv3 "github.com/rancher/shepherd/pkg/generated/controllers/management.cattle.io/v3"
+	"github.com/rancher/shepherd/pkg/generated/controllers/networking"
+	networkingv1 "github.com/rancher/shepherd/pkg/generated/controllers/networking/v1"
 	"github.com/rancher/shepherd/pkg/generated/controllers/rbac"
 	rbacv1 "github.com/rancher/shepherd/pkg/generated/controllers/rbac/v1"
 	"github.com/rancher/shepherd/pkg/session"
@@ -83,6 +85,7 @@ type Context struct {
 	ControllerFactory   controller.SharedControllerFactory
 	MultiClusterManager MultiClusterManager
 	Core                corev1.Interface
+	Networking          networkingv1.Interface
 	Cluster             clusterv3.Interface
 	RBAC                rbacv1.Interface
 	Batch               batchv1.Interface
@@ -100,6 +103,7 @@ type Context struct {
 	autoscaling *autoscaling.Factory
 	apps        *apps.Factory
 	core        *core.Factory
+	networking  *networking.Factory
 	rbac        *rbac.Factory
 	cluster     *cluster.Factory
 	batch       *batch.Factory
@@ -221,6 +225,11 @@ func NewContext(ctx context.Context, restConfig *rest.Config, ts *session.Sessio
 		return nil, err
 	}
 
+	networking, err := networking.NewFactoryFromConfigWithOptions(restConfig, opts)
+	if err != nil {
+		return nil, err
+	}
+
 	rbac, err := rbac.NewFactoryFromConfigWithOptions(restConfig, opts)
 	if err != nil {
 		return nil, err
@@ -249,6 +258,7 @@ func NewContext(ctx context.Context, restConfig *rest.Config, ts *session.Sessio
 		Autoscaling:             autoscaling.Autoscaling().V2(),
 		Apps:                    apps.Apps().V1(),
 		Core:                    core.Core().V1(),
+		Networking:              networking.Networking().V1(),
 		RBAC:                    rbac.Rbac().V1(),
 		Batch:                   batch.Batch().V1(),
 		Cluster:                 cluster.Cluster().V3(),
@@ -260,6 +270,7 @@ func NewContext(ctx context.Context, restConfig *rest.Config, ts *session.Sessio
 		autoscaling: autoscaling,
 		apps:        apps,
 		core:        core,
+		networking:  networking,
 		rbac:        rbac,
 		batch:       batch,
 		ext:         ext,
