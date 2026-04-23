@@ -29,6 +29,7 @@ import (
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -49,6 +50,7 @@ func main() {
 		"AutoscalingControllerPath":        "./pkg/generated/controllers/autoscaling",
 		"AppsControllerPath":               "./pkg/generated/controllers/apps",
 		"CoreControllerPath":               "./pkg/generated/controllers/core",
+		"NetworkingControllerPath":         "./pkg/generated/controllers/networking",
 		"RBACControllerPath":               "./pkg/generated/controllers/rbac",
 		"BatchControllerPath":              "./pkg/generated/controllers/batch",
 		"ManagementControllerPath":         "./pkg/generated/controllers/management.cattle.io",
@@ -94,6 +96,13 @@ func main() {
 					corev1.PersistentVolume{},
 					corev1.PersistentVolumeClaim{},
 					corev1.Pod{},
+				},
+			},
+			networkingv1.GroupName: {
+				Types: []interface{}{
+					networkingv1.Ingress{},
+					networkingv1.IngressClass{},
+					networkingv1.NetworkPolicy{},
 				},
 			},
 			rbacv1.GroupName: {
