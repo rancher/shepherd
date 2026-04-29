@@ -24,7 +24,7 @@ import (
 	"github.com/rancher/shepherd/pkg/wrangler/pkg/generic"
 	"github.com/rancher/wrangler/v3/pkg/schemes"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	v1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	v1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 func init() {

@@ -37,9 +37,9 @@ jobs:
         run: ./.github/scripts/build-packages.sh
 
       - name: Golangci Lint
-        uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84 # v6.5.2
+        uses: golangci/golangci-lint-action@4afd733a84b1f43292c63897423277bb7f4313a9 # v8
         with:
           # Patch version isn't needed; https://github.com/golangci/golangci-lint-action?tab=readme-ov-file#internals
-          version: v1.64.6
+          version: v2.5.0
           # Skip cache cause: https://github.com/golangci/golangci-lint-action/issues/135
           skip-cache: true
