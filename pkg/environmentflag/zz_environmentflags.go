@@ -25,8 +25,9 @@ const _EnvironmentFlag_name = "KubernetesUpgradeAllClustersWorkloadUpgradeAllClu
 var _EnvironmentFlag_index = [...]uint8{0, 28, 54, 71, 98, 116, 137, 151, 155, 160, 217}
 
 func (i EnvironmentFlag) String() string {
-	if i < 0 || i >= EnvironmentFlag(len(_EnvironmentFlag_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_EnvironmentFlag_index)-1 {
 		return "EnvironmentFlag(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _EnvironmentFlag_name[_EnvironmentFlag_index[i]:_EnvironmentFlag_index[i+1]]
+	return _EnvironmentFlag_name[_EnvironmentFlag_index[idx]:_EnvironmentFlag_index[idx+1]]
 }

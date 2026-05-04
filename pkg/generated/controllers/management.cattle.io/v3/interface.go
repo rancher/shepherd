@@ -1,5 +1,5 @@
 /*
-Copyright 2025 Rancher Labs, Inc.
+Copyright 2026 Rancher Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -43,16 +43,14 @@ type Interface interface {
 	ClusterProxyConfig() ClusterProxyConfigController
 	ClusterRegistrationToken() ClusterRegistrationTokenController
 	ClusterRoleTemplateBinding() ClusterRoleTemplateBindingController
-	ClusterTemplate() ClusterTemplateController
-	ClusterTemplateRevision() ClusterTemplateRevisionController
 	CognitoProvider() CognitoProviderController
 	ComposeConfig() ComposeConfigController
 	DynamicSchema() DynamicSchemaController
-	EtcdBackup() EtcdBackupController
 	Feature() FeatureController
 	FleetWorkspace() FleetWorkspaceController
 	FreeIpaProvider() FreeIpaProviderController
 	GenericOIDCProvider() GenericOIDCProviderController
+	GithubAppProvider() GithubAppProviderController
 	GithubProvider() GithubProviderController
 	GlobalRole() GlobalRoleController
 	GlobalRoleBinding() GlobalRoleBindingController
@@ -64,8 +62,6 @@ type Interface interface {
 	ManagedChart() ManagedChartController
 	Node() NodeController
 	NodeDriver() NodeDriverController
-	NodePool() NodePoolController
-	NodeTemplate() NodeTemplateController
 	OIDCClient() OIDCClientController
 	OIDCProvider() OIDCProviderController
 	OpenLdapProvider() OpenLdapProviderController
@@ -75,10 +71,8 @@ type Interface interface {
 	Project() ProjectController
 	ProjectNetworkPolicy() ProjectNetworkPolicyController
 	ProjectRoleTemplateBinding() ProjectRoleTemplateBindingController
+	ProxyEndpoint() ProxyEndpointController
 	RancherUserNotification() RancherUserNotificationController
-	RkeAddon() RkeAddonController
-	RkeK8sServiceOption() RkeK8sServiceOptionController
-	RkeK8sSystemImage() RkeK8sSystemImageController
 	RoleTemplate() RoleTemplateController
 	SamlProvider() SamlProviderController
 	SamlToken() SamlTokenController
@@ -144,14 +138,6 @@ func (v *version) ClusterRoleTemplateBinding() ClusterRoleTemplateBindingControl
 	return generic.NewController[*v3.ClusterRoleTemplateBinding, *v3.ClusterRoleTemplateBindingList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "ClusterRoleTemplateBinding"}, "clusterroletemplatebindings", true, v.controllerFactory, v.ts)
 }
 
-func (v *version) ClusterTemplate() ClusterTemplateController {
-	return generic.NewController[*v3.ClusterTemplate, *v3.ClusterTemplateList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "ClusterTemplate"}, "clustertemplates", true, v.controllerFactory, v.ts)
-}
-
-func (v *version) ClusterTemplateRevision() ClusterTemplateRevisionController {
-	return generic.NewController[*v3.ClusterTemplateRevision, *v3.ClusterTemplateRevisionList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "ClusterTemplateRevision"}, "clustertemplaterevisions", true, v.controllerFactory, v.ts)
-}
-
 func (v *version) CognitoProvider() CognitoProviderController {
 	return generic.NewNonNamespacedController[*v3.CognitoProvider, *v3.CognitoProviderList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "CognitoProvider"}, "cognitoproviders", v.controllerFactory, v.ts)
 }
@@ -162,10 +148,6 @@ func (v *version) ComposeConfig() ComposeConfigController {
 
 func (v *version) DynamicSchema() DynamicSchemaController {
 	return generic.NewNonNamespacedController[*v3.DynamicSchema, *v3.DynamicSchemaList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "DynamicSchema"}, "dynamicschemas", v.controllerFactory, v.ts)
-}
-
-func (v *version) EtcdBackup() EtcdBackupController {
-	return generic.NewController[*v3.EtcdBackup, *v3.EtcdBackupList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "EtcdBackup"}, "etcdbackups", true, v.controllerFactory, v.ts)
 }
 
 func (v *version) Feature() FeatureController {
@@ -182,6 +164,10 @@ func (v *version) FreeIpaProvider() FreeIpaProviderController {
 
 func (v *version) GenericOIDCProvider() GenericOIDCProviderController {
 	return generic.NewNonNamespacedController[*v3.GenericOIDCProvider, *v3.GenericOIDCProviderList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "GenericOIDCProvider"}, "genericoidcproviders", v.controllerFactory, v.ts)
+}
+
+func (v *version) GithubAppProvider() GithubAppProviderController {
+	return generic.NewNonNamespacedController[*v3.GithubAppProvider, *v3.GithubAppProviderList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "GithubAppProvider"}, "githubappproviders", v.controllerFactory, v.ts)
 }
 
 func (v *version) GithubProvider() GithubProviderController {
@@ -228,14 +214,6 @@ func (v *version) NodeDriver() NodeDriverController {
 	return generic.NewNonNamespacedController[*v3.NodeDriver, *v3.NodeDriverList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "NodeDriver"}, "nodedrivers", v.controllerFactory, v.ts)
 }
 
-func (v *version) NodePool() NodePoolController {
-	return generic.NewController[*v3.NodePool, *v3.NodePoolList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "NodePool"}, "nodepools", true, v.controllerFactory, v.ts)
-}
-
-func (v *version) NodeTemplate() NodeTemplateController {
-	return generic.NewController[*v3.NodeTemplate, *v3.NodeTemplateList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "NodeTemplate"}, "nodetemplates", true, v.controllerFactory, v.ts)
-}
-
 func (v *version) OIDCClient() OIDCClientController {
 	return generic.NewNonNamespacedController[*v3.OIDCClient, *v3.OIDCClientList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "OIDCClient"}, "oidcclients", v.controllerFactory, v.ts)
 }
@@ -272,20 +250,12 @@ func (v *version) ProjectRoleTemplateBinding() ProjectRoleTemplateBindingControl
 	return generic.NewController[*v3.ProjectRoleTemplateBinding, *v3.ProjectRoleTemplateBindingList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "ProjectRoleTemplateBinding"}, "projectroletemplatebindings", true, v.controllerFactory, v.ts)
 }
 
+func (v *version) ProxyEndpoint() ProxyEndpointController {
+	return generic.NewNonNamespacedController[*v3.ProxyEndpoint, *v3.ProxyEndpointList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "ProxyEndpoint"}, "proxyendpoints", v.controllerFactory, v.ts)
+}
+
 func (v *version) RancherUserNotification() RancherUserNotificationController {
 	return generic.NewNonNamespacedController[*v3.RancherUserNotification, *v3.RancherUserNotificationList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "RancherUserNotification"}, "rancherusernotifications", v.controllerFactory, v.ts)
-}
-
-func (v *version) RkeAddon() RkeAddonController {
-	return generic.NewController[*v3.RkeAddon, *v3.RkeAddonList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "RkeAddon"}, "rkeaddons", true, v.controllerFactory, v.ts)
-}
-
-func (v *version) RkeK8sServiceOption() RkeK8sServiceOptionController {
-	return generic.NewController[*v3.RkeK8sServiceOption, *v3.RkeK8sServiceOptionList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "RkeK8sServiceOption"}, "rkek8sserviceoptions", true, v.controllerFactory, v.ts)
-}
-
-func (v *version) RkeK8sSystemImage() RkeK8sSystemImageController {
-	return generic.NewController[*v3.RkeK8sSystemImage, *v3.RkeK8sSystemImageList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "RkeK8sSystemImage"}, "rkek8ssystemimages", true, v.controllerFactory, v.ts)
 }
 
 func (v *version) RoleTemplate() RoleTemplateController {
@@ -297,7 +267,7 @@ func (v *version) SamlProvider() SamlProviderController {
 }
 
 func (v *version) SamlToken() SamlTokenController {
-	return generic.NewNonNamespacedController[*v3.SamlToken, *v3.SamlTokenList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "SamlToken"}, "samltokens", v.controllerFactory, v.ts)
+	return generic.NewController[*v3.SamlToken, *v3.SamlTokenList](schema.GroupVersionKind{Group: "management.cattle.io", Version: "v3", Kind: "SamlToken"}, "samltokens", true, v.controllerFactory, v.ts)
 }
 
 func (v *version) Setting() SettingController {

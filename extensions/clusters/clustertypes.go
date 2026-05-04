@@ -4,7 +4,6 @@ type ClusterType string
 
 const (
 	K3SClusterType  ClusterType = "k3s"
-	RKE1ClusterType ClusterType = "rke1"
 	RKE2ClusterType ClusterType = "rke2"
 )
 
