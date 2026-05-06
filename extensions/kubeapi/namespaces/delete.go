@@ -12,13 +12,30 @@ import (
 )
 
 // DeleteNamespace deletes a namespace in a cluster using wrangler context
-func DeleteNamespace(client *rancher.Client, clusterID, namespaceName string) error {
+func DeleteNamespace(client *rancher.Client, clusterID, namespaceName string, waitForDelete bool) error {
 	ctx, err := clusterapi.GetClusterWranglerContext(client, clusterID)
 	if err != nil {
 		return err
 	}
 
 	err = ctx.Core.Namespace().Delete(namespaceName, &metav1.DeleteOptions{})
+	if err != nil {
+		return err
+	}
+
+	if waitForDelete {
+		err = WaitForNamespaceDeletion(client, clusterID, namespaceName)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// WaitForNamespaceDeletion waits for a namespace to be deleted in a cluster using wrangler context
+func WaitForNamespaceDeletion(client *rancher.Client, clusterID, namespaceName string) error {
+	ctx, err := clusterapi.GetClusterWranglerContext(client, clusterID)
 	if err != nil {
 		return err
 	}
@@ -32,6 +49,5 @@ func DeleteNamespace(client *rancher.Client, clusterID, namespaceName string) er
 			return false, pollErr
 		}
 		return false, nil
-	},
-	)
+	})
 }

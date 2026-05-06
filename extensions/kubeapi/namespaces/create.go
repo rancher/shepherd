@@ -18,5 +18,11 @@ func CreateNamespace(client *rancher.Client, clusterID string, namespace *corev1
 		return nil, err
 	}
 
+	if client.Session != nil {
+		client.Session.RegisterCleanupFunc(func() error {
+			return DeleteNamespace(client, clusterID, createdNamespace.Name, true)
+		})
+	}
+
 	return createdNamespace, nil
 }

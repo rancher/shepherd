@@ -11,8 +11,8 @@ import (
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
 
-// GetIngress is a helper function that uses the wrangler context to get an ingress in a specific namespace for a specific cluster.
-func GetIngress(client *rancher.Client, clusterID, namespace, ingressName string) (*networkingv1.Ingress, error) {
+// GetIngressByName is a helper function that uses the wrangler context to get an ingress in a specific namespace for a specific cluster.
+func GetIngressByName(client *rancher.Client, clusterID, namespace, ingressName string) (*networkingv1.Ingress, error) {
 	wranglerCtx, err := clusterapi.GetClusterWranglerContext(client, clusterID)
 	if err != nil {
 		return nil, err
@@ -23,7 +23,7 @@ func GetIngress(client *rancher.Client, clusterID, namespace, ingressName string
 
 // IsIngressReady is a helper function that uses the wrangler context to determine if an ingress has a load balancer hostname or IP assigned.
 func IsIngressReady(client *rancher.Client, clusterID, namespace, ingressName string) (bool, error) {
-	ingressResp, err := GetIngress(client, clusterID, namespace, ingressName)
+	ingressResp, err := GetIngressByName(client, clusterID, namespace, ingressName)
 	if err != nil {
 		return false, err
 	}
