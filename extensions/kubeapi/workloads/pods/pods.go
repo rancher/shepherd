@@ -10,6 +10,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -17,6 +18,13 @@ const (
 	PauseImage       = "registry.k8s.io/pause:3.9"
 	DefaultImageName = "nginx"
 )
+
+// PodGroupVersion is the required Group Version for accessing pods in a cluster using the dynamic client.
+var PodGroupVersionResource = schema.GroupVersionResource{
+	Group:    "",
+	Version:  "v1",
+	Resource: "pods",
+}
 
 // StatusPods is a helper function that uses wrangler context to list pods for a specific cluster with list options.
 func StatusPods(client *rancher.Client, clusterID string, listOpts metav1.ListOptions) ([]string, []error) {
