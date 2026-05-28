@@ -9,20 +9,12 @@ import (
 	v1 "github.com/rancher/shepherd/clients/rancher/v1"
 	"github.com/rancher/shepherd/extensions/defaults"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
 	PodResourceSteveType = "pod"
 )
-
-// PodGroupVersion is the required Group Version for accessing pods in a cluster using the dynamic client.
-var PodGroupVersionResource = schema.GroupVersionResource{
-	Group:    "",
-	Version:  "v1",
-	Resource: "pods",
-}
 
 // StatusPods is a helper function that uses the steve client to list pods on a namespace for a specific cluster
 // and return the statuses in a list of strings
