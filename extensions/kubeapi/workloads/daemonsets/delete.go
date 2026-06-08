@@ -21,7 +21,10 @@ func DeleteDaemonSet(client *rancher.Client, clusterID, daemonSetNamespace, daem
 
 	err = clusterContext.Apps.DaemonSet().Delete(daemonSetNamespace, daemonSetName, &metav1.DeleteOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to delete DaemonSet: %w", err)
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
+		return err
 	}
 
 	if waitForDelete {

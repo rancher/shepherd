@@ -29,7 +29,12 @@ func CreateDaemonSetWithTemplate(client *rancher.Client, clusterID string, daemo
 
 	if client.Session != nil {
 		client.Session.RegisterCleanupFunc(func() error {
-			return DeleteDaemonSet(client, clusterID, createdDaemonset.Namespace, createdDaemonset.Name, true)
+			adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+			if err != nil {
+				return err
+			}
+
+			return DeleteDaemonSet(adminClient, clusterID, createdDaemonset.Namespace, createdDaemonset.Name, true)
 		})
 	}
 

@@ -21,7 +21,10 @@ func DeleteCronJob(client *rancher.Client, clusterID, cronJobnamespace, cronJobN
 
 	err = clusterContext.Batch.CronJob().Delete(cronJobnamespace, cronJobName, &metav1.DeleteOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to delete CronJob: %w", err)
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
+		return err
 	}
 
 	if waitForDelete {
@@ -36,20 +39,14 @@ func DeleteCronJob(client *rancher.Client, clusterID, cronJobnamespace, cronJobN
 
 // WaitForCronJobDeletion is a helper to wait for cronjob to delete
 func WaitForCronJobDeletion(client *rancher.Client, clusterID, cronJobNamespace, cronJobName string) error {
-	err := kwait.PollUntilContextTimeout(context.Background(), defaults.FiveSecondTimeout, defaults.OneMinuteTimeout, false, func(ctx context.Context) (done bool, pollErr error) {
-		_, pollErr = GetCronJobByName(client, clusterID, cronJobNamespace, cronJobName)
-		if pollErr != nil {
-			if k8serrors.IsNotFound(pollErr) {
+	return kwait.PollUntilContextTimeout(context.Background(), defaults.FiveSecondTimeout, defaults.OneMinuteTimeout, false, func(ctx context.Context) (done bool, pollErr error) {
+		_, err := GetCronJobByName(client, clusterID, cronJobNamespace, cronJobName)
+		if err != nil {
+			if k8serrors.IsNotFound(err) {
 				return true, nil
 			}
-			return false, pollErr
+			return false, err
 		}
 		return false, nil
 	})
-
-	if err != nil {
-		return fmt.Errorf("failed to wait for cronjob to delete: %w", err)
-	}
-
-	return nil
 }

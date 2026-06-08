@@ -21,7 +21,12 @@ func CreateRole(client *rancher.Client, clusterID string, role *rbacv1.Role) (*r
 
 	if client.Session != nil {
 		client.Session.RegisterCleanupFunc(func() error {
-			return DeleteRole(client, clusterID, newRole.Namespace, newRole.Name)
+			adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+			if err != nil {
+				return err
+			}
+
+			return DeleteRole(adminClient, clusterID, newRole.Namespace, newRole.Name)
 		})
 	}
 
@@ -42,7 +47,12 @@ func CreateClusterRole(client *rancher.Client, clusterID string, clusterRole *rb
 
 	if client.Session != nil {
 		client.Session.RegisterCleanupFunc(func() error {
-			return DeleteClusterRole(client, clusterID, newClusterRole.Name)
+			adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+			if err != nil {
+				return err
+			}
+
+			return DeleteClusterRole(adminClient, clusterID, newClusterRole.Name)
 		})
 	}
 
@@ -63,7 +73,12 @@ func CreateRoleBinding(client *rancher.Client, clusterID string, roleBinding *rb
 
 	if client.Session != nil {
 		client.Session.RegisterCleanupFunc(func() error {
-			return DeleteRoleBinding(client, clusterID, newRoleBinding.Namespace, newRoleBinding.Name)
+			adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+			if err != nil {
+				return err
+			}
+
+			return DeleteRoleBinding(adminClient, clusterID, newRoleBinding.Namespace, newRoleBinding.Name)
 		})
 	}
 
@@ -84,7 +99,12 @@ func CreateClusterRoleBinding(client *rancher.Client, clusterID string, clusterR
 
 	if client.Session != nil {
 		client.Session.RegisterCleanupFunc(func() error {
-			return DeleteClusterRoleBinding(client, clusterID, newClusterRoleBinding.Name)
+			adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+			if err != nil {
+				return err
+			}
+
+			return DeleteClusterRoleBinding(adminClient, clusterID, newClusterRoleBinding.Name)
 		})
 	}
 
@@ -105,7 +125,12 @@ func CreateGlobalRole(client *rancher.Client, globalRole *v3.GlobalRole) (*v3.Gl
 
 	if client.Session != nil {
 		client.Session.RegisterCleanupFunc(func() error {
-			return DeleteGlobalRole(client, latestGlobalRole.Name, true)
+			adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+			if err != nil {
+				return err
+			}
+
+			return DeleteGlobalRole(adminClient, latestGlobalRole.Name, true)
 		})
 	}
 
@@ -126,7 +151,12 @@ func CreateGlobalRoleBinding(client *rancher.Client, globalRoleBinding *v3.Globa
 
 	if client.Session != nil {
 		client.Session.RegisterCleanupFunc(func() error {
-			return DeleteGlobalRoleBinding(client, latestGlobalRoleBinding.Name, true)
+			adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+			if err != nil {
+				return err
+			}
+
+			return DeleteGlobalRoleBinding(adminClient, latestGlobalRoleBinding.Name, true)
 		})
 	}
 
@@ -147,7 +177,12 @@ func CreateRoleTemplate(client *rancher.Client, roleTemplate *v3.RoleTemplate) (
 
 	if client.Session != nil {
 		client.Session.RegisterCleanupFunc(func() error {
-			return DeleteRoleTemplate(client, latestRoleTemplate.Name, true)
+			adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+			if err != nil {
+				return err
+			}
+
+			return DeleteRoleTemplate(adminClient, latestRoleTemplate.Name, true)
 		})
 	}
 
@@ -168,7 +203,12 @@ func CreateClusterRoleTemplateBinding(client *rancher.Client, clusterRoleTemplat
 
 	if client.Session != nil {
 		client.Session.RegisterCleanupFunc(func() error {
-			return DeleteClusterRoleTemplateBinding(client, latestCRTB.Namespace, latestCRTB.Name, true)
+			adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+			if err != nil {
+				return err
+			}
+
+			return DeleteClusterRoleTemplateBinding(adminClient, latestCRTB.Namespace, latestCRTB.Name, true)
 		})
 	}
 
@@ -189,7 +229,12 @@ func CreateProjectRoleTemplateBinding(client *rancher.Client, projectRoleTemplat
 
 	if client.Session != nil {
 		client.Session.RegisterCleanupFunc(func() error {
-			return DeleteProjectRoleTemplateBinding(client, latestPRTB.Namespace, latestPRTB.Name, true)
+			adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+			if err != nil {
+				return err
+			}
+
+			return DeleteProjectRoleTemplateBinding(adminClient, latestPRTB.Namespace, latestPRTB.Name, true)
 		})
 	}
 

@@ -29,7 +29,12 @@ func CreateDeploymentWithTemplate(client *rancher.Client, clusterID string, depl
 
 	if client.Session != nil {
 		client.Session.RegisterCleanupFunc(func() error {
-			return DeleteDeployment(client, clusterID, createdDeployment.Namespace, createdDeployment.Name, true)
+			adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+			if err != nil {
+				return err
+			}
+
+			return DeleteDeployment(adminClient, clusterID, createdDeployment.Namespace, createdDeployment.Name, true)
 		})
 	}
 

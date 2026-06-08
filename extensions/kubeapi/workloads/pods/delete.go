@@ -21,6 +21,9 @@ func DeletePod(client *rancher.Client, clusterID, namespace, podName string, wai
 
 	err = clusterContext.Core.Pod().Delete(namespace, podName, &metav1.DeleteOptions{})
 	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
 		return err
 	}
 
@@ -36,13 +39,8 @@ func DeletePod(client *rancher.Client, clusterID, namespace, podName string, wai
 
 // WaitForPodDeleted waits until the specified pod is deleted from the cluster
 func WaitForPodDeleted(client *rancher.Client, clusterID, namespace, podName string) error {
-	clusterContext, err := extclusterapi.GetClusterWranglerContext(client, clusterID)
-	if err != nil {
-		return err
-	}
-
 	return kwait.PollUntilContextTimeout(context.Background(), defaults.FiveSecondTimeout, defaults.OneMinuteTimeout, false, func(context.Context) (bool, error) {
-		_, err := clusterContext.Core.Pod().Get(namespace, podName, metav1.GetOptions{})
+		_, err := GetPodByName(client, clusterID, namespace, podName)
 		if err != nil {
 			if k8serrors.IsNotFound(err) {
 				return true, nil

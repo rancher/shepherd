@@ -20,7 +20,12 @@ func CreateServiceWithTemplate(client *rancher.Client, clusterID string, service
 
 	if client.Session != nil {
 		client.Session.RegisterCleanupFunc(func() error {
-			return DeleteService(client, clusterID, service.Namespace, service.Name)
+			adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+			if err != nil {
+				return err
+			}
+
+			return DeleteService(adminClient, clusterID, service.Namespace, service.Name)
 		})
 	}
 

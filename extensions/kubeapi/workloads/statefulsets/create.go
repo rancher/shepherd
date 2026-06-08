@@ -29,7 +29,12 @@ func CreateStatefulSetWithTemplate(client *rancher.Client, clusterID string, ssT
 
 	if client.Session != nil {
 		client.Session.RegisterCleanupFunc(func() error {
-			return DeleteStatefulSet(client, clusterID, createdSS.Namespace, createdSS.Name, true)
+			adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+			if err != nil {
+				return err
+			}
+
+			return DeleteStatefulSet(adminClient, clusterID, createdSS.Namespace, createdSS.Name, true)
 		})
 	}
 

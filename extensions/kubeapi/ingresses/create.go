@@ -29,7 +29,12 @@ func CreateIngress(client *rancher.Client, clusterID, ingressName, namespace str
 
 	if client.Session != nil {
 		client.Session.RegisterCleanupFunc(func() error {
-			return DeleteIngress(client, clusterID, namespace, createdIngress.Name)
+			adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+			if err != nil {
+				return err
+			}
+
+			return DeleteIngress(adminClient, clusterID, namespace, createdIngress.Name)
 		})
 	}
 

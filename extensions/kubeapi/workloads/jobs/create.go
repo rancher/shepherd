@@ -9,7 +9,7 @@ import (
 )
 
 // CreateJobWithTemplate creates a Job in a cluster using the provided template and wrangler context.
-func CreateJobWithTemplate(client *rancher.Client, clusterID string, jobTemplate *batchv1.Job, waitForComplete bool) (*batchv1.Job, error) {
+func CreateJobWithTemplate(client *rancher.Client, clusterID string, jobTemplate *batchv1.Job, waitForActive bool) (*batchv1.Job, error) {
 	clusterContext, err := extclusterapi.GetClusterWranglerContext(client, clusterID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get cluster context: %w", err)
@@ -20,16 +20,21 @@ func CreateJobWithTemplate(client *rancher.Client, clusterID string, jobTemplate
 		return nil, fmt.Errorf("failed to create Job: %w", err)
 	}
 
-	if waitForComplete {
-		err = WaitForJobComplete(client, clusterID, createdJob.Namespace, createdJob.Name)
+	if waitForActive {
+		err = WaitForJobActive(client, clusterID, createdJob.Namespace, createdJob.Name)
 		if err != nil {
-			return nil, fmt.Errorf("failed to wait for job completion: %w", err)
+			return nil, fmt.Errorf("failed to wait for job to become active: %w", err)
 		}
 	}
 
 	if client.Session != nil {
 		client.Session.RegisterCleanupFunc(func() error {
-			return DeleteJob(client, clusterID, createdJob.Namespace, createdJob.Name, true)
+			adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+			if err != nil {
+				return err
+			}
+
+			return DeleteJob(adminClient, clusterID, createdJob.Namespace, createdJob.Name, true)
 		})
 	}
 
