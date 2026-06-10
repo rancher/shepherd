@@ -284,21 +284,29 @@ func (c *Controller[T, TList]) Cache() CacheInterface[T] {
 func (c *Controller[T, TList]) Create(obj T) (T, error) {
 	result := reflect.New(c.objType).Interface().(T)
 
+	if err := c.embeddedClient.Create(context.TODO(), obj.GetNamespace(), obj, result, metav1.CreateOptions{}); err != nil {
+		return result, err
+	}
+
+	namespace := result.GetNamespace()
+	name := result.GetName()
+
 	c.ts.RegisterCleanupFunc(func() error {
-		err := c.embeddedClient.Delete(context.TODO(), obj.GetNamespace(), obj.GetName(), metav1.DeleteOptions{})
-		if errors.IsNotFound(err) {
+		err := c.embeddedClient.Delete(context.TODO(), namespace, name, metav1.DeleteOptions{})
+		if errors.IsNotFound(err) || errors.IsForbidden(err) {
 			return nil
 		}
-		name := obj.GetName()
-		if obj.GetNamespace() != "" {
-			name = obj.GetNamespace() + "/" + name
+
+		displayName := name
+		if namespace != "" {
+			displayName = namespace + "/" + name
 		}
 		gvk := obj.GetObjectKind().GroupVersionKind()
 
-		return fmt.Errorf("unable to delete (%v) %v: %w", gvk, name, err)
+		return fmt.Errorf("unable to delete (%v) %v: %w", gvk, displayName, err)
 	})
 
-	return result, c.embeddedClient.Create(context.TODO(), obj.GetNamespace(), obj, result, metav1.CreateOptions{})
+	return result, nil
 }
 
 // Update updates the object and return the newly updated Object or an error.

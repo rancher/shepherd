@@ -14,19 +14,16 @@ import (
 
 // WaitForCronJobActive waits until the CronJob has at least one active job using wrangler context and polling.
 func WaitForCronJobActive(client *rancher.Client, clusterID, namespaceName, cronJobName string) error {
-	clusterContext, err := extclusterapi.GetClusterWranglerContext(client, clusterID)
-	if err != nil {
-		return err
-	}
-
 	return kwait.PollUntilContextTimeout(context.Background(), defaults.FiveSecondTimeout, defaults.FiveMinuteTimeout, false, func(ctx context.Context) (bool, error) {
-		cronJob, err := clusterContext.Batch.CronJob().Get(namespaceName, cronJobName, metav1.GetOptions{})
+		cronJob, err := GetCronJobByName(client, clusterID, namespaceName, cronJobName)
 		if err != nil {
 			return false, nil
 		}
+
 		if len(cronJob.Status.Active) > 0 {
 			return true, nil
 		}
+
 		return false, nil
 	})
 }

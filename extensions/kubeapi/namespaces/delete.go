@@ -20,6 +20,9 @@ func DeleteNamespace(client *rancher.Client, clusterID, namespaceName string, wa
 
 	err = ctx.Core.Namespace().Delete(namespaceName, &metav1.DeleteOptions{})
 	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
 		return err
 	}
 

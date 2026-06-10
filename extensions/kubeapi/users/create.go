@@ -31,7 +31,12 @@ func CreateUser(client *rancher.Client, user *v3.User) (*v3.User, error) {
 
 	if client.Session != nil {
 		client.Session.RegisterCleanupFunc(func() error {
-			return DeleteUser(client, createdUser.Username, true)
+			adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+			if err != nil {
+				return err
+			}
+
+			return DeleteUser(adminClient, createdUser.Username, true)
 		})
 	}
 

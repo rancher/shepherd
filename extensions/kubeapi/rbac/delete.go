@@ -5,6 +5,7 @@ import (
 
 	"github.com/rancher/shepherd/clients/rancher"
 	extclusterapi "github.com/rancher/shepherd/extensions/kubeapi/cluster"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -15,7 +16,15 @@ func DeleteRole(client *rancher.Client, clusterID, namespace, roleName string) e
 		return err
 	}
 
-	return clusterContext.RBAC.Role().Delete(namespace, roleName, &metav1.DeleteOptions{})
+	err = clusterContext.RBAC.Role().Delete(namespace, roleName, &metav1.DeleteOptions{})
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	return nil
 }
 
 // DeleteClusterRole deletes a cluster role by name from a specific cluster
@@ -25,7 +34,15 @@ func DeleteClusterRole(client *rancher.Client, clusterID, clusterRoleName string
 		return err
 	}
 
-	return clusterContext.RBAC.ClusterRole().Delete(clusterRoleName, &metav1.DeleteOptions{})
+	err = clusterContext.RBAC.ClusterRole().Delete(clusterRoleName, &metav1.DeleteOptions{})
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	return nil
 }
 
 // DeleteRoleBinding deletes a role binding by name from a specific cluster
@@ -35,7 +52,15 @@ func DeleteRoleBinding(client *rancher.Client, clusterID, namespace, roleBinding
 		return err
 	}
 
-	return clusterContext.RBAC.RoleBinding().Delete(namespace, roleBindingName, &metav1.DeleteOptions{})
+	err = clusterContext.RBAC.RoleBinding().Delete(namespace, roleBindingName, &metav1.DeleteOptions{})
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	return nil
 }
 
 // DeleteClusterRoleBinding deletes a cluster role binding by name from a specific cluster
@@ -45,13 +70,24 @@ func DeleteClusterRoleBinding(client *rancher.Client, clusterID, clusterRoleBind
 		return err
 	}
 
-	return clusterContext.RBAC.ClusterRoleBinding().Delete(clusterRoleBindingName, &metav1.DeleteOptions{})
+	err = clusterContext.RBAC.ClusterRoleBinding().Delete(clusterRoleBindingName, &metav1.DeleteOptions{})
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	return nil
 }
 
 // DeleteGlobalRole deletes a Global Role by name using wrangler context
 func DeleteGlobalRole(client *rancher.Client, globalRoleName string, waitForDelete bool) error {
 	err := client.WranglerContext.Mgmt.GlobalRole().Delete(globalRoleName, &metav1.DeleteOptions{})
 	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
 		return err
 	}
 
@@ -69,6 +105,9 @@ func DeleteGlobalRole(client *rancher.Client, globalRoleName string, waitForDele
 func DeleteClusterRoleTemplateBinding(client *rancher.Client, crtbNamespace, crtbName string, waitForDelete bool) error {
 	err := client.WranglerContext.Mgmt.ClusterRoleTemplateBinding().Delete(crtbNamespace, crtbName, &metav1.DeleteOptions{})
 	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
 		return err
 	}
 
@@ -86,6 +125,9 @@ func DeleteClusterRoleTemplateBinding(client *rancher.Client, crtbNamespace, crt
 func DeleteProjectRoleTemplateBinding(client *rancher.Client, prtbNamespace, prtbName string, waitForDelete bool) error {
 	err := client.WranglerContext.Mgmt.ProjectRoleTemplateBinding().Delete(prtbNamespace, prtbName, &metav1.DeleteOptions{})
 	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
 		return err
 	}
 
@@ -103,7 +145,10 @@ func DeleteProjectRoleTemplateBinding(client *rancher.Client, prtbNamespace, prt
 func DeleteRoleTemplate(client *rancher.Client, roleTemplateName string, waitForDelete bool) error {
 	err := client.WranglerContext.Mgmt.RoleTemplate().Delete(roleTemplateName, nil)
 	if err != nil {
-		return fmt.Errorf("failed to delete role template %s: %w", roleTemplateName, err)
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
+		return err
 	}
 
 	if waitForDelete {
@@ -120,6 +165,10 @@ func DeleteRoleTemplate(client *rancher.Client, roleTemplateName string, waitFor
 func DeleteGlobalRoleBinding(client *rancher.Client, globalRoleBindingName string, waitForDelete bool) error {
 	err := client.WranglerContext.Mgmt.GlobalRoleBinding().Delete(globalRoleBindingName, nil)
 	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
+
 		return fmt.Errorf("failed to delete global role binding %s: %w", globalRoleBindingName, err)
 	}
 

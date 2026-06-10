@@ -18,8 +18,12 @@ func DeleteJob(client *rancher.Client, clusterID, jobNamespace, jobName string, 
 		return err
 	}
 
-	err = clusterContext.Batch.Job().Delete(jobNamespace, jobName, &metav1.DeleteOptions{})
+	propagationPolicy := metav1.DeletePropagationBackground
+	err = clusterContext.Batch.Job().Delete(jobNamespace, jobName, &metav1.DeleteOptions{PropagationPolicy: &propagationPolicy})
 	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
 		return err
 	}
 
@@ -32,13 +36,8 @@ func DeleteJob(client *rancher.Client, clusterID, jobNamespace, jobName string, 
 
 // WaitForJobDeleted waits until the specified Job is deleted from the cluster.
 func WaitForJobDeleted(client *rancher.Client, clusterID, jobNamespace, jobName string) error {
-	clusterContext, err := extclusterapi.GetClusterWranglerContext(client, clusterID)
-	if err != nil {
-		return err
-	}
-
 	return kwait.PollUntilContextTimeout(context.Background(), defaults.FiveSecondTimeout, defaults.OneMinuteTimeout, false, func(ctx context.Context) (bool, error) {
-		_, err := clusterContext.Batch.Job().Get(jobNamespace, jobName, metav1.GetOptions{})
+		_, err := GetJobByName(client, clusterID, jobNamespace, jobName)
 		if err != nil {
 			if k8serrors.IsNotFound(err) {
 				return true, nil

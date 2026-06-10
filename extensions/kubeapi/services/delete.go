@@ -3,6 +3,7 @@ package services
 import (
 	"github.com/rancher/shepherd/clients/rancher"
 	extclusterapi "github.com/rancher/shepherd/extensions/kubeapi/cluster"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -15,6 +16,9 @@ func DeleteService(client *rancher.Client, clusterID, namespace, serviceName str
 
 	err = clusterContext.Core.Service().Delete(namespace, serviceName, &metav1.DeleteOptions{})
 	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
 		return err
 	}
 

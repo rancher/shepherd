@@ -55,13 +55,8 @@ func StatusPods(client *rancher.Client, clusterID string, listOpts metav1.ListOp
 
 // WaitForPodRunning waits until the specified pod reaches the Running state
 func WaitForPodRunning(client *rancher.Client, clusterID, podNamespace, podName string) error {
-	clusterContext, err := extclusterapi.GetClusterWranglerContext(client, clusterID)
-	if err != nil {
-		return err
-	}
-
 	return kwait.PollUntilContextTimeout(context.Background(), defaults.FiveSecondTimeout, defaults.OneMinuteTimeout, false, func(context.Context) (bool, error) {
-		pod, err := clusterContext.Core.Pod().Get(podNamespace, podName, metav1.GetOptions{})
+		pod, err := GetPodByName(client, clusterID, podNamespace, podName)
 		if err != nil {
 			if k8serrors.IsNotFound(err) {
 				return false, nil

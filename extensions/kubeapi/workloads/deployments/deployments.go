@@ -34,13 +34,13 @@ func WaitForDeploymentActive(client *rancher.Client, clusterID, deploymentNamesp
 		if err != nil {
 			return false, nil
 		}
+
 		if deployment.Spec.Replicas == nil {
 			return false, nil
 		}
 
 		desired := *deployment.Spec.Replicas
 		return deployment.Status.UpdatedReplicas == desired &&
-			deployment.Status.ReadyReplicas == desired &&
 			deployment.Status.AvailableReplicas == desired &&
 			deployment.Status.Replicas == desired, nil
 	})

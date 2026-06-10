@@ -21,6 +21,9 @@ func DeleteSecret(client *rancher.Client, clusterID, namespaceName, secretName s
 
 	err = clusterContext.Core.Secret().Delete(namespaceName, secretName, &metav1.DeleteOptions{})
 	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
 		return err
 	}
 

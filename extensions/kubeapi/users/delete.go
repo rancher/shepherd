@@ -15,7 +15,10 @@ import (
 func DeleteUser(client *rancher.Client, username string, waitForDelete bool) error {
 	err := client.WranglerContext.Mgmt.User().Delete(username, &metav1.DeleteOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to delete user %s: %w", username, err)
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
+		return err
 	}
 
 	if waitForDelete {
@@ -31,7 +34,7 @@ func DeleteUser(client *rancher.Client, username string, waitForDelete bool) err
 // WaitForUserDeletion polls until a user with the given name is deleted
 func WaitForUserDeletion(client *rancher.Client, username string) error {
 	return kwait.PollUntilContextTimeout(context.Background(), defaults.FiveSecondTimeout, defaults.OneMinuteTimeout, true, func(ctx context.Context) (bool, error) {
-		_, err := client.WranglerContext.Mgmt.User().Get(username, metav1.GetOptions{})
+		_, err := GetUserByName(client, username)
 		if err != nil {
 			if k8serrors.IsNotFound(err) {
 				return true, nil

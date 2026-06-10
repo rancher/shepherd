@@ -29,13 +29,8 @@ func GetStatefulSetByName(client *rancher.Client, clusterID, statefulSetNamespac
 
 // WaitForStatefulSetReady waits until the StatefulSet has all ready replicas using wrangler context and polling.
 func WaitForStatefulSetReady(client *rancher.Client, clusterID, statefulSetNamespace, statefulSetName string) error {
-	clusterContext, err := extclusterapi.GetClusterWranglerContext(client, clusterID)
-	if err != nil {
-		return err
-	}
-
 	return kwait.PollUntilContextTimeout(context.Background(), defaults.FiveSecondTimeout, defaults.FiveMinuteTimeout, false, func(ctx context.Context) (bool, error) {
-		ss, err := clusterContext.Apps.StatefulSet().Get(statefulSetNamespace, statefulSetName, metav1.GetOptions{})
+		ss, err := GetStatefulSetByName(client, clusterID, statefulSetNamespace, statefulSetName)
 		if err != nil {
 			return false, nil
 		}

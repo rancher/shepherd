@@ -29,7 +29,12 @@ func CreatePodWithTemplate(client *rancher.Client, clusterID string, podTemplate
 
 	if client.Session != nil {
 		client.Session.RegisterCleanupFunc(func() error {
-			return DeletePod(client, clusterID, createdPod.Namespace, createdPod.Name, true)
+			adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+			if err != nil {
+				return err
+			}
+
+			return DeletePod(adminClient, clusterID, createdPod.Namespace, createdPod.Name, true)
 		})
 	}
 

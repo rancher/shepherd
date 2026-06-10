@@ -6,7 +6,7 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	"github.com/rancher/shepherd/extensions/defaults"
 	extclusterapi "github.com/rancher/shepherd/extensions/kubeapi/cluster"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -19,6 +19,9 @@ func DeleteConfigMap(client *rancher.Client, clusterID, namespace, name string, 
 
 	err = clusterContext.Core.ConfigMap().Delete(namespace, name, nil)
 	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
 		return err
 	}
 
@@ -33,7 +36,7 @@ func DeleteConfigMap(client *rancher.Client, clusterID, namespace, name string, 
 func WaitForConfigMapDeletion(client *rancher.Client, clusterID, namespace, configMapName string) error {
 	return kwait.PollUntilContextTimeout(context.TODO(), defaults.FiveSecondTimeout, defaults.OneMinuteTimeout, false, func(ctx context.Context) (done bool, err error) {
 		_, err = GetConfigMapByName(client, clusterID, namespace, configMapName)
-		if errors.IsNotFound(err) {
+		if k8serrors.IsNotFound(err) {
 			return true, nil
 		}
 

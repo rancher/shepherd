@@ -35,7 +35,6 @@ func WaitForDaemonSetReady(client *rancher.Client, clusterID, daemonSetNamespace
 			return false, nil
 		}
 
-		return ds.Status.NumberReady == ds.Status.DesiredNumberScheduled &&
-			ds.Status.UpdatedNumberScheduled == ds.Status.DesiredNumberScheduled, nil
+		return ds.Status.NumberReady == ds.Status.DesiredNumberScheduled, nil
 	})
 }

@@ -29,7 +29,12 @@ func CreateHPA(client *rancher.Client, clusterID string, hpa *autoscalingv2.Hori
 
 	if client.Session != nil {
 		client.Session.RegisterCleanupFunc(func() error {
-			return DeleteHPA(client, clusterID, createdHPA.Namespace, createdHPA.Name, true)
+			adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+			if err != nil {
+				return err
+			}
+
+			return DeleteHPA(adminClient, clusterID, createdHPA.Namespace, createdHPA.Name, true)
 		})
 	}
 

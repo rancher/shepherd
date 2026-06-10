@@ -20,7 +20,12 @@ func CreateConfigMapWithTemplate(client *rancher.Client, clusterID string, confi
 
 	if client.Session != nil {
 		client.Session.RegisterCleanupFunc(func() error {
-			return DeleteConfigMap(client, clusterID, createdConfigMap.Namespace, createdConfigMap.Name, true)
+			adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+			if err != nil {
+				return err
+			}
+
+			return DeleteConfigMap(adminClient, clusterID, createdConfigMap.Namespace, createdConfigMap.Name, true)
 		})
 	}
 

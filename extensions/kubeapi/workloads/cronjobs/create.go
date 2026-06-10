@@ -29,7 +29,12 @@ func CreateCronJobWithTemplate(client *rancher.Client, clusterID string, cronJob
 
 	if client.Session != nil {
 		client.Session.RegisterCleanupFunc(func() error {
-			return DeleteCronJob(client, clusterID, createdCronJob.Namespace, createdCronJob.Name, true)
+			adminClient, err := rancher.NewClient(client.RancherConfig.AdminToken, client.Session)
+			if err != nil {
+				return err
+			}
+
+			return DeleteCronJob(adminClient, clusterID, createdCronJob.Namespace, createdCronJob.Name, true)
 		})
 	}
 

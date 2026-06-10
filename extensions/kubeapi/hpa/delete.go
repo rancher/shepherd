@@ -21,7 +21,10 @@ func DeleteHPA(client *rancher.Client, clusterID, namespace, name string, waitFo
 
 	err = clusterContext.Autoscaling.HorizontalPodAutoscaler().Delete(namespace, name, &metav1.DeleteOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to delete HPA: %w", err)
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
+		return err
 	}
 
 	if waitForDeletion {

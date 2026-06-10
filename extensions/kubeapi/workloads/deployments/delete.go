@@ -20,6 +20,9 @@ func DeleteDeployment(client *rancher.Client, clusterID, namespace, deploymentNa
 
 	err = clusterContext.Apps.Deployment().Delete(namespace, deploymentName, &metav1.DeleteOptions{})
 	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
 		return err
 	}
 
