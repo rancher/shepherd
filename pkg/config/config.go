@@ -35,7 +35,10 @@ func LoadConfig(key string, config interface{}) {
 		panic(err)
 	}
 
-	scoped := all[key]
+	scoped, ok := all[key]
+	if !ok {
+		panic(fmt.Errorf("Key %s not present in provided config", key))
+	}
 	scopedString, err := yaml.Marshal(scoped)
 	if err != nil {
 		panic(err)
