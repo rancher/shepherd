@@ -144,10 +144,6 @@ func (c *Client) ProxyDownstream(clusterID string) (*Client, error) {
 
 	baseClient, err := clientbase.NewAPIClient(&updatedOpts)
 	if err != nil {
-		return nil, err
-	}
-
-	if err != nil {
 		return nil, fmt.Errorf("failed creating Proxy Client. Backoff error: %v", err)
 	}
 
@@ -236,9 +232,7 @@ func (c *SteveClient) ListAll(params url.Values) (*SteveCollection, error) {
 		resp = next
 		resp.Data = data
 	}
-	if err != nil {
-		return resp, err
-	}
+
 	return resp, err
 }
 
@@ -392,9 +386,7 @@ func (c *NamespacedSteveClient) ListAll(params url.Values) (*SteveCollection, er
 		resp = next
 		resp.Data = data
 	}
-	if err != nil {
-		return resp, err
-	}
+
 	return resp, err
 }
 
