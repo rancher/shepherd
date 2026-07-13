@@ -2,7 +2,6 @@ package operations
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/sirupsen/logrus"
@@ -43,7 +42,7 @@ func GetValue(keyPath []string, searchMap map[string]any) (any, error) {
 	if len(keyPath) == 1 {
 		keypathvalues, ok := searchMap[keyPath[0]]
 		if !ok {
-			err = errors.New(fmt.Sprintf("expected key does not exist: %s", keyPath[0]))
+			err = fmt.Errorf("expected key does not exist: %s", keyPath[0])
 		}
 		return keypathvalues, err
 	} else {
