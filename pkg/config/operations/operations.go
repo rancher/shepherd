@@ -66,7 +66,11 @@ func GetValue(keyPath []string, searchMap map[string]any) (any, error) {
 
 // LoadObjectFromMap unmarshals a specific key's value into an object
 func LoadObjectFromMap(key string, config map[string]any, object any) {
-	keyConfig := config[key]
+	keyConfig, ok := config[key]
+	if !ok {
+		panic(fmt.Errorf("Key %s not present in provided config", key))
+	}
+
 	scopedString, err := yaml.Marshal(keyConfig)
 	if err != nil {
 		panic(err)
