@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
 )
 
@@ -67,7 +68,7 @@ func GetValue(keyPath []string, searchMap map[string]any) (any, error) {
 func LoadObjectFromMap(key string, config map[string]any, object any) {
 	keyConfig, ok := config[key]
 	if !ok {
-		panic(fmt.Errorf("Key %s not present in provided config", key))
+		logrus.Infof("Key %s not present in provided config", key)
 	}
 
 	scopedString, err := yaml.Marshal(keyConfig)
