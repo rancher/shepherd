@@ -33,3 +33,13 @@ func CreateSecretWithTemplate(client *rancher.Client, clusterID string, secretTe
 
 	return createdSecret, nil
 }
+
+func UpdateSecretWithTemplate(client *rancher.Client, clusterID string, secretTemplate *corev1.Secret) error {
+	clusterContext, err := extclusterapi.GetClusterWranglerContext(client, clusterID)
+	if err != nil {
+		return fmt.Errorf("failed to get cluster context: %w", err)
+	}
+
+	_, err = clusterContext.Core.Secret().Update(secretTemplate)
+	return err
+}

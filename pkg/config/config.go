@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/creasty/defaults"
+	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
 )
 
@@ -18,6 +19,7 @@ func LoadConfig(key string, config interface{}) {
 	configPath := os.Getenv(ConfigEnvironmentKey)
 
 	if configPath == "" {
+		logrus.Infof("No config file path provided via %s env var", ConfigEnvironmentKey)
 		yaml.Unmarshal([]byte("{}"), config)
 		return
 	}
@@ -33,7 +35,10 @@ func LoadConfig(key string, config interface{}) {
 		panic(err)
 	}
 
-	scoped := all[key]
+	scoped, ok := all[key]
+	if !ok {
+		logrus.Infof("Key %s not present in provided config", key)
+	}
 	scopedString, err := yaml.Marshal(scoped)
 	if err != nil {
 		panic(err)
