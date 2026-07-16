@@ -2,9 +2,9 @@ package operations
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 
+	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
 )
 
@@ -42,7 +42,7 @@ func GetValue(keyPath []string, searchMap map[string]any) (any, error) {
 	if len(keyPath) == 1 {
 		keypathvalues, ok := searchMap[keyPath[0]]
 		if !ok {
-			err = errors.New(fmt.Sprintf("expected key does not exist: %s", keyPath[0]))
+			err = fmt.Errorf("expected key does not exist: %s", keyPath[0])
 		}
 		return keypathvalues, err
 	} else {
@@ -66,7 +66,11 @@ func GetValue(keyPath []string, searchMap map[string]any) (any, error) {
 
 // LoadObjectFromMap unmarshals a specific key's value into an object
 func LoadObjectFromMap(key string, config map[string]any, object any) {
-	keyConfig := config[key]
+	keyConfig, ok := config[key]
+	if !ok {
+		logrus.Infof("Key %s not present in provided config", key)
+	}
+
 	scopedString, err := yaml.Marshal(keyConfig)
 	if err != nil {
 		panic(err)
