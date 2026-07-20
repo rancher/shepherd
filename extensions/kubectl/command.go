@@ -3,7 +3,6 @@ package kubectl
 import (
 	"errors"
 	"fmt"
-	"net"
 	"strings"
 
 	namegen "github.com/rancher/shepherd/pkg/namegenerator"
@@ -91,10 +90,15 @@ func Command(client *rancher.Client, yamlContent *management.ImportClusterYamlIn
 
 	jobTemplate.Spec.Template.Spec.Containers = append(jobTemplate.Spec.Template.Spec.Containers, container)
 	jobTemplate.Spec.Template.Spec.Volumes = volumes
-	err = CreateJobAndRunKubectlCommands(clusterID, jobName, jobTemplate, client)
-	if err, ok := err.(net.Error); ok && !err.Timeout() {
-		return "", err
-	}
+	// Run the kubectl job. The error is captured but not returned immediately:
+	// the job pod's logs are fetched below as a best effort because they usually
+	// explain why a job failed (e.g. image pull errors or command output). If the
+	// logs cannot be retrieved, the job error is surfaced so the real cause is not
+	// hidden. Previously only non-timeout net.Error failures were returned; the
+	// watch timeout returned by wait.WatchWait (a plain error) was silently
+	// discarded, and when no pod could be found GetPodLogs failed with a
+	// misleading "resource name may not be empty".
+	jobErr := CreateJobAndRunKubectlCommands(clusterID, jobName, jobTemplate, client)
 
 	steveClient, err := client.Steve.ProxyDownstream(clusterID)
 	if err != nil {
@@ -113,8 +117,19 @@ func Command(client *rancher.Client, yamlContent *management.ImportClusterYamlIn
 			break
 		}
 	}
+
+	if podName == "" {
+		if jobErr != nil {
+			return "", fmt.Errorf("kubectl job %s did not produce a pod in namespace %s; job error: %w", jobName, Namespace, jobErr)
+		}
+		return "", fmt.Errorf("kubectl job %s did not produce a pod in namespace %s", jobName, Namespace)
+	}
+
 	podLogs, err := kubeconfig.GetPodLogs(client, clusterID, podName, Namespace, logBufferSize)
 	if err != nil {
+		if jobErr != nil {
+			return "", fmt.Errorf("kubectl job %s failed (job error: %w); failed to stream logs for pod %s/%s: %v", jobName, jobErr, Namespace, podName, err)
+		}
 		return "", err
 	}
 
