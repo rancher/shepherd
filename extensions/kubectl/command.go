@@ -17,23 +17,9 @@ import (
 
 const volumeName = "config"
 
-// Command executes a given command on a Kubernetes pod within a specified cluster using the Rancher Management API and kubectl.
-// It optionally sets up an init container to populate a configuration file if yamlContent is provided. The function returns
-// the job's logs upon completion. The clusterID identifies the target cluster, and command specifies the command to execute,
-// which must not be empty. The logBufferSize defines the size for log output buffering (e.g., "64KB", "8MB", "1GB");
-// if empty, the default size is used. An invalid logBufferSize format returns an error. The function returns "StatusOK"
-// and the execution logs if successful, or an error detailing the failure.
-//
-// Parameters:
-// - client: Pointer to a rancher.Client used to interact with the Rancher Management API.
-// - yamlContent: Optional *management.ImportClusterYamlInput to set up an init container for configuration. If nil, no init container is set up.
-// - clusterID: String identifying the target cluster.
-// - command: Slice of strings representing the command to execute. Must not be empty.
-// - logBufferSize: String representing the log buffer size (e.g., "64KB"). If empty, defaults to the system default size.
-//
-// Returns:
-// - A string containing the logs of the executed job.
-// - An error if the command is empty, if there is an issue with setting up the job, or if log retrieval fails.
+// Command runs the given command on a pod in the target cluster via the Rancher Management API.
+// If yamlContent is provided, an init container seeds a config file from it. Returns the job's
+// logs on success, or an error (e.g. empty command, bad logBufferSize) otherwise.
 func Command(client *rancher.Client, yamlContent *management.ImportClusterYamlInput, clusterID string, command []string, logBufferSize string) (string, error) {
 
 	if len(command) == 0 {
@@ -90,14 +76,8 @@ func Command(client *rancher.Client, yamlContent *management.ImportClusterYamlIn
 
 	jobTemplate.Spec.Template.Spec.Containers = append(jobTemplate.Spec.Template.Spec.Containers, container)
 	jobTemplate.Spec.Template.Spec.Volumes = volumes
-	// Run the kubectl job. The error is captured but not returned immediately:
-	// the job pod's logs are fetched below as a best effort because they usually
-	// explain why a job failed (e.g. image pull errors or command output). If the
-	// logs cannot be retrieved, the job error is surfaced so the real cause is not
-	// hidden. Previously only non-timeout net.Error failures were returned; the
-	// watch timeout returned by wait.WatchWait (a plain error) was silently
-	// discarded, and when no pod could be found GetPodLogs failed with a
-	// misleading "resource name may not be empty".
+	// Capture the job error but still try to fetch logs below — they usually reveal
+	// the real cause. Only surface jobErr if logs can't be retrieved.
 	jobErr := CreateJobAndRunKubectlCommands(clusterID, jobName, jobTemplate, client)
 
 	steveClient, err := client.Steve.ProxyDownstream(clusterID)
