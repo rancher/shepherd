@@ -17,9 +17,34 @@ import (
 
 const volumeName = "config"
 
-// Command runs the given command on a pod in the target cluster via the Rancher Management API.
-// If yamlContent is provided, an init container seeds a config file from it. Returns the job's
-// logs on success, or an error (e.g. empty command, bad logBufferSize) otherwise.
+// Command executes the given command on a pod inside the target downstream cluster and returns
+// the pod's logs. It runs the command through Rancher's "shell-image" container, which has
+// kubectl available and a kubeconfig mounted at /root/.kube, so the command executes against
+// the target cluster as a cluster-admin.
+//
+// The pod is created by submitting a Kubernetes Job (see CreateJobAndRunKubectlCommands), which
+// also provisions a throwaway ServiceAccount bound to the cluster-admin role. The function then
+// locates the resulting pod by the random suffix appended to the job name and streams its logs.
+//
+// When yamlContent is non-nil, an init container seeds /config/my-pod.yaml with the provided YAML
+// before the main container runs. This is useful for feeding a manifest into the command.
+//
+// Parameters:
+//   - client: the rancher.Client used to talk to the Rancher Management API and proxy the
+//     downstream cluster.
+//   - yamlContent: optional *management.ImportClusterYamlInput whose YAML is written to the
+//     container filesystem via an init container. Pass nil to skip the init container.
+//   - clusterID: the ID of the target cluster the command runs against.
+//   - command: the command to execute, as an argv-style slice (e.g. []string{"kubectl", "get", "pods"}).
+//     Must be non-empty; an empty slice returns an error.
+//   - logBufferSize: the size of the buffer used when streaming the pod logs, as a size string
+//     (e.g. "64KB", "8MB"). An invalid format is forwarded to the log streamer and may surface
+//     as an error.
+//
+// Returns the pod's log output as a string, or an error if the command is empty, the job or pod
+// cannot be created/located, or the logs cannot be streamed. When the underlying job fails, the
+// function still attempts to fetch logs because they usually reveal the real cause; the job error
+// is wrapped into the returned error only if the logs cannot be retrieved.
 func Command(client *rancher.Client, yamlContent *management.ImportClusterYamlInput, clusterID string, command []string, logBufferSize string) (string, error) {
 
 	if len(command) == 0 {
