@@ -3,7 +3,6 @@ package kubectl
 import (
 	"errors"
 	"fmt"
-	"net"
 	"strings"
 
 	namegen "github.com/rancher/shepherd/pkg/namegenerator"
@@ -18,23 +17,34 @@ import (
 
 const volumeName = "config"
 
-// Command executes a given command on a Kubernetes pod within a specified cluster using the Rancher Management API and kubectl.
-// It optionally sets up an init container to populate a configuration file if yamlContent is provided. The function returns
-// the job's logs upon completion. The clusterID identifies the target cluster, and command specifies the command to execute,
-// which must not be empty. The logBufferSize defines the size for log output buffering (e.g., "64KB", "8MB", "1GB");
-// if empty, the default size is used. An invalid logBufferSize format returns an error. The function returns "StatusOK"
-// and the execution logs if successful, or an error detailing the failure.
+// Command executes the given command on a pod inside the target downstream cluster and returns
+// the pod's logs. It runs the command through Rancher's "shell-image" container, which has
+// kubectl available and a kubeconfig mounted at /root/.kube, so the command executes against
+// the target cluster as a cluster-admin.
+//
+// The pod is created by submitting a Kubernetes Job (see CreateJobAndRunKubectlCommands), which
+// also provisions a throwaway ServiceAccount bound to the cluster-admin role. The function then
+// locates the resulting pod by the random suffix appended to the job name and streams its logs.
+//
+// When yamlContent is non-nil, an init container seeds /config/my-pod.yaml with the provided YAML
+// before the main container runs. This is useful for feeding a manifest into the command.
 //
 // Parameters:
-// - client: Pointer to a rancher.Client used to interact with the Rancher Management API.
-// - yamlContent: Optional *management.ImportClusterYamlInput to set up an init container for configuration. If nil, no init container is set up.
-// - clusterID: String identifying the target cluster.
-// - command: Slice of strings representing the command to execute. Must not be empty.
-// - logBufferSize: String representing the log buffer size (e.g., "64KB"). If empty, defaults to the system default size.
+//   - client: the rancher.Client used to talk to the Rancher Management API and proxy the
+//     downstream cluster.
+//   - yamlContent: optional *management.ImportClusterYamlInput whose YAML is written to the
+//     container filesystem via an init container. Pass nil to skip the init container.
+//   - clusterID: the ID of the target cluster the command runs against.
+//   - command: the command to execute, as an argv-style slice (e.g. []string{"kubectl", "get", "pods"}).
+//     Must be non-empty; an empty slice returns an error.
+//   - logBufferSize: the size of the buffer used when streaming the pod logs, as a size string
+//     (e.g. "64KB", "8MB"). An invalid format is forwarded to the log streamer and may surface
+//     as an error.
 //
-// Returns:
-// - A string containing the logs of the executed job.
-// - An error if the command is empty, if there is an issue with setting up the job, or if log retrieval fails.
+// Returns the pod's log output as a string, or an error if the command is empty, the job or pod
+// cannot be created/located, or the logs cannot be streamed. When the underlying job fails, the
+// function still attempts to fetch logs because they usually reveal the real cause; the job error
+// is wrapped into the returned error only if the logs cannot be retrieved.
 func Command(client *rancher.Client, yamlContent *management.ImportClusterYamlInput, clusterID string, command []string, logBufferSize string) (string, error) {
 
 	if len(command) == 0 {
@@ -91,10 +101,9 @@ func Command(client *rancher.Client, yamlContent *management.ImportClusterYamlIn
 
 	jobTemplate.Spec.Template.Spec.Containers = append(jobTemplate.Spec.Template.Spec.Containers, container)
 	jobTemplate.Spec.Template.Spec.Volumes = volumes
-	err = CreateJobAndRunKubectlCommands(clusterID, jobName, jobTemplate, client)
-	if err, ok := err.(net.Error); ok && !err.Timeout() {
-		return "", err
-	}
+	// Capture the job error but still try to fetch logs below — they usually reveal
+	// the real cause. Only surface jobErr if logs can't be retrieved.
+	jobErr := CreateJobAndRunKubectlCommands(clusterID, jobName, jobTemplate, client)
 
 	steveClient, err := client.Steve.ProxyDownstream(clusterID)
 	if err != nil {
@@ -113,8 +122,19 @@ func Command(client *rancher.Client, yamlContent *management.ImportClusterYamlIn
 			break
 		}
 	}
+
+	if podName == "" {
+		if jobErr != nil {
+			return "", fmt.Errorf("kubectl job %s did not produce a pod in namespace %s; job error: %w", jobName, Namespace, jobErr)
+		}
+		return "", fmt.Errorf("kubectl job %s did not produce a pod in namespace %s", jobName, Namespace)
+	}
+
 	podLogs, err := kubeconfig.GetPodLogs(client, clusterID, podName, Namespace, logBufferSize)
 	if err != nil {
+		if jobErr != nil {
+			return "", fmt.Errorf("kubectl job %s failed (job error: %w); failed to stream logs for pod %s/%s: %v", jobName, jobErr, Namespace, podName, err)
+		}
 		return "", err
 	}
 
