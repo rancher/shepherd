@@ -1,12 +1,10 @@
 package scim
 
 import (
-	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -89,34 +87,17 @@ func (t *scimTransport) do(method, resource, id string, query url.Values, body i
 		rawURL += "?" + query.Encode()
 	}
 
-	var bodyReader io.Reader
-	if body != nil {
-		b, err := json.Marshal(body)
-		if err != nil {
-			return nil, err
-		}
-		bodyReader = bytes.NewReader(b)
+	headers := map[string]string{
+		"Authorization": "Bearer " + t.token,
+		"Content-Type":  "application/scim+json",
+		"Accept":        "application/scim+json",
 	}
 
-	req, err := http.NewRequest(method, rawURL, bodyReader)
+	resp, err := clientbase.Do(t.httpClient, method, rawURL, body, headers)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", "Bearer "+t.token)
-	req.Header.Set("Content-Type", "application/scim+json")
-	req.Header.Set("Accept", "application/scim+json")
-
-	resp, err := t.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	return &Response{StatusCode: resp.StatusCode, Body: respBody, Header: resp.Header}, nil
+	return &Response{StatusCode: resp.StatusCode, Body: resp.Body, Header: resp.Header}, nil
 }
 
 // Users is the interface for SCIM User operations.

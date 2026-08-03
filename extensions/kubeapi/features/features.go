@@ -2,6 +2,9 @@ package features
 
 import (
 	"github.com/rancher/shepherd/clients/rancher"
+	"github.com/rancher/shepherd/extensions/kubeapi/cluster"
+	"github.com/rancher/shepherd/extensions/kubeapi/workloads/deployments"
+	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -36,7 +39,9 @@ func UpdateFeatureFlag(client *rancher.Client, name string, value bool) error {
 	return err
 }
 
-// EnableFeatureFlag enables the named feature flag and registers DisableFeatureFlag as session cleanup.
+// EnableFeatureFlag enables the named feature flag and registers session cleanup that disables it again
+// and waits for the Rancher rollout to settle, so cleanup does not hand back a restarting server. The flag
+// is left untouched, and no cleanup registered, when it is already enabled.
 func EnableFeatureFlag(client *rancher.Client, name string) error {
 	enabled, err := IsFeatureEnabled(client, name)
 	if err != nil {
@@ -48,7 +53,17 @@ func EnableFeatureFlag(client *rancher.Client, name string) error {
 	}
 
 	client.Session.RegisterCleanupFunc(func() error {
-		return DisableFeatureFlag(client, name)
+		if err := DisableFeatureFlag(client, name); err != nil {
+			return err
+		}
+
+		// The session retries a cleanup func that returns an error, and re-waiting a rollout that already
+		// timed out only multiplies the delay, so the wait is reported rather than returned.
+		if err := deployments.WaitForDeploymentActive(client, cluster.LocalCluster, deployments.RancherDeploymentNamespace, deployments.RancherDeploymentName); err != nil {
+			logrus.Errorf("rancher did not settle after disabling feature flag %s: %v", name, err)
+		}
+
+		return nil
 	})
 
 	return UpdateFeatureFlag(client, name, true)
