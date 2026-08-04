@@ -68,7 +68,7 @@ func GetValue(keyPath []string, searchMap map[string]any) (any, error) {
 func LoadObjectFromMap(key string, config map[string]any, object any) {
 	keyConfig, ok := config[key]
 	if !ok {
-		logrus.Infof("Key %s not present in provided config", key)
+		logrus.Debugf("Key %s not present in provided config", key)
 	}
 
 	scopedString, err := yaml.Marshal(keyConfig)
