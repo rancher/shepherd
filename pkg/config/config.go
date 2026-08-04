@@ -37,7 +37,7 @@ func LoadConfig(key string, config interface{}) {
 
 	scoped, ok := all[key]
 	if !ok {
-		logrus.Infof("Key %s not present in provided config", key)
+		logrus.Debugf("Key %s not present in provided config", key)
 	}
 	scopedString, err := yaml.Marshal(scoped)
 	if err != nil {
