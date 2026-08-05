@@ -14,6 +14,28 @@
   "prHourlyLimit": 2,
   "packageRules": [
     {
+      "description": "Disable automerge for regular patch and minor updates",
+      "matchJsonata": [
+        "$not($exists(vulnerabilityFixVersion) or $exists(isVulnerabilityAlert))"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ],
+      "automerge": false
+    },
+    {
+      "description": "Disable automerge for security updates",
+      "matchJsonata": [
+        "$exists(vulnerabilityFixVersion) or $exists(isVulnerabilityAlert)"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ],
+      "automerge": false
+    },
+    {
       "description": "Apply Rancher 2.15 update constraints to branch release/v2.15. Adapt baseBranchPatterns and matchBaseBranches if this repository uses different release branch names.",
       "matchBaseBranches": [
         "release/v2.15"
