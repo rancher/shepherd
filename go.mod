@@ -2,7 +2,7 @@ module github.com/rancher/shepherd
 
 go 1.24.0
 
-toolchain go1.24.5
+toolchain go1.24.6
 
 replace (
 	github.com/docker/distribution => github.com/docker/distribution v2.8.2+incompatible // rancher-machine requires a replace is set
