@@ -21,7 +21,7 @@ jobs:
     steps:   
       # Checkout the current repo (shepherd) to get the commit SHA
       - name: Checkout shepherd
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Get short SHA
         id: sha
@@ -35,7 +35,7 @@ jobs:
 
       # Checkout the target repo (rancher/rancher) where the PR will be created
       - name: Checkout rancher/rancher
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: rancher/rancher
           path: rancher
@@ -43,7 +43,7 @@ jobs:
           token: ${{ env.GH_TOKEN }}
 
       - name: Setup Go
-        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: 'rancher/go.mod'
 
@@ -78,7 +78,7 @@ jobs:
       - name: Create Pull Request
         if: env.changes_exist == 'true'
         id: cpr
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           github-token: ${{ env.GH_TOKEN }}
           script: |
