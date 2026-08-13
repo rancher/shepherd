@@ -6,14 +6,14 @@ toolchain go1.24.5
 
 replace (
 	github.com/docker/distribution => github.com/docker/distribution v2.8.2+incompatible // rancher-machine requires a replace is set
-	k8s.io/api => k8s.io/api v0.33.1
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.33.1
-	k8s.io/apimachinery => k8s.io/apimachinery v0.33.1
-	k8s.io/apiserver => k8s.io/apiserver v0.33.1
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.33.1
-	k8s.io/client-go => k8s.io/client-go v0.33.1
-	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.33.1
-	k8s.io/kubectl => k8s.io/kubectl v0.33.1
+	k8s.io/api => k8s.io/api v0.33.13
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.33.13
+	k8s.io/apimachinery => k8s.io/apimachinery v0.33.13
+	k8s.io/apiserver => k8s.io/apiserver v0.33.13
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.33.13
+	k8s.io/client-go => k8s.io/client-go v0.33.13
+	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.33.13
+	k8s.io/kubectl => k8s.io/kubectl v0.33.13
 	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.10.2
 )
 
@@ -46,13 +46,13 @@ require (
 	github.com/spf13/cobra v1.9.1
 	golang.org/x/crypto v0.41.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.33.4
-	k8s.io/apimachinery v0.33.4
-	k8s.io/apiserver v0.33.4
-	k8s.io/cli-runtime v0.33.1
+	k8s.io/api v0.33.13
+	k8s.io/apimachinery v0.33.13
+	k8s.io/apiserver v0.33.13
+	k8s.io/cli-runtime v0.33.13
 	k8s.io/client-go v12.0.0+incompatible
-	k8s.io/kube-aggregator v0.33.1
-	k8s.io/kubectl v0.33.1
+	k8s.io/kube-aggregator v0.33.13
+	k8s.io/kubectl v0.33.13
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
 	sigs.k8s.io/cluster-api v1.10.2
 	sigs.k8s.io/yaml v1.6.0
@@ -121,7 +121,7 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
-	github.com/moby/spdystream v0.5.0 // indirect
+	github.com/moby/spdystream v0.5.1 // indirect
 	github.com/moby/sys/mount v0.2.0 // indirect
 	github.com/moby/sys/mountinfo v0.7.2 // indirect
 	github.com/moby/sys/user v0.3.0 // indirect
@@ -151,8 +151,8 @@ require (
 	go.etcd.io/etcd/client/v2 v2.305.21 // indirect
 	go.etcd.io/etcd/client/v3 v3.5.21 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	go.opentelemetry.io/otel v1.37.0 // indirect
-	go.opentelemetry.io/otel/trace v1.37.0 // indirect
+	go.opentelemetry.io/otel v1.41.0 // indirect
+	go.opentelemetry.io/otel/trace v1.41.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
@@ -174,16 +174,16 @@ require (
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiextensions-apiserver v0.33.4 // indirect
-	k8s.io/code-generator v0.33.1 // indirect
-	k8s.io/component-base v0.33.4 // indirect
-	k8s.io/component-helpers v0.33.1 // indirect
+	k8s.io/apiextensions-apiserver v0.33.13 // indirect
+	k8s.io/code-generator v0.33.13 // indirect
+	k8s.io/component-base v0.33.13 // indirect
+	k8s.io/component-helpers v0.33.13 // indirect
 	k8s.io/gengo v0.0.0-20250130153323-76c5745d3511 // indirect
 	k8s.io/gengo/v2 v2.0.0-20250207200755-1244d31929d7 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
 	k8s.io/kubernetes v1.33.4 // indirect
-	k8s.io/pod-security-admission v0.32.1 // indirect
+	k8s.io/pod-security-admission v0.33.13 // indirect
 	sigs.k8s.io/cli-utils v0.37.2 // indirect
 	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect
 	sigs.k8s.io/kustomize/api v0.19.0 // indirect
