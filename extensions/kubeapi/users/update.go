@@ -29,6 +29,10 @@ func UpdateUser(client *rancher.Client, user *v3.User) (*v3.User, error) {
 			return false, nil
 		}
 		user.ResourceVersion = current.ResourceVersion
+		// If the provided user object doesn't have PrincipalIds populated, inherit them from the current state to satisfy the admission webhook.
+		if len(user.PrincipalIDs) == 0 {
+			user.PrincipalIDs = current.PrincipalIDs
+		}
 		updated, lastErr = client.WranglerContext.Mgmt.User().Update(user)
 		if lastErr != nil {
 			if k8serrors.IsConflict(lastErr) {
