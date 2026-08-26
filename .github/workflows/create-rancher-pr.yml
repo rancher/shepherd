@@ -1,24 +1,49 @@
 name: Create Rancher PR
 
-# This workflow triggers on a push to the main branch. It updates the
-# rancher/shepherd dependency in the rancher/rancher repository and opens a PR.
+# This workflow updates the rancher/shepherd dependency in the rancher/rancher
+# repository and opens a PR. Pushes to main trigger it immediately, except for
+# Renovate-authored commits, which are batched into the nightly scheduled run.
 on:
   push:
     branches:
       - main
+  schedule:
+    # Nightly batch run that picks up any Renovate merges from the last day.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      source_url:
+        description: 'URL of the change that triggered this run'
+        required: false
+      source_author:
+        description: 'GitHub handle to assign the resulting PR to'
+        required: false
 env:
   INPUT_SOURCE_URL: ${{ github.event.inputs.source_url }}
   INPUT_SOURCE_AUTHOR: ${{ github.event.inputs.source_author }}
 
+concurrency:
+  group: create-rancher-pr
+  cancel-in-progress: false
+
 jobs:
   create-rancher-pr:
+    # Renovate merges are deferred to the scheduled run so they land as one batched PR.
+    if: >-
+      github.event_name != 'push' ||
+      (github.event.head_commit.author.username != 'renovate[bot]' &&
+       github.event.head_commit.author.username != 'renovate-rancher[bot]' &&
+       github.event.head_commit.author.username != 'renovate-rancher' &&
+       github.actor != 'renovate[bot]' &&
+       github.actor != 'renovate-rancher[bot]' &&
+       github.actor != 'renovate-rancher')
     permissions:
       # This is required for the vault action to get an OIDC token
       id-token: write
       # This is required to checkout the repository
       contents: read
     runs-on: ubuntu-latest
-    steps:   
+    steps:
       # Checkout the current repo (shepherd) to get the commit SHA
       - name: Checkout shepherd
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -33,8 +58,38 @@ jobs:
           secrets: |
             github/token/rancher--rancher--pull_requests--write token | GH_TOKEN
 
+      - name: Check scheduled run conditions
+        id: schedule_guard
+        if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ env.GH_TOKEN }}
+        run: |
+          recent_since=$(date -u -d '7 days ago' +%Y-%m-%d)
+          echo "Looking for merged shepherd PRs since ${recent_since}"
+
+          merged=$(gh pr list --repo rancher/shepherd --state merged --search "merged:>=${recent_since}" --limit 100 --json number,author,mergedAt,title)
+
+          if [[ "$merged" == "[]" ]]; then
+            echo "No merged PRs in the last 7 days; skipping scheduled run."
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          non_renovate=$(echo "$merged" | jq -r '.[] | select(.author.login != "renovate[bot]" and .author.login != "renovate-rancher[bot]" and .author.login != "renovate-rancher") | .author.login' | sort -u)
+
+          if [[ -n "$non_renovate" ]]; then
+            echo "Skipping scheduled run because a non-Renovate PR was merged:"
+            echo "$non_renovate"
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Only Renovate PRs were merged; continuing with the stale-version check."
+          echo "should_run=true" >> "$GITHUB_OUTPUT"
+
       # Checkout the target repo (rancher/rancher) where the PR will be created
       - name: Checkout rancher/rancher
+        if: github.event_name != 'schedule' || steps.schedule_guard.outputs.should_run == 'true'
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           repository: rancher/rancher
@@ -43,11 +98,37 @@ jobs:
           token: ${{ env.GH_TOKEN }}
 
       - name: Setup Go
+        if: github.event_name != 'schedule' || steps.schedule_guard.outputs.should_run == 'true'
         uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           go-version-file: 'rancher/go.mod'
 
+      - name: Check if shepherd dependency is current
+        id: shepherd_version_check
+        if: github.event_name == 'schedule' && steps.schedule_guard.outputs.should_run == 'true'
+        working-directory: ./rancher
+        run: |
+          LATEST_SHA=$(git ls-remote https://github.com/rancher/shepherd.git HEAD | awk '{print $1}')
+          CURRENT_VERSION=$(go list -m -f '{{.Version}}' github.com/rancher/shepherd)
+          CURRENT_SHA=$(printf '%s' "$CURRENT_VERSION" | sed -E 's#.*-([0-9a-f]{12})$#\1#')
+
+          if [[ -z "$CURRENT_SHA" ]]; then
+            echo "rancher/rancher is not pinned to a shepherd pseudo-version; it needs an update."
+            echo "needs_update=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ "$CURRENT_SHA" == "$LATEST_SHA" ]]; then
+            echo "rancher/rancher already matches the current shepherd SHA."
+            echo "needs_update=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "rancher/rancher is behind shepherd main."
+          echo "needs_update=true" >> "$GITHUB_OUTPUT"
+
       - name: Create branch, update, and push changes
+        if: github.event_name != 'schedule' || steps.shepherd_version_check.outputs.needs_update == 'true'
         id: update_and_push
         working-directory: ./rancher
         run: |
@@ -76,7 +157,7 @@ jobs:
             git push origin ${BRANCH_NAME}
           fi
       - name: Create Pull Request
-        if: env.changes_exist == 'true'
+        if: env.changes_exist == 'true' && (github.event_name != 'schedule' || steps.shepherd_version_check.outputs.needs_update == 'true')
         id: cpr
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         with:
@@ -84,6 +165,9 @@ jobs:
           script: |
             const source_author = process.env.INPUT_SOURCE_AUTHOR || context.actor;
             let body = 'Auto-generated by Shepherd GitHub Actions This PR updates the \`rancher/shepherd\` dependency to the latest version. Please delete the branch after merge.\n\n'
+            if (context.eventName === 'schedule') {
+              body += '\nTriggered by the nightly scheduled run (batches Renovate dependency merges).'
+            }
             if  ( `${ process.env.INPUT_SOURCE_URL }` ) {
               body += `\nSource URL: ${ process.env.INPUT_SOURCE_URL }`
             }
@@ -106,12 +190,14 @@ jobs:
               labels: ["automation", "status/auto-created"],
             });
             // Also assign the person who triggered the workflow to the PR for visibility
-            await github.rest.issues.addAssignees({
-              owner: "rancher",
-              repo: "rancher",
-              issue_number: pr.number,
-              assignees: [source_author],
-            });
+            if (source_author && !source_author.endsWith("[bot]")) {
+              await github.rest.issues.addAssignees({
+                owner: "rancher",
+                repo: "rancher",
+                issue_number: pr.number,
+                assignees: [source_author],
+              });
+            }
             // Request reviewers for the pull request
             await github.rest.pulls.requestReviewers({
               owner: "rancher",
