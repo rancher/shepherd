@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/rancher/shepherd/clients/rancher/auth"
+	"github.com/rancher/shepherd/clients/rancher/auth/saml"
 
 	"github.com/pkg/errors"
 	"github.com/rancher/norman/httperror"
@@ -274,6 +275,21 @@ func (c *Client) AsAuthUser(user *management.User, authProvider auth.Provider) (
 	}
 
 	return NewClientForConfig(returnedToken.Token, c.RancherConfig, c.Session)
+}
+
+// AsSAMLUser signs a user in through a SAML provider and returns a Client bound to that session
+func (c *Client) AsSAMLUser(user *management.User, provider saml.Provider) (*Client, error) {
+	result, err := c.Auth.SAML.Login(provider, user.Username, user.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	if !result.Accepted {
+		return nil, fmt.Errorf("Rancher did not accept the %s assertion for %s, it answered %d",
+			provider.Name, user.Username, result.StatusCode)
+	}
+
+	return NewClientForConfig(result.SessionToken, c.RancherConfig, c.Session)
 }
 
 // ReLogin reinstantiates a Client to update its API schema. This function would be used for a non admin user that needs to be

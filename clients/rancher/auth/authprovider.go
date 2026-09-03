@@ -6,6 +6,7 @@ const (
 	LocalAuth           Provider = "local"
 	OpenLDAPAuth        Provider = "openLdap"
 	ActiveDirectoryAuth Provider = "activeDirectory"
+	KeycloakAuth        Provider = "keyCloak"
 )
 
 // String stringer for the AuthProvider
