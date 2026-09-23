@@ -30,6 +30,7 @@ type ClusterConfig struct {
 	PrivateClusterConfig           *PrivateClusterConfig           `json:"privateClusterConfig,omitempty" yaml:"privateClusterConfig,omitempty"`
 	ProjectID                      string                          `json:"projectID" yaml:"projectID"`
 	Region                         string                          `json:"region" yaml:"region"`
+	ReleaseChannel                 *string                         `json:"releaseChannel,omitempty" yaml:"releaseChannel,omitempty"`
 	Subnetwork                     *string                         `json:"subnetwork,omitempty" yaml:"subnetwork,omitempty"`
 	Zone                           string                          `json:"zone" yaml:"zone"`
 }
@@ -286,6 +287,7 @@ func gkeHostClusterConfig(clusterName, cloudCredentialID string, gkeClusterConfi
 		PrivateClusterConfig:           privateClusterConfigBuilder(gkeClusterConfig.PrivateClusterConfig),
 		ProjectID:                      gkeClusterConfig.ProjectID,
 		Region:                         gkeClusterConfig.Region,
+		ReleaseChannel:                 gkeClusterConfig.ReleaseChannel,
 		Subnetwork:                     gkeClusterConfig.Subnetwork,
 		Zone:                           gkeClusterConfig.Zone,
 	}
