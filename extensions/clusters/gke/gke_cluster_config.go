@@ -30,9 +30,10 @@ type ClusterConfig struct {
 	PrivateClusterConfig           *PrivateClusterConfig           `json:"privateClusterConfig,omitempty" yaml:"privateClusterConfig,omitempty"`
 	ProjectID                      string                          `json:"projectID" yaml:"projectID"`
 	Region                         string                          `json:"region" yaml:"region"`
-	ReleaseChannel                 *string                         `json:"releaseChannel,omitempty" yaml:"releaseChannel,omitempty"`
-	Subnetwork                     *string                         `json:"subnetwork,omitempty" yaml:"subnetwork,omitempty"`
-	Zone                           string                          `json:"zone" yaml:"zone"`
+
+	ReleaseChannel *string `json:"releaseChannel,omitempty" yaml:"releaseChannel,omitempty"`
+	Subnetwork     *string `json:"subnetwork,omitempty" yaml:"subnetwork,omitempty"`
+	Zone           string  `json:"zone" yaml:"zone"`
 }
 
 // GKEAutopilotConfig is the configuration for the ClusterConfig AutopilotConfig
