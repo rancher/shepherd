@@ -1,7 +1,7 @@
 package charts
 
 import (
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // GenerateGatekeeperConstraintYaml takes inputs to generate the yaml for an OPA Gatekeeper Constraint from an OPA Constraint Template. This can be used to dynamically generate OPA Constraints based on test data
