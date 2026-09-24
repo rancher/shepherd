@@ -19,6 +19,12 @@ var KeycloakSAML = Provider{
 	ConfigKey:  "keycloaksaml",
 }
 
+var GenericSAML = Provider{
+	Name:       "genericsaml",
+	ConfigType: management.GenericSAMLConfigType,
+	ConfigKey:  "genericsaml",
+}
+
 // Config represents the SAML authentication configuration structure
 type Config struct {
 	AccessMode          string   `json:"accessMode" yaml:"accessMode" default:"unrestricted"`
@@ -36,6 +42,10 @@ type Config struct {
 	NestedGroup         string   `json:"nestedGroup" yaml:"nestedGroup"`
 	DoubleNestedGroup   string   `json:"doubleNestedGroup" yaml:"doubleNestedGroup"`
 	Users               *Users   `json:"users" yaml:"users"`
+	NameIDFormat        string   `json:"nameIDFormat" yaml:"nameIDFormat" default:"unspecified"`
+	SignatureMethod     string   `json:"signatureMethod" yaml:"signatureMethod" default:"RSA-SHA256"`
+	AllowIdpInitiated   bool     `json:"allowIdpInitiated" yaml:"allowIdpInitiated"`
+	ForceAuthn          *bool    `json:"forceAuthn" yaml:"forceAuthn"`
 }
 
 // Users represents SAML users, used in test scenarios for validating user authentication.
