@@ -54,7 +54,9 @@ func AuthenticateWithLoginForm(httpClient *http.Client, startURL, username, pass
 	for name, value := range loginForm.Fields {
 		credentials.Set(name, value)
 	}
-	credentials.Set(loginForm.UsernameField, username)
+	if loginForm.UsernameField != "" {
+		credentials.Set(loginForm.UsernameField, username)
+	}
 	credentials.Set(loginForm.PasswordField, password)
 
 	postResponse, postBody, err := postForm(httpClient, actionURL, credentials, response.Request.URL.String())
@@ -76,8 +78,12 @@ func AuthenticateWithLoginForm(httpClient *http.Client, startURL, username, pass
 		username, describeIdPResponse(postResponse, postBody))
 }
 
-// ParseLoginForm finds the sign-in form in an identity provider page
+// ParseLoginForm finds the sign-in form in an identity provider page. A form combining a username and
+// a password input is preferred; a password-only form is accepted as a fallback, for identity providers
+// that split sign-in into a separate username step and re-authentication prompt.
 func ParseLoginForm(document string) (*LoginForm, error) {
+	var passwordOnly *LoginForm
+
 	for _, block := range formBlockPattern.FindAllString(document, -1) {
 		actionMatch := formActionPattern.FindStringSubmatch(block)
 		if actionMatch == nil {
@@ -123,14 +129,24 @@ func ParseLoginForm(document string) (*LoginForm, error) {
 			}
 		}
 
-		if loginForm.PasswordField == "" || loginForm.UsernameField == "" {
+		if loginForm.PasswordField == "" {
 			continue
 		}
 
-		return loginForm, nil
+		if loginForm.UsernameField != "" {
+			return loginForm, nil
+		}
+
+		if passwordOnly == nil {
+			passwordOnly = loginForm
+		}
 	}
 
-	return nil, fmt.Errorf("the document contains no sign-in form with a username and a password input")
+	if passwordOnly != nil {
+		return passwordOnly, nil
+	}
+
+	return nil, fmt.Errorf("the document contains no sign-in form with at least a password input")
 }
 
 func carriesAssertion(document string) bool {
