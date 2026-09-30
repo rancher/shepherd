@@ -314,17 +314,29 @@ func CreateChartRepoFromGithub(client *steveV1.Client, githubURL, githubBranch, 
 		return err
 	}
 
-	err = kwait.Poll(1*time.Second, 2*time.Minute, func() (done bool, err error) {
-		res, err := client.SteveType(repoType).List(nil)
+	var lastForceUpdate time.Time
+	err = kwait.PollUntilContextTimeout(context.Background(), defaults.FiveSecondTimeout, defaults.FifteenMinuteTimeout, true, func(context.Context) (done bool, err error) {
+		repo, err := client.SteveType(repoType).ByID(repoName)
+		if err != nil {
+			return false, nil
+		}
+
+		clusterRepo := &catalogv1.ClusterRepo{}
+		err = steveV1.ConvertToK8sType(repo, clusterRepo)
 		if err != nil {
 			return false, err
 		}
 
-		for _, repo := range res.Data {
-			if repo.Name == repoName {
-				if repo.State.Name == active {
-					return true, nil
-				}
+		if repo.State.Name == active && clusterRepo.Status.IndexConfigMapName != "" {
+			return true, nil
+		}
+
+		if !clusterRepo.Status.NextRetryAt.IsZero() && time.Since(lastForceUpdate) >= defaults.OneMinuteTimeout {
+			lastForceUpdate = time.Now()
+			clusterRepo.Spec.ForceUpdate = &metav1.Time{Time: time.Now()}
+			_, err = client.SteveType(repoType).Update(repo, clusterRepo)
+			if err != nil {
+				return false, nil
 			}
 		}
 
