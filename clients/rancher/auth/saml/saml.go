@@ -22,6 +22,7 @@ type APIClient struct {
 type UserSession struct {
 	api       *APIClient
 	username  string
+	password  string
 	orgURL    string
 	idpClient *http.Client
 }
@@ -100,6 +101,7 @@ func (c *APIClient) AuthenticateForRequest(provider Provider, username, password
 	return &UserSession{
 		api:       c,
 		username:  username,
+		password:  password,
 		orgURL:    orgURL,
 		idpClient: idpClient,
 	}, assertionDocument, nil
@@ -143,7 +145,12 @@ func (s *UserSession) CaptureAssertion(provider Provider) (*samlext.CapturedAsse
 		return nil, fmt.Errorf("initiating a %s login for %s: %w", provider.Name, s.username, err)
 	}
 
-	assertion, err := samlext.FetchAssertion(s.idpClient, loginRequest, provider.Name)
+	assertionDocument, err := samlext.AuthenticateWithLoginForm(s.idpClient, loginRequest.IdpRedirectURL, s.username, s.password)
+	if err != nil {
+		return nil, fmt.Errorf("capturing an assertion for %s: %w", s.username, err)
+	}
+
+	assertion, err := samlext.AssertionFromDocument(assertionDocument, provider.Name, loginRequest)
 	if err != nil {
 		return nil, fmt.Errorf("capturing an assertion for %s: %w", s.username, err)
 	}

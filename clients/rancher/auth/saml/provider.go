@@ -367,5 +367,9 @@ func (p *ProviderClient) newEnableInput() (map[string]any, error) {
 		"idpMetadataContent":  p.Config.IDPMetadataContent,
 		"spCert":              p.Config.SpCert,
 		"spKey":               p.Config.SpKey,
+		"nameIDFormat":        p.Config.NameIDFormat,
+		"signatureMethod":     p.Config.SignatureMethod,
+		"allowIdpInitiated":   p.Config.AllowIdpInitiated,
+		"forceAuthn":          p.Config.ForceAuthn,
 	}, nil
 }

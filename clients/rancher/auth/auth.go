@@ -19,6 +19,7 @@ type Client struct {
 	OIDC            *oidc.APIClient
 	SAML            *saml.APIClient
 	KeycloakSAML    *saml.ProviderClient
+	GenericSAML     *saml.ProviderClient
 }
 
 // NewClient constructs the Auth Provider Struct
@@ -48,11 +49,17 @@ func NewClient(mgmt *management.Client, session *session.Session) (*Client, erro
 		return nil, err
 	}
 
+	genericSAMLClient, err := saml.NewProviderClient(mgmt, samlClient, session, saml.GenericSAML)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Client{
 		OLDAP:           oLDAP,
 		ActiveDirectory: activeDirectory,
 		OIDC:            oidcClient,
 		SAML:            samlClient,
 		KeycloakSAML:    keycloakClient,
+		GenericSAML:     genericSAMLClient,
 	}, nil
 }
