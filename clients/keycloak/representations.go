@@ -10,18 +10,32 @@ type RealmRepresentation struct {
 
 // ClientRepresentation represents a client registered in a realm
 type ClientRepresentation struct {
-	ID                 string                         `json:"id,omitempty"`
-	ClientID           string                         `json:"clientId"`
-	Name               string                         `json:"name,omitempty"`
-	Description        string                         `json:"description,omitempty"`
-	Protocol           string                         `json:"protocol,omitempty"`
-	Enabled            *bool                          `json:"enabled,omitempty"`
-	RedirectURIs       []string                       `json:"redirectUris,omitempty"`
-	BaseURL            string                         `json:"baseUrl,omitempty"`
-	AdminURL           string                         `json:"adminUrl,omitempty"`
-	FrontchannelLogout *bool                          `json:"frontchannelLogout,omitempty"`
-	Attributes         map[string]string              `json:"attributes,omitempty"`
-	ProtocolMappers    []ProtocolMapperRepresentation `json:"protocolMappers,omitempty"`
+	ID                     string                         `json:"id,omitempty"`
+	ClientID               string                         `json:"clientId"`
+	Name                   string                         `json:"name,omitempty"`
+	Description            string                         `json:"description,omitempty"`
+	Protocol               string                         `json:"protocol,omitempty"`
+	Enabled                *bool                          `json:"enabled,omitempty"`
+	RedirectURIs           []string                       `json:"redirectUris,omitempty"`
+	BaseURL                string                         `json:"baseUrl,omitempty"`
+	AdminURL               string                         `json:"adminUrl,omitempty"`
+	RootURL                string                         `json:"rootUrl,omitempty"`
+	WebOrigins             []string                       `json:"webOrigins,omitempty"`
+	FrontchannelLogout     *bool                          `json:"frontchannelLogout,omitempty"`
+	PublicClient           *bool                          `json:"publicClient,omitempty"`
+	StandardFlowEnabled    *bool                          `json:"standardFlowEnabled,omitempty"`
+	ServiceAccountsEnabled *bool                          `json:"serviceAccountsEnabled,omitempty"`
+	Attributes             map[string]string              `json:"attributes,omitempty"`
+	ProtocolMappers        []ProtocolMapperRepresentation `json:"protocolMappers,omitempty"`
+}
+
+// RoleRepresentation represents a role a realm client defines
+type RoleRepresentation struct {
+	ID          string `json:"id,omitempty"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	ContainerID string `json:"containerId,omitempty"`
+	ClientRole  *bool  `json:"clientRole,omitempty"`
 }
 
 // ProtocolMapperRepresentation represents a mapper that shapes what a client's assertion carries
