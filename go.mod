@@ -15,7 +15,7 @@ require (
 	github.com/creasty/defaults v1.5.2
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/hashicorp/go-version v1.6.0
+	github.com/hashicorp/go-version v1.9.0
 	github.com/hashicorp/hc-install v0.6.2
 	github.com/hashicorp/terraform-exec v0.20.0
 	github.com/hashicorp/terraform-json v0.20.0
