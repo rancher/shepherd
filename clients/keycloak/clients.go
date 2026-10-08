@@ -74,6 +74,60 @@ func (c *Client) ReplaceClient(client *ClientRepresentation) (*ClientRepresentat
 	return c.CreateClient(client)
 }
 
+// GetClientSecret returns the secret Keycloak holds for a confidential client
+func (c *Client) GetClientSecret(clientUUID string) (string, error) {
+	var credential CredentialRepresentation
+
+	path := c.adminPath("/clients/%s/client-secret", clientUUID)
+	if err := c.do(http.MethodGet, path, nil, &credential); err != nil {
+		return "", fmt.Errorf("reading the secret of client %s in realm %s: %w", clientUUID, c.Config.Realm, err)
+	}
+
+	if credential.Value == "" {
+		return "", fmt.Errorf("client %s in realm %s holds no secret, which a confidential client needs", clientUUID, c.Config.Realm)
+	}
+
+	return credential.Value, nil
+}
+
+// GetServiceAccountUser returns the account Keycloak runs a client's own grants as
+func (c *Client) GetServiceAccountUser(clientUUID string) (*UserRepresentation, error) {
+	var account UserRepresentation
+
+	path := c.adminPath("/clients/%s/service-account-user", clientUUID)
+	if err := c.do(http.MethodGet, path, nil, &account); err != nil {
+		return nil, fmt.Errorf("looking up the service account of client %s in realm %s: %w", clientUUID, c.Config.Realm, err)
+	}
+
+	return &account, nil
+}
+
+// GetClientRole returns the role of the given name defined by a realm client, or nil when there is none
+func (c *Client) GetClientRole(clientUUID, name string) (*RoleRepresentation, error) {
+	var role RoleRepresentation
+
+	path := c.adminPath("/clients/%s/roles/%s", clientUUID, url.PathEscape(name))
+	if err := c.do(http.MethodGet, path, nil, &role); err != nil {
+		if isNotFound(err) {
+			return nil, nil
+		}
+
+		return nil, fmt.Errorf("looking up the %s role on client %s: %w", name, clientUUID, err)
+	}
+
+	return &role, nil
+}
+
+// AddClientRolesToUser grants an account the given roles of a realm client
+func (c *Client) AddClientRolesToUser(userID, clientUUID string, roles []RoleRepresentation) error {
+	path := c.adminPath("/users/%s/role-mappings/clients/%s", userID, clientUUID)
+	if err := c.do(http.MethodPost, path, roles, nil); err != nil {
+		return fmt.Errorf("granting account %s roles of client %s: %w", userID, clientUUID, err)
+	}
+
+	return nil
+}
+
 // GetProtocolMapper returns the mapper of the given name on a realm client, or nil when there is none
 func (c *Client) GetProtocolMapper(clientUUID, name string) (*ProtocolMapperRepresentation, error) {
 	var mappers []ProtocolMapperRepresentation

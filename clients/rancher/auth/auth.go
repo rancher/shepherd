@@ -5,6 +5,7 @@ import (
 
 	"github.com/rancher/shepherd/clients/rancher/auth/activedirectory"
 	"github.com/rancher/shepherd/clients/rancher/auth/oidc"
+	"github.com/rancher/shepherd/clients/rancher/auth/oidcprovider"
 	"github.com/rancher/shepherd/clients/rancher/auth/openldap"
 	"github.com/rancher/shepherd/clients/rancher/auth/saml"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
@@ -20,6 +21,7 @@ type Client struct {
 	SAML            *saml.APIClient
 	KeycloakSAML    *saml.ProviderClient
 	GenericSAML     *saml.ProviderClient
+	KeycloakOIDC    *oidcprovider.ProviderClient
 }
 
 // NewClient constructs the Auth Provider Struct
@@ -54,6 +56,11 @@ func NewClient(mgmt *management.Client, session *session.Session) (*Client, erro
 		return nil, err
 	}
 
+	keycloakOIDCClient, err := oidcprovider.NewProviderClient(mgmt, session, oidcprovider.KeycloakOIDC)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Client{
 		OLDAP:           oLDAP,
 		ActiveDirectory: activeDirectory,
@@ -61,5 +68,6 @@ func NewClient(mgmt *management.Client, session *session.Session) (*Client, erro
 		SAML:            samlClient,
 		KeycloakSAML:    keycloakClient,
 		GenericSAML:     genericSAMLClient,
+		KeycloakOIDC:    keycloakOIDCClient,
 	}, nil
 }

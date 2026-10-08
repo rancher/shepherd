@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/rancher/shepherd/clients/rancher/auth"
+	"github.com/rancher/shepherd/clients/rancher/auth/oidcprovider"
 	"github.com/rancher/shepherd/clients/rancher/auth/saml"
 
 	"github.com/pkg/errors"
@@ -290,6 +291,21 @@ func (c *Client) AsSAMLUser(user *management.User, provider saml.Provider) (*Cli
 	}
 
 	return NewClientForConfig(result.SessionToken, c.RancherConfig, c.Session)
+}
+
+// AsOIDCUser signs a user in through an OpenID Connect provider and returns a Client bound to that session
+func (c *Client) AsOIDCUser(user *management.User, provider oidcprovider.Provider) (*Client, error) {
+	if provider.Name != c.Auth.KeycloakOIDC.Provider().Name {
+		return nil, fmt.Errorf("this client drives the %s OpenID Connect provider, not %s",
+			c.Auth.KeycloakOIDC.Provider().Name, provider.Name)
+	}
+
+	token, err := c.Auth.KeycloakOIDC.LoginAsUser(user.Username, user.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewClientForConfig(token.Token, c.RancherConfig, c.Session)
 }
 
 // ReLogin reinstantiates a Client to update its API schema. This function would be used for a non admin user that needs to be
