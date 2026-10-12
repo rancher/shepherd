@@ -278,7 +278,19 @@ func (c *Client) AsAuthUser(user *management.User, authProvider auth.Provider) (
 	return NewClientForConfig(returnedToken.Token, c.RancherConfig, c.Session)
 }
 
-// AsSAMLUser signs a user in through a SAML provider and returns a Client bound to that session
+// AsNamedAuthUser signs a user in through the auth config with the given name of an authentication provider and returns a Client bound to that session.
+// An empty configName signs in through the provider's default config, as AsAuthUser does.
+func (c *Client) AsNamedAuthUser(user *management.User, authProvider auth.Provider, configName string) (*Client, error) {
+	returnedToken, err := c.loginWithCredentials(user.Username, user.Password, authProvider, configName)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewClientForConfig(returnedToken.Token, c.RancherConfig, c.Session)
+}
+
+// AsSAMLUser signs a user in through a SAML provider and returns a Client bound to that session.
+// A provider built with saml.Provider.Named signs the user in through that auth config.
 func (c *Client) AsSAMLUser(user *management.User, provider saml.Provider) (*Client, error) {
 	result, err := c.Auth.SAML.Login(provider, user.Username, user.Password)
 	if err != nil {
@@ -293,14 +305,31 @@ func (c *Client) AsSAMLUser(user *management.User, provider saml.Provider) (*Cli
 	return NewClientForConfig(result.SessionToken, c.RancherConfig, c.Session)
 }
 
-// AsOIDCUser signs a user in through an OpenID Connect provider and returns a Client bound to that session
+// AsOIDCUser signs a user in through an OpenID Connect provider and returns a Client bound to that session.
+// The user signs in through the provider's default config unless the provider was built with oidcprovider.Provider.Named.
 func (c *Client) AsOIDCUser(user *management.User, provider oidcprovider.Provider) (*Client, error) {
-	if provider.Name != c.Auth.KeycloakOIDC.Provider().Name {
-		return nil, fmt.Errorf("this client drives the %s OpenID Connect provider, not %s",
-			c.Auth.KeycloakOIDC.Provider().Name, provider.Name)
+	var providerClient *oidcprovider.ProviderClient
+
+	switch provider.Name {
+	case c.Auth.KeycloakOIDC.Provider().Name:
+		providerClient = c.Auth.KeycloakOIDC
+	case c.Auth.GenericOIDC.Provider().Name:
+		providerClient = c.Auth.GenericOIDC
+	default:
+		return nil, fmt.Errorf("this client drives the %s and %s OpenID Connect providers, not %s",
+			c.Auth.KeycloakOIDC.Provider().Name, c.Auth.GenericOIDC.Provider().Name, provider.Name)
 	}
 
-	token, err := c.Auth.KeycloakOIDC.LoginAsUser(user.Username, user.Password)
+	if provider.ConfigName != "" {
+		providerClient = providerClient.ForConfig(provider.ConfigName, "", nil)
+	}
+
+	return c.AsOIDCUserWithClient(user, providerClient)
+}
+
+// AsOIDCUserWithClient signs a user in through the auth config the given OpenID Connect provider client drives and returns a Client bound to that session
+func (c *Client) AsOIDCUserWithClient(user *management.User, providerClient *oidcprovider.ProviderClient) (*Client, error) {
+	token, err := providerClient.LoginAsUser(user.Username, user.Password)
 	if err != nil {
 		return nil, err
 	}
@@ -437,15 +466,18 @@ func (c *Client) GetManagementWatchInterface(schemaType string, opts metav1.List
 	return dynamicClient.Resource(groupVersionResource).Watch(context.TODO(), opts)
 }
 
-// loginWithCredentials uses the local authentication provider to authenticate a user and return the token.
-func (c *Client) loginWithCredentials(username, password string, provider auth.Provider) (*management.Token, error) {
+// loginWithCredentials uses the given authentication provider to authenticate a user and return the token.
+// A non-empty configName signs the user in through that auth config rather than the provider's default one.
+func (c *Client) loginWithCredentials(username, password string, provider auth.Provider, configName string) (*management.Token, error) {
 	token := &management.Token{}
 	bodyContent, err := json.Marshal(struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
+		Username   string `json:"username"`
+		Password   string `json:"password"`
+		ConfigName string `json:"configName,omitempty"`
 	}{
-		Username: username,
-		Password: password,
+		Username:   username,
+		Password:   password,
+		ConfigName: configName,
 	})
 	if err != nil {
 		return nil, err
@@ -461,12 +493,12 @@ func (c *Client) loginWithCredentials(username, password string, provider auth.P
 
 // login uses the local authentication provider to authenticate a user and return the token.
 func (c *Client) login(user *management.User, provider auth.Provider) (*management.Token, error) {
-	return c.loginWithCredentials(user.Username, user.Password, provider)
+	return c.loginWithCredentials(user.Username, user.Password, provider, "")
 }
 
 // loginPublicAPIUser uses the local authentication provider to authenticate a v3 user and return the token.
 func (c *Client) loginPublicAPIUser(user *v3.User, password string, provider auth.Provider) (*management.Token, error) {
-	return c.loginWithCredentials(user.Username, password, provider)
+	return c.loginWithCredentials(user.Username, password, provider, "")
 }
 
 // IsConnected is a helper function that pings rancher ping endpoint with the management, steve and rest clients.

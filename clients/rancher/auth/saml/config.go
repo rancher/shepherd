@@ -13,6 +13,16 @@ func (p Provider) String() string {
 	return p.Name
 }
 
+// Named returns the provider bound to the auth config with the given name.
+// Rancher serves a SAML config's endpoints under its own name, so that name replaces the provider's.
+func (p Provider) Named(configName string) Provider {
+	if configName != "" {
+		p.Name = configName
+	}
+
+	return p
+}
+
 var KeycloakSAML = Provider{
 	Name:       "keycloak",
 	ConfigType: management.KeyCloakConfigType,

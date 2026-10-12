@@ -8,10 +8,28 @@ type Provider struct {
 	ConfigType string
 	PublicType string
 	ConfigKey  string
+	// ConfigName names the auth config the provider drives, empty for the provider's default one
+	ConfigName string
 }
 
 // String stringer for the Provider
 func (p Provider) String() string {
+	return p.Name
+}
+
+// Named returns the provider bound to the auth config with the given name
+func (p Provider) Named(configName string) Provider {
+	p.ConfigName = configName
+
+	return p
+}
+
+// AuthConfigName returns the name of the auth config the provider drives, which is the provider's own name unless it was bound to another one
+func (p Provider) AuthConfigName() string {
+	if p.ConfigName != "" {
+		return p.ConfigName
+	}
+
 	return p.Name
 }
 
@@ -20,6 +38,13 @@ var KeycloakOIDC = Provider{
 	ConfigType: management.KeyCloakOIDCConfigType,
 	PublicType: "keyCloakOIDCProvider",
 	ConfigKey:  "keycloakoidc",
+}
+
+var GenericOIDC = Provider{
+	Name:       "genericoidc",
+	ConfigType: "genericOIDCConfig",
+	PublicType: "genericOIDCProvider",
+	ConfigKey:  "genericoidc",
 }
 
 // Config represents the OpenID Connect authentication configuration structure

@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/rancher/shepherd/clients/rancher/auth/namedconfig"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	oidcext "github.com/rancher/shepherd/extensions/auth/oidcprovider"
 	"github.com/rancher/shepherd/extensions/defaults"
@@ -37,12 +38,13 @@ const (
 )
 
 type ProviderClient struct {
-	client     *management.Client
-	session    *session.Session
-	provider   Provider
-	rancherURL string
-	transport  *http.Transport
-	httpClient *http.Client
+	client      *management.Client
+	session     *session.Session
+	provider    Provider
+	displayName string
+	rancherURL  string
+	transport   *http.Transport
+	httpClient  *http.Client
 
 	Config *Config
 }
@@ -76,6 +78,34 @@ func (p *ProviderClient) Provider() Provider {
 	return p.provider
 }
 
+// ForConfig returns a client that drives the auth config with the given name instead of the provider's default one.
+// A nil config keeps the configuration this client was built with.
+func (p *ProviderClient) ForConfig(configName, displayName string, config *Config) *ProviderClient {
+	named := *p
+	named.provider = p.provider.Named(configName)
+	named.displayName = displayName
+
+	if config != nil {
+		named.Config = config
+	}
+
+	return &named
+}
+
+// Delete removes the named auth config this client drives. The provider's default config cannot be deleted.
+func (p *ProviderClient) Delete() error {
+	if p.provider.ConfigName == "" {
+		return fmt.Errorf("the default %s auth config cannot be deleted", p.provider.Name)
+	}
+
+	return namedconfig.Delete(p.client, p.provider.ConfigName)
+}
+
+// ensureConfig creates the auth config this client drives when it is a named one that does not exist yet
+func (p *ProviderClient) ensureConfig() error {
+	return namedconfig.Ensure(p.client, p.provider.ConfigType, p.provider.ConfigName, p.displayName)
+}
+
 // redirectURL names the Rancher address the identity provider sends the authorization code back to
 func (p *ProviderClient) redirectURL() string {
 	if p.Config.RancherURL != "" {
@@ -102,7 +132,7 @@ func (p *ProviderClient) TrustIdentityProvider() error {
 		return err
 	}
 
-	clientKeyPair, err := newClientKeyPair(p.provider.Name)
+	clientKeyPair, err := newClientKeyPair(p.provider.AuthConfigName())
 	if err != nil {
 		return err
 	}
@@ -140,6 +170,10 @@ func (p *ProviderClient) EnableWithAdminLogin(username, password string) error {
 			"administrator, set users.admin under the %s config key", p.provider.Name, p.provider.ConfigKey)
 	}
 
+	if err := p.ensureConfig(); err != nil {
+		return err
+	}
+
 	authorizationURL, err := p.authorizationURL()
 	if err != nil {
 		return err
@@ -161,6 +195,9 @@ func (p *ProviderClient) EnableWithAdminLogin(username, password string) error {
 		"oidcConfig": input,
 		"code":       code,
 	}
+	if p.provider.ConfigName != "" {
+		applyInput[namedconfig.ConfigNameField] = p.provider.ConfigName
+	}
 
 	var result management.AuthConfig
 	if err := p.client.Ops.DoModify(http.MethodPost, p.actionURL(testAndApplyAction), applyInput, &result); err != nil {
@@ -170,9 +207,9 @@ func (p *ProviderClient) EnableWithAdminLogin(username, password string) error {
 
 	p.session.RegisterCleanupFunc(p.Disable)
 
-	enabled, err := p.client.AuthConfig.ByID(p.provider.Name)
+	enabled, err := p.client.AuthConfig.ByID(p.provider.AuthConfigName())
 	if err != nil {
-		return fmt.Errorf("retrieving the %s auth config after enabling it: %w", p.provider.Name, err)
+		return fmt.Errorf("retrieving the %s auth config after enabling it: %w", p.provider.AuthConfigName(), err)
 	}
 
 	if !enabled.Enabled {
@@ -185,6 +222,10 @@ func (p *ProviderClient) EnableWithAdminLogin(username, password string) error {
 
 // Enable writes the auth config with the given configuration values, without any sign-in at the identity provider
 func (p *ProviderClient) Enable() error {
+	if err := p.ensureConfig(); err != nil {
+		return err
+	}
+
 	input, err := p.newConfigInputWithSecrets()
 	if err != nil {
 		return err
@@ -282,7 +323,7 @@ func (p *ProviderClient) LoginAsUser(username, password string) (*management.Tok
 	parameters.Set(stateParam, state)
 	parameters.Set(scopeParam, p.scopes())
 
-	startURL := fmt.Sprintf("%s%s/%s?%s", p.rancherURL, redirectToIdPPath, p.provider.Name, parameters.Encode())
+	startURL := fmt.Sprintf("%s%s/%s?%s", p.rancherURL, redirectToIdPPath, p.provider.AuthConfigName(), parameters.Encode())
 
 	code, err := oidcext.CaptureAuthorizationCode(p.transport, startURL, p.redirectURL(), username, password)
 	if err != nil {
@@ -292,10 +333,16 @@ func (p *ProviderClient) LoginAsUser(username, password string) (*management.Tok
 	loginURL := fmt.Sprintf("%s%s/%ss/%s?action=%s", p.rancherURL, publicAPIPath, p.provider.PublicType,
 		p.provider.Name, loginAction)
 
-	response, err := clientbase.Do(p.httpClient, http.MethodPost, loginURL, map[string]any{
+	loginInput := map[string]any{
 		"code":         code,
 		"responseType": jsonResponseType,
-	}, map[string]string{"Content-Type": "application/json"})
+	}
+	if p.provider.ConfigName != "" {
+		loginInput[namedconfig.ConfigNameField] = p.provider.ConfigName
+	}
+
+	response, err := clientbase.Do(p.httpClient, http.MethodPost, loginURL, loginInput,
+		map[string]string{"Content-Type": "application/json"})
 	if err != nil {
 		return nil, fmt.Errorf("presenting the authorization code for %s to Rancher: %w", username, err)
 	}
@@ -335,9 +382,9 @@ func (p *ProviderClient) IDTokenClaims(username, password string) (map[string]in
 
 // writeConfig puts the given values onto the provider's auth config
 func (p *ProviderClient) writeConfig(updates map[string]any) error {
-	existing, err := p.client.AuthConfig.ByID(p.provider.Name)
+	existing, err := p.client.AuthConfig.ByID(p.provider.AuthConfigName())
 	if err != nil {
-		return fmt.Errorf("retrieving the %s auth config: %w", p.provider.Name, err)
+		return fmt.Errorf("retrieving the %s auth config: %w", p.provider.AuthConfigName(), err)
 	}
 
 	var result management.AuthConfig
@@ -347,7 +394,7 @@ func (p *ProviderClient) writeConfig(updates map[string]any) error {
 
 // actionURL names the auth config endpoint the given action is posted to
 func (p *ProviderClient) actionURL(action string) string {
-	return fmt.Sprintf("%s/%ss/%s?action=%s", p.client.Opts.URL, p.provider.ConfigType, p.provider.Name, action)
+	return fmt.Sprintf("%s/%ss/%s?action=%s", p.client.Opts.URL, p.provider.ConfigType, p.provider.AuthConfigName(), action)
 }
 
 // scopes returns the scopes the authorization request asks for, falling back to the provider default
@@ -388,7 +435,7 @@ func (p *ProviderClient) newConfigInput() (map[string]any, error) {
 		groupSearchEnabled = *p.Config.GroupSearchEnabled
 	}
 
-	return map[string]any{
+	input := map[string]any{
 		"type":                      p.provider.ConfigType,
 		"accessMode":                p.Config.AccessMode,
 		"allowedPrincipalIds":       p.Config.AllowedPrincipalIDs,
@@ -406,7 +453,13 @@ func (p *ProviderClient) newConfigInput() (map[string]any, error) {
 		"pkceMethod":                p.Config.PKCEMethod,
 		"groupSearchEnabled":        groupSearchEnabled,
 		"clientAuthenticatedSearch": p.Config.ClientAuthenticatedSearch,
-	}, nil
+	}
+
+	if p.displayName != "" {
+		input["displayName"] = p.displayName
+	}
+
+	return input, nil
 }
 
 // newConfigInputWithSecrets builds the provider config body including the client secret and private key
