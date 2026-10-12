@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/rancher/shepherd/clients/rancher/auth/activedirectory"
+	"github.com/rancher/shepherd/clients/rancher/auth/namedconfig"
 	"github.com/rancher/shepherd/clients/rancher/auth/oidc"
 	"github.com/rancher/shepherd/clients/rancher/auth/oidcprovider"
 	"github.com/rancher/shepherd/clients/rancher/auth/openldap"
@@ -15,6 +16,7 @@ import (
 const managementAPIPath = "/v3"
 
 type Client struct {
+	mgmt            *management.Client
 	OLDAP           *openldap.OLDAPClient
 	ActiveDirectory *activedirectory.Client
 	OIDC            *oidc.APIClient
@@ -22,6 +24,7 @@ type Client struct {
 	KeycloakSAML    *saml.ProviderClient
 	GenericSAML     *saml.ProviderClient
 	KeycloakOIDC    *oidcprovider.ProviderClient
+	GenericOIDC     *oidcprovider.ProviderClient
 }
 
 // NewClient constructs the Auth Provider Struct
@@ -61,7 +64,13 @@ func NewClient(mgmt *management.Client, session *session.Session) (*Client, erro
 		return nil, err
 	}
 
+	genericOIDCClient, err := oidcprovider.NewProviderClient(mgmt, session, oidcprovider.GenericOIDC)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Client{
+		mgmt:            mgmt,
 		OLDAP:           oLDAP,
 		ActiveDirectory: activeDirectory,
 		OIDC:            oidcClient,
@@ -69,5 +78,11 @@ func NewClient(mgmt *management.Client, session *session.Session) (*Client, erro
 		KeycloakSAML:    keycloakClient,
 		GenericSAML:     genericSAMLClient,
 		KeycloakOIDC:    keycloakOIDCClient,
+		GenericOIDC:     genericOIDCClient,
 	}, nil
+}
+
+// ListProviderTypes returns what Rancher's public auth provider types endpoint reports about the auth providers it offers
+func (c *Client) ListProviderTypes() ([]map[string]any, error) {
+	return namedconfig.ListProviderTypes(c.mgmt)
 }

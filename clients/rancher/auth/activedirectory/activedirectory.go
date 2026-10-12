@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	apisv3 "github.com/rancher/rancher/pkg/apis/management.cattle.io/v3"
+	"github.com/rancher/shepherd/clients/rancher/auth/namedconfig"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	"github.com/rancher/shepherd/pkg/config"
 	"github.com/rancher/shepherd/pkg/session"
@@ -21,9 +22,11 @@ const (
 )
 
 type Client struct {
-	client  *management.Client
-	session *session.Session
-	Config  *Config
+	client      *management.Client
+	session     *session.Session
+	configName  string
+	displayName string
+	Config      *Config
 }
 
 // NewActiveDirectory constructs ActiveDirectory struct after it reads Active Directory from the configuration file
@@ -38,10 +41,34 @@ func NewActiveDirectory(client *management.Client, session *session.Session) (*C
 	}, nil
 }
 
+// ForConfig returns a client that drives the auth config with the given name instead of the provider's default one.
+// A nil config keeps the configuration this client was built with.
+func (a *Client) ForConfig(configName, displayName string, config *Config) *Client {
+	named := *a
+	named.configName = configName
+	named.displayName = displayName
+
+	if config != nil {
+		named.Config = config
+	}
+
+	return &named
+}
+
+// ConfigName returns the name of the auth config this client drives, empty for the provider's default one
+func (a *Client) ConfigName() string {
+	return a.configName
+}
+
 // Enable is a method of ActiveDirectory, makes a request to the action with the given
 // configuration values
 func (a *Client) Enable() error {
 	var jsonResp map[string]interface{}
+
+	if err := namedconfig.Ensure(a.client, management.ActiveDirectoryConfigType, a.configName, a.displayName); err != nil {
+		return err
+	}
+
 	url := a.newActionURL("testAndApply")
 
 	enableActionInput, err := a.newEnableInputFromConfig()
@@ -49,7 +76,12 @@ func (a *Client) Enable() error {
 		return err
 	}
 
-	err = a.client.Ops.DoModify("POST", url, enableActionInput, &jsonResp)
+	body, err := namedconfig.Body(enableActionInput, a.configName)
+	if err != nil {
+		return err
+	}
+
+	err = a.client.Ops.DoModify("POST", url, body, &jsonResp)
 	if err != nil {
 		return err
 	}
@@ -72,9 +104,22 @@ func (a *Client) Update(
 func (a *Client) Disable() error {
 	var jsonResp map[string]any
 	url := a.newActionURL("disable")
-	disableActionInput := a.newDisableInput()
 
-	return a.client.Ops.DoModify("POST", url, &disableActionInput, &jsonResp)
+	var disableActionInput any = a.newDisableInput()
+	if a.configName != "" {
+		disableActionInput = namedconfig.DisableBody(a.configName)
+	}
+
+	return a.client.Ops.DoModify("POST", url, disableActionInput, &jsonResp)
+}
+
+// Delete removes the named auth config this client drives. The provider's default config cannot be deleted.
+func (a *Client) Delete() error {
+	if a.configName == "" {
+		return fmt.Errorf("the default %s auth config cannot be deleted", resourceType)
+	}
+
+	return namedconfig.Delete(a.client, a.configName)
 }
 
 func (a *Client) newActionURL(action string) string {

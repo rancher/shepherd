@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/rancher/shepherd/clients/rancher/auth/namedconfig"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	samlext "github.com/rancher/shepherd/extensions/auth/saml"
 	"github.com/rancher/shepherd/extensions/defaults"
@@ -22,10 +23,12 @@ type ProviderOperations interface {
 }
 
 type ProviderClient struct {
-	client   *management.Client
-	saml     *APIClient
-	session  *session.Session
-	provider Provider
+	client      *management.Client
+	saml        *APIClient
+	session     *session.Session
+	provider    Provider
+	named       bool
+	displayName string
 
 	Config *Config
 }
@@ -53,8 +56,50 @@ func (p *ProviderClient) Provider() Provider {
 	return p.provider
 }
 
+// ForConfig returns a client that drives the auth config with the given name instead of the provider's default one.
+// A nil config keeps the configuration this client was built with.
+func (p *ProviderClient) ForConfig(configName, displayName string, config *Config) *ProviderClient {
+	named := *p
+	named.provider = p.provider.Named(configName)
+	named.named = configName != ""
+	named.displayName = displayName
+
+	if config != nil {
+		named.Config = config
+	}
+
+	return &named
+}
+
+// FetchServiceProviderMetadata reads the service provider descriptor Rancher publishes for the auth config this client drives
+func (p *ProviderClient) FetchServiceProviderMetadata() (*samlext.ServiceProviderMetadata, error) {
+	return samlext.FetchServiceProviderMetadata(p.saml.noRedirectClient, p.saml.rancherURL, "", p.provider.Name)
+}
+
+// Delete removes the named auth config this client drives. The provider's default config cannot be deleted.
+func (p *ProviderClient) Delete() error {
+	if !p.named {
+		return fmt.Errorf("the default %s auth config cannot be deleted", p.provider.Name)
+	}
+
+	return namedconfig.Delete(p.client, p.provider.Name)
+}
+
+// ensureConfig creates the auth config this client drives when it is a named one that does not exist yet
+func (p *ProviderClient) ensureConfig() error {
+	if !p.named {
+		return nil
+	}
+
+	return namedconfig.Ensure(p.client, p.provider.ConfigType, p.provider.Name, p.displayName)
+}
+
 // Enable is a method of ProviderClient, writes the auth config with the given configuration values
 func (p *ProviderClient) Enable() error {
+	if err := p.ensureConfig(); err != nil {
+		return err
+	}
+
 	updates, err := p.newEnableInput()
 	if err != nil {
 		return err
@@ -79,6 +124,10 @@ func (p *ProviderClient) EnableWithAdminLogin(username, password string) error {
 	if username == "" || password == "" {
 		return fmt.Errorf("enabling %s needs the credentials of an identity provider account for the "+
 			"administrator, set users.admin under the %s config key", p.provider.Name, p.provider.ConfigKey)
+	}
+
+	if err := p.ensureConfig(); err != nil {
+		return err
 	}
 
 	updates, err := p.newEnableInput()
@@ -353,7 +402,7 @@ func (p *ProviderClient) newEnableInput() (map[string]any, error) {
 		return nil, err
 	}
 
-	return map[string]any{
+	input := map[string]any{
 		"type":                p.provider.ConfigType,
 		"enabled":             true,
 		"accessMode":          p.Config.AccessMode,
@@ -371,5 +420,11 @@ func (p *ProviderClient) newEnableInput() (map[string]any, error) {
 		"signatureMethod":     p.Config.SignatureMethod,
 		"allowIdpInitiated":   p.Config.AllowIdpInitiated,
 		"forceAuthn":          p.Config.ForceAuthn,
-	}, nil
+	}
+
+	if p.displayName != "" {
+		input["displayName"] = p.displayName
+	}
+
+	return input, nil
 }

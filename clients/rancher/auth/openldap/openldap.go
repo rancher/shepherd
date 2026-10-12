@@ -3,6 +3,7 @@ package openldap
 import (
 	"fmt"
 
+	"github.com/rancher/shepherd/clients/rancher/auth/namedconfig"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	"github.com/rancher/shepherd/pkg/config"
 	"github.com/rancher/shepherd/pkg/session"
@@ -20,8 +21,10 @@ const (
 )
 
 type OLDAPClient struct {
-	client  *management.Client
-	session *session.Session
+	client      *management.Client
+	session     *session.Session
+	configName  string
+	displayName string
 
 	Config *Config
 }
@@ -38,10 +41,33 @@ func NewOLDAP(client *management.Client, session *session.Session) (*OLDAPClient
 	}, nil
 }
 
+// ForConfig returns a client that drives the auth config with the given name instead of the provider's default one.
+// A nil config keeps the configuration this client was built with.
+func (o *OLDAPClient) ForConfig(configName, displayName string, config *Config) *OLDAPClient {
+	named := *o
+	named.configName = configName
+	named.displayName = displayName
+
+	if config != nil {
+		named.Config = config
+	}
+
+	return &named
+}
+
+// ConfigName returns the name of the auth config this client drives, empty for the provider's default one
+func (o *OLDAPClient) ConfigName() string {
+	return o.configName
+}
+
 // Enable is a method of OLDAP, makes a request to the action with the given
 // configuration values
 func (o *OLDAPClient) Enable() error {
 	var jsonResp map[string]interface{}
+
+	if err := namedconfig.Ensure(o.client, management.OpenLdapConfigType, o.configName, o.displayName); err != nil {
+		return err
+	}
 
 	url := o.newActionURL("testAndApply")
 	enableActionInput, err := o.newEnableInputFromConfig()
@@ -49,7 +75,12 @@ func (o *OLDAPClient) Enable() error {
 		return err
 	}
 
-	err = o.client.Ops.DoModify("POST", url, enableActionInput, &jsonResp)
+	body, err := namedconfig.Body(enableActionInput, o.configName)
+	if err != nil {
+		return err
+	}
+
+	err = o.client.Ops.DoModify("POST", url, body, &jsonResp)
 	if err != nil {
 		return err
 	}
@@ -73,9 +104,22 @@ func (o *OLDAPClient) Disable() error {
 	var jsonResp map[string]any
 
 	url := o.newActionURL("disable")
-	disableActionInput := o.newDisableInput()
 
-	return o.client.Ops.DoModify("POST", url, &disableActionInput, &jsonResp)
+	var disableActionInput any = o.newDisableInput()
+	if o.configName != "" {
+		disableActionInput = namedconfig.DisableBody(o.configName)
+	}
+
+	return o.client.Ops.DoModify("POST", url, disableActionInput, &jsonResp)
+}
+
+// Delete removes the named auth config this client drives. The provider's default config cannot be deleted.
+func (o *OLDAPClient) Delete() error {
+	if o.configName == "" {
+		return fmt.Errorf("the default %s auth config cannot be deleted", resourceType)
+	}
+
+	return namedconfig.Delete(o.client, o.configName)
 }
 
 func (o *OLDAPClient) newActionURL(action string) string {
