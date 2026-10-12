@@ -3,6 +3,7 @@ package openldap
 import (
 	"fmt"
 
+	"github.com/rancher/shepherd/clients/rancher/auth/namedconfig"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	"github.com/rancher/shepherd/pkg/config"
 	"github.com/rancher/shepherd/pkg/session"
@@ -20,8 +21,10 @@ const (
 )
 
 type OLDAPClient struct {
-	client  *management.Client
-	session *session.Session
+	client      *management.Client
+	session     *session.Session
+	configName  string
+	displayName string
 
 	Config *Config
 }
@@ -38,27 +41,34 @@ func NewOLDAP(client *management.Client, session *session.Session) (*OLDAPClient
 	}, nil
 }
 
+// WithNamedConfig returns a client that drives the auth config with the given name instead of the provider's default one.
+// A nil config keeps the configuration this client was built with.
+func (o *OLDAPClient) WithNamedConfig(configName, displayName string, config *Config) *OLDAPClient {
+	named := *o
+	named.configName = configName
+	named.displayName = displayName
+
+	if config != nil {
+		named.Config = config
+	}
+
+	return &named
+}
+
+// ConfigName returns the name of the auth config this client drives, empty for the provider's default one
+func (o *OLDAPClient) ConfigName() string {
+	return o.configName
+}
+
 // Enable is a method of OLDAP, makes a request to the action with the given
 // configuration values
 func (o *OLDAPClient) Enable() error {
-	var jsonResp map[string]interface{}
-
-	url := o.newActionURL("testAndApply")
-	enableActionInput, err := o.newEnableInputFromConfig()
+	input, err := o.newEnableInputFromConfig()
 	if err != nil {
 		return err
 	}
 
-	err = o.client.Ops.DoModify("POST", url, enableActionInput, &jsonResp)
-	if err != nil {
-		return err
-	}
-
-	o.session.RegisterCleanupFunc(func() error {
-		return o.Disable()
-	})
-
-	return nil
+	return namedconfig.Enable(o.session, o.client, o.namedAuthConfig(), input)
 }
 
 // Update is a method of OLDAP, makes an update with the given configuration values
@@ -70,22 +80,23 @@ func (o *OLDAPClient) Update(
 
 // Disable is a method of OLDAP, makes a request to disable Open LDAP
 func (o *OLDAPClient) Disable() error {
-	var jsonResp map[string]any
-
-	url := o.newActionURL("disable")
-	disableActionInput := o.newDisableInput()
-
-	return o.client.Ops.DoModify("POST", url, disableActionInput, &jsonResp)
+	return namedconfig.Disable(o.client, o.namedAuthConfig())
 }
 
-func (o *OLDAPClient) newActionURL(action string) string {
-	return fmt.Sprintf(
-		"%v/%v/%v?action=%v",
-		o.client.Opts.URL,
-		schemaType,
-		resourceType,
-		action,
-	)
+// Delete removes the named auth config this client drives. The provider's default config cannot be deleted.
+func (o *OLDAPClient) Delete() error {
+	return namedconfig.Delete(o.client, o.namedAuthConfig())
+}
+
+func (o *OLDAPClient) namedAuthConfig() namedconfig.NamedAuthConfig {
+	return namedconfig.NamedAuthConfig{
+		SchemaType:   schemaType,
+		ResourceType: resourceType,
+		ConfigType:   management.OpenLdapConfigType,
+		ConfigName:   o.configName,
+		DisplayName:  o.displayName,
+		AccessMode:   o.Config.AccessMode,
+	}
 }
 
 func (o *OLDAPClient) newEnableInputFromConfig() (*management.OpenLdapTestAndApplyInput, error) {
@@ -106,6 +117,9 @@ func (o *OLDAPClient) newEnableInputFromConfig() (*management.OpenLdapTestAndApp
 	ldapConfig.UserSearchBase = o.Config.Users.SearchBase
 	ldapConfig.GroupSearchBase = o.Config.Groups.SearchBase
 	ldapConfig.Servers = []string{server}
+	if o.Config.Port > 0 {
+		ldapConfig.Port = int64(o.Config.Port)
+	}
 	ldapConfig.ServiceAccountDistinguishedName = o.Config.ServiceAccount.DistinguishedName
 	ldapConfig.ServiceAccountPassword = o.Config.ServiceAccount.Password
 	ldapConfig.GroupMemberUserAttribute = o.Config.Groups.MemberMappingAttribute
@@ -121,8 +135,4 @@ func (o *OLDAPClient) newEnableInputFromConfig() (*management.OpenLdapTestAndApp
 	input.Password = o.Config.Users.Admin.Password
 
 	return &input, nil
-}
-
-func (o *OLDAPClient) newDisableInput() map[string]string {
-	return map[string]string{"configName": resourceType}
 }

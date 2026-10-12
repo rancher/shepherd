@@ -10,6 +10,7 @@ const (
 type Config struct {
 	Hostname       string          `json:"hostname"       yaml:"hostname"`
 	IP             string          `json:"IP"             yaml:"IP"`
+	Port           int             `json:"port,omitempty" yaml:"port,omitempty"`
 	ServiceAccount *ServiceAccount `json:"serviceAccount" yaml:"serviceAccount"`
 	Groups         *Groups         `json:"groups"          yaml:"groups"`
 	Users          *Users          `json:"users"          yaml:"users"`
