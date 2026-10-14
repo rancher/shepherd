@@ -75,7 +75,7 @@ func (o *OLDAPClient) Disable() error {
 	url := o.newActionURL("disable")
 	disableActionInput := o.newDisableInput()
 
-	return o.client.Ops.DoModify("POST", url, &disableActionInput, &jsonResp)
+	return o.client.Ops.DoModify("POST", url, disableActionInput, &jsonResp)
 }
 
 func (o *OLDAPClient) newActionURL(action string) string {
@@ -123,6 +123,6 @@ func (o *OLDAPClient) newEnableInputFromConfig() (*management.OpenLdapTestAndApp
 	return &input, nil
 }
 
-func (o *OLDAPClient) newDisableInput() []byte {
-	return []byte(`{"action": "disable"}`)
+func (o *OLDAPClient) newDisableInput() map[string]string {
+	return map[string]string{"configName": resourceType}
 }

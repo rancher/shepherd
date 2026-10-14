@@ -74,7 +74,7 @@ func (a *Client) Disable() error {
 	url := a.newActionURL("disable")
 	disableActionInput := a.newDisableInput()
 
-	return a.client.Ops.DoModify("POST", url, &disableActionInput, &jsonResp)
+	return a.client.Ops.DoModify("POST", url, disableActionInput, &jsonResp)
 }
 
 func (a *Client) newActionURL(action string) string {
@@ -144,6 +144,6 @@ func (a *Client) newEnableInputFromConfig() (*apisv3.ActiveDirectoryTestAndApply
 	return testAndApplyInput, nil
 }
 
-func (a *Client) newDisableInput() []byte {
-	return []byte(`{"action": "disable"}`)
+func (a *Client) newDisableInput() map[string]string {
+	return map[string]string{"configName": resourceType}
 }
