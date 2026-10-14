@@ -15,6 +15,36 @@ import (
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
 
+// IsAllowed reports whether the identity behind the client may perform the given resource attributes, through the SelfSubjectAccessReview API
+func IsAllowed(client *rancher.Client, clusterID string, attr *authzv1.ResourceAttributes) (bool, error) {
+	selfReview := &authzv1.SelfSubjectAccessReview{
+		Spec: authzv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: attr,
+		},
+	}
+
+	selfSARResource, err := kubeapi.ResourceForClient(client, clusterID, "", schema.GroupVersionResource{
+		Group:    "authorization.k8s.io",
+		Version:  "v1",
+		Resource: "selfsubjectaccessreviews",
+	})
+	if err != nil {
+		return false, err
+	}
+
+	respUnstructured, err := selfSARResource.Create(context.TODO(), unstructured.MustToUnstructured(selfReview), metav1.CreateOptions{})
+	if err != nil {
+		return false, err
+	}
+
+	selfReviewResp := &authzv1.SelfSubjectAccessReview{}
+	if err := scheme.Scheme.Convert(respUnstructured, selfReviewResp, respUnstructured.GroupVersionKind()); err != nil {
+		return false, err
+	}
+
+	return selfReviewResp.Status.Allowed, nil
+}
+
 // WaitForAllowed verifies access to resources using the SelfSubjectAccessReview
 // API. It returns nil when all have been granted within some defined timeout,
 // otherwise it returns an error.
