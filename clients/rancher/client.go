@@ -440,18 +440,21 @@ func (c *Client) GetManagementWatchInterface(schemaType string, opts metav1.List
 // loginWithCredentials uses the local authentication provider to authenticate a user and return the token.
 func (c *Client) loginWithCredentials(username, password string, provider auth.Provider) (*management.Token, error) {
 	token := &management.Token{}
+	configName := strings.ToLower(provider.String())
 	bodyContent, err := json.Marshal(struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
+		Username   string `json:"username"`
+		Password   string `json:"password"`
+		ConfigName string `json:"configName"`
 	}{
-		Username: username,
-		Password: password,
+		Username:   username,
+		Password:   password,
+		ConfigName: configName,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	endpoint := fmt.Sprintf("/v3-public/%vProviders/%v", provider.String(), strings.ToLower(provider.String()))
+	endpoint := fmt.Sprintf("/v3-public/%vProviders/%v", provider.String(), configName)
 	if err := c.doAction(endpoint, "login", bodyContent, token); err != nil {
 		return nil, err
 	}
