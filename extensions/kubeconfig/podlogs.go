@@ -16,6 +16,11 @@ import (
 
 // GetPodLogs fetches logs from a Kubernetes pod. Buffer size (e.g., '64KB', '8MB', '1GB') influences log reading; an empty string causes no buffering.
 func GetPodLogs(client *rancher.Client, clusterID string, podName string, namespace string, bufferSizeStr string) (string, error) {
+	return GetPodContainerLogs(client, clusterID, podName, namespace, "", bufferSizeStr)
+}
+
+// GetPodContainerLogs fetches logs from the named container of a Kubernetes pod, or from its only container when the name is empty
+func GetPodContainerLogs(client *rancher.Client, clusterID string, podName string, namespace string, containerName string, bufferSizeStr string) (string, error) {
 	var restConfig *restclient.Config
 
 	kubeConfig, err := GetKubeconfig(client, clusterID)
@@ -37,7 +42,7 @@ func GetPodLogs(client *rancher.Client, clusterID string, podName string, namesp
 	}
 
 	req := restClient.Get().Resource("pods").Name(podName).Namespace(namespace).SubResource("log")
-	option := &corev1.PodLogOptions{}
+	option := &corev1.PodLogOptions{Container: containerName}
 	req.VersionedParams(
 		option,
 		k8Scheme.ParameterCodec,
