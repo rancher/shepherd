@@ -19,10 +19,17 @@ const (
 )
 
 type User struct {
-	Schemas    []string `json:"schemas"`
-	UserName   string   `json:"userName"`
-	ExternalID string   `json:"externalId,omitempty"`
-	Active     *bool    `json:"active,omitempty"`
+	Schemas     []string `json:"schemas"`
+	UserName    string   `json:"userName"`
+	DisplayName string   `json:"displayName,omitempty"`
+	ExternalID  string   `json:"externalId,omitempty"`
+	Active      *bool    `json:"active,omitempty"`
+	Emails      []Email  `json:"emails,omitempty"`
+}
+
+type Email struct {
+	Value   string `json:"value"`
+	Primary bool   `json:"primary,omitempty"`
 }
 
 type Group struct {
