@@ -8,18 +8,20 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// IsFeatureEnabled returns true when the named feature flag is enabled.
+// IsFeatureEnabled returns the effective value of the named feature flag.
 func IsFeatureEnabled(client *rancher.Client, name string) (bool, error) {
-	feature, err := client.WranglerContext.Mgmt.Feature().Get(name, metav1.GetOptions{})
+	feature, err := client.WranglerContext.Mgmt.Feature().Get(
+		name, metav1.GetOptions{},
+	)
 	if err != nil {
 		return false, err
 	}
 
-	if feature.Spec.Value == nil {
-		return false, nil
+	if feature.Spec.Value != nil {
+		return *feature.Spec.Value, nil
 	}
 
-	return *feature.Spec.Value, nil
+	return feature.Status.Default, nil
 }
 
 // UpdateFeatureFlag updates the value of the named feature flag to the provided value using the wrangler context.

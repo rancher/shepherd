@@ -21,6 +21,7 @@ import (
 	"github.com/rancher/shepherd/clients/rancher"
 	management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 	extauthz "github.com/rancher/shepherd/extensions/kubeapi/authorization"
+	extfeatures "github.com/rancher/shepherd/extensions/kubeapi/features"
 	password "github.com/rancher/shepherd/extensions/users/passwordgenerator"
 	"github.com/rancher/shepherd/pkg/api/scheme"
 	namegen "github.com/rancher/shepherd/pkg/namegenerator"
@@ -29,7 +30,8 @@ import (
 )
 
 const (
-	rtbOwnerLabel = "authz.cluster.cattle.io/rtb-owner-updated"
+	rtbOwnerLabel                  = "authz.cluster.cattle.io/rtb-owner-updated"
+	aggregatedRoleTemplatesFeature = "aggregated-roletemplates"
 )
 
 var timeout = int64(60 * 3)
@@ -351,6 +353,16 @@ func waitForPRTBRollout(client *rancher.Client, prtb *management.ProjectRoleTemp
 }
 
 func waitForRTBRollout(client *rancher.Client, rtbNamespace string, rtbName string, selector labels.Selector, clusterID string, opType operationType) error {
+	// ART does not create the per-binding labeled ClusterRoleBindings polled below.
+	artEnabled, err := extfeatures.IsFeatureEnabled(client, aggregatedRoleTemplatesFeature)
+	if err != nil {
+		return fmt.Errorf("unable to determine if %s is enabled: %w", aggregatedRoleTemplatesFeature, err)
+	}
+
+	if artEnabled {
+		return nil
+	}
+
 	// we expect rollout to happen within 20 seconds total
 	backoff := kwait.Backoff{
 		Duration: 500 * time.Millisecond,
@@ -358,7 +370,7 @@ func waitForRTBRollout(client *rancher.Client, rtbNamespace string, rtbName stri
 		Jitter:   0,
 		Steps:    41,
 	}
-	err := kwait.ExponentialBackoff(backoff, func() (done bool, err error) {
+	err = kwait.ExponentialBackoff(backoff, func() (done bool, err error) {
 		downstreamCRBs, err := listClusterRoleBindings(client, clusterID, metav1.ListOptions{
 			LabelSelector: selector.String(),
 		})
