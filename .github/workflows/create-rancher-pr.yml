@@ -203,7 +203,7 @@ jobs:
               owner: "rancher",
               repo: "rancher",
               pull_number: pr.number,
-              reviewers: ["hamistao", "slickwarren", "Priyashetty17"],
+              reviewers: ["hamistao", "Priyashetty17"],
             });
             console.log(`Created new pull request: ${pr.html_url}`);
             return pr.html_url;
