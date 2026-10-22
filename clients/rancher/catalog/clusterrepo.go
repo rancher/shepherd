@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"image/png"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/rancher/shepherd/pkg/api/steve/catalog/types"
 	scheme "github.com/rancher/shepherd/pkg/generated/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,6 +31,12 @@ const (
 	icon             = "icon"
 	version          = "version"
 	values           = "values"
+
+	rancherSettingsURL       = "v1/management.cattle.io.settings/"
+	serverVersionSetting     = "server-version"
+	kubeVersionURL           = "/version"
+	rancherVersionAnnotation = "catalog.cattle.io/rancher-version"
+	kubeVersionAnnotation    = "catalog.cattle.io/kube-version"
 )
 
 // GetChartValues - fetches the chart values from the given repo, chart and chartVersion and validates the result.
@@ -158,15 +165,104 @@ func (c *Client) GetListChartVersions(chartName, repoName string) ([]string, err
 	return versionsList, nil
 }
 
-// GetLatestChartVersion is used to get the lastest version of `chartName` from a given `repoName`
+// getServerVersions returns the Rancher and Kubernetes versions of the deployment the client points to.
+// A version that can't be determined is returned as nil, meaning no constraint is checked against it.
+func (c *Client) getServerVersions() (rancherVersion, kubeVersion *semver.Version) {
+	if result, err := c.RESTClient().Get().AbsPath(rancherSettingsURL + serverVersionSetting).
+		Do(context.TODO()).Raw(); err == nil {
+		var setting struct {
+			Value string `json:"value"`
+		}
+		if err := json.Unmarshal(result, &setting); err == nil {
+			rancherVersion = parseComparableVersion(setting.Value)
+		}
+	}
+
+	if result, err := c.RESTClient().Get().AbsPath(kubeVersionURL).Do(context.TODO()).Raw(); err == nil {
+		var info struct {
+			GitVersion string `json:"gitVersion"`
+		}
+		if err := json.Unmarshal(result, &info); err == nil {
+			kubeVersion = parseComparableVersion(info.GitVersion)
+		}
+	}
+
+	return rancherVersion, kubeVersion
+}
+
+// parseComparableVersion parses a version and strips its prerelease and metadata,
+// so that it can be checked against chart constraints the same way Rancher does.
+func parseComparableVersion(v string) *semver.Version {
+	parsed, err := semver.NewVersion(v)
+	if err != nil {
+		return nil
+	}
+	return semver.New(parsed.Major(), parsed.Minor(), parsed.Patch(), "", "")
+}
+
+// satisfiesConstraint reports whether version satisfies constraint. Empty constraints,
+// unknown versions and unparseable constraints are treated as satisfied.
+func satisfiesConstraint(constraint string, version *semver.Version) bool {
+	if constraint == "" || version == nil {
+		return true
+	}
+	c, err := semver.NewConstraint(constraint)
+	if err != nil {
+		return true
+	}
+	return c.Check(version)
+}
+
+// GetLatestChartVersion is used to get the latest version of `chartName` from a given `repoName`
+// that is compatible with the Rancher and Kubernetes versions of the deployment the client points to.
 func (c *Client) GetLatestChartVersion(chartName string, repoName string) (string, error) {
-	versionsList, err := c.GetListChartVersions(chartName, repoName)
+	charts, err := c.GetChartsFromClusterRepo(repoName)
 	if err != nil {
 		return "", err
 	}
-	lastestVersion := versionsList[0]
 
-	return lastestVersion, nil
+	entries, ok := charts[chartName].([]interface{})
+	if !ok || len(entries) < 1 {
+		return "", fmt.Errorf("failed to find chart %s from the chart repo", chartName)
+	}
+
+	rancherVersion, kubeVersion := c.getServerVersions()
+
+	var latest *semver.Version
+	latestRaw := ""
+	for _, entry := range entries {
+		entryMap, ok := entry.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		rawVersion, _ := entryMap[version].(string)
+		chartVersion, err := semver.NewVersion(rawVersion)
+		if err != nil {
+			continue
+		}
+
+		annotations, _ := entryMap["annotations"].(map[string]interface{})
+		rancherConstraint, _ := annotations[rancherVersionAnnotation].(string)
+		kubeConstraint, _ := annotations[kubeVersionAnnotation].(string)
+		if kubeConstraint == "" {
+			kubeConstraint, _ = entryMap["kubeVersion"].(string)
+		}
+
+		if !satisfiesConstraint(rancherConstraint, rancherVersion) || !satisfiesConstraint(kubeConstraint, kubeVersion) {
+			continue
+		}
+
+		if latest == nil || chartVersion.GreaterThan(latest) {
+			latest = chartVersion
+			latestRaw = rawVersion
+		}
+	}
+
+	if latest == nil {
+		return "", fmt.Errorf("no version of chart %s is compatible with the current deployment", chartName)
+	}
+
+	return latestRaw, nil
 }
 
 // InstallChart installs the chart according to the parameter `chart` from a given repoName
