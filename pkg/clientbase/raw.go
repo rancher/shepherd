@@ -26,6 +26,16 @@ func (a *APIOperations) RawHttpRequest(method, rawURL string, body interface{}, 
 
 // Do executes a raw HTTP request; body may be url.Values (form-encoded) or any JSON-serializable value.
 func Do(client *http.Client, method, rawURL string, body interface{}, headers map[string]string) (*Response, error) {
+	header := http.Header{}
+	for k, v := range headers {
+		header.Set(k, v)
+	}
+
+	return DoWithHeader(client, method, rawURL, body, header)
+}
+
+// DoWithHeader executes a raw HTTP request with the given header, keeping repeated values of the same header name.
+func DoWithHeader(client *http.Client, method, rawURL string, body interface{}, header http.Header) (*Response, error) {
 	var bodyReader io.Reader
 	if body != nil {
 		switch v := body.(type) {
@@ -43,8 +53,8 @@ func Do(client *http.Client, method, rawURL string, body interface{}, headers ma
 	if err != nil {
 		return nil, fmt.Errorf("creating request %s %s: %w", method, rawURL, err)
 	}
-	for k, v := range headers {
-		req.Header.Set(k, v)
+	if header != nil {
+		req.Header = header.Clone()
 	}
 	resp, err := client.Do(req)
 	if err != nil {

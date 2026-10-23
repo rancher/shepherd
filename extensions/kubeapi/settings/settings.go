@@ -74,6 +74,16 @@ func ResetGlobalSettingToDefaultValue(client *rancher.Client, settingName string
 	return UpdateGlobalSetting(client, settingName, defaultValue)
 }
 
+// GetGlobalSettingValue is a helper function that uses the wrangler context to retrieve the value of a Rancher global setting given its ID
+func GetGlobalSettingValue(client *rancher.Client, settingName string) (string, error) {
+	setting, err := client.WranglerContext.Mgmt.Setting().Get(settingName, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get setting %s: %w", settingName, err)
+	}
+
+	return setting.Value, nil
+}
+
 // GetGlobalSettingDefaultValue is a helper function that uses the wrangler context to retrieve the default value of a Rancher global setting given its ID
 func GetGlobalSettingDefaultValue(client *rancher.Client, settingName string) (string, error) {
 	setting, err := client.WranglerContext.Mgmt.Setting().Get(settingName, metav1.GetOptions{})
