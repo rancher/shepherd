@@ -2,6 +2,8 @@ package oidcprovider
 
 import management "github.com/rancher/shepherd/clients/rancher/generated/management/v3"
 
+const cognitoConfigType = "cognitoConfig"
+
 // Provider names an OpenID Connect authentication provider Rancher can be pointed at
 type Provider struct {
 	Name       string
@@ -20,6 +22,13 @@ var KeycloakOIDC = Provider{
 	ConfigType: management.KeyCloakOIDCConfigType,
 	PublicType: "keyCloakOIDCProvider",
 	ConfigKey:  "keycloakoidc",
+}
+
+var Cognito = Provider{
+	Name:       "cognito",
+	ConfigType: cognitoConfigType,
+	PublicType: "cognitoProvider",
+	ConfigKey:  "cognito",
 }
 
 // Config represents the OpenID Connect authentication configuration structure

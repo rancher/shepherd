@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/rancher/shepherd/clients/rancher/auth/activedirectory"
@@ -22,6 +23,18 @@ type Client struct {
 	KeycloakSAML    *saml.ProviderClient
 	GenericSAML     *saml.ProviderClient
 	KeycloakOIDC    *oidcprovider.ProviderClient
+	Cognito         *oidcprovider.ProviderClient
+}
+
+// OIDCProviderFor returns the client that drives the given OpenID Connect provider
+func (c *Client) OIDCProviderFor(provider oidcprovider.Provider) (*oidcprovider.ProviderClient, error) {
+	for _, candidate := range []*oidcprovider.ProviderClient{c.KeycloakOIDC, c.Cognito} {
+		if candidate != nil && candidate.Provider().Name == provider.Name {
+			return candidate, nil
+		}
+	}
+
+	return nil, fmt.Errorf("this client drives no OpenID Connect provider named %s", provider.Name)
 }
 
 // NewClient constructs the Auth Provider Struct
@@ -61,6 +74,11 @@ func NewClient(mgmt *management.Client, session *session.Session) (*Client, erro
 		return nil, err
 	}
 
+	cognitoClient, err := oidcprovider.NewProviderClient(mgmt, session, oidcprovider.Cognito)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Client{
 		OLDAP:           oLDAP,
 		ActiveDirectory: activeDirectory,
@@ -69,5 +87,6 @@ func NewClient(mgmt *management.Client, session *session.Session) (*Client, erro
 		KeycloakSAML:    keycloakClient,
 		GenericSAML:     genericSAMLClient,
 		KeycloakOIDC:    keycloakOIDCClient,
+		Cognito:         cognitoClient,
 	}, nil
 }
