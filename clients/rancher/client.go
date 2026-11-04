@@ -278,7 +278,18 @@ func (c *Client) AsAuthUser(user *management.User, authProvider auth.Provider) (
 	return NewClientForConfig(returnedToken.Token, c.RancherConfig, c.Session)
 }
 
-// AsSAMLUser signs a user in through a SAML provider and returns a Client bound to that session
+// AsNamedAuthUser signs a user in through the auth config with the given name of an authentication provider and returns a Client bound to that session.
+// An empty configName signs in through the provider's default config, as AsAuthUser does.
+func (c *Client) AsNamedAuthUser(user *management.User, authProvider auth.Provider, configName string) (*Client, error) {
+	returnedToken, err := c.loginWithCredentials(user.Username, user.Password, authProvider, configName)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewClientForConfig(returnedToken.Token, c.RancherConfig, c.Session)
+}
+
+// AsSAMLUser signs a user in through a SAML provider and returns a Client bound to that session.
 func (c *Client) AsSAMLUser(user *management.User, provider saml.Provider) (*Client, error) {
 	result, err := c.Auth.SAML.Login(provider, user.Username, user.Password)
 	if err != nil {
@@ -437,14 +448,18 @@ func (c *Client) GetManagementWatchInterface(schemaType string, opts metav1.List
 	return dynamicClient.Resource(groupVersionResource).Watch(context.TODO(), opts)
 }
 
-// loginWithCredentials uses the local authentication provider to authenticate a user and return the token.
-func (c *Client) loginWithCredentials(username, password string, provider auth.Provider) (*management.Token, error) {
+// loginWithCredentials uses the given authentication provider to authenticate a user and return the token.
+// A non-empty configName signs the user in through that auth config rather than the provider's default one.
+func (c *Client) loginWithCredentials(username, password string, provider auth.Provider, configName string) (*management.Token, error) {
 	token := &management.Token{}
-	configName := strings.ToLower(provider.String())
+	if configName == "" {
+		configName = strings.ToLower(provider.String())
+	}
+
 	bodyContent, err := json.Marshal(struct {
 		Username   string `json:"username"`
 		Password   string `json:"password"`
-		ConfigName string `json:"configName"`
+		ConfigName string `json:"configName,omitempty"`
 	}{
 		Username:   username,
 		Password:   password,
@@ -464,12 +479,12 @@ func (c *Client) loginWithCredentials(username, password string, provider auth.P
 
 // login uses the local authentication provider to authenticate a user and return the token.
 func (c *Client) login(user *management.User, provider auth.Provider) (*management.Token, error) {
-	return c.loginWithCredentials(user.Username, user.Password, provider)
+	return c.loginWithCredentials(user.Username, user.Password, provider, "")
 }
 
 // loginPublicAPIUser uses the local authentication provider to authenticate a v3 user and return the token.
 func (c *Client) loginPublicAPIUser(user *v3.User, password string, provider auth.Provider) (*management.Token, error) {
-	return c.loginWithCredentials(user.Username, password, provider)
+	return c.loginWithCredentials(user.Username, password, provider, "")
 }
 
 // IsConnected is a helper function that pings rancher ping endpoint with the management, steve and rest clients.
