@@ -8,7 +8,10 @@ import (
 	"time"
 
 	"github.com/rancher/lasso/pkg/controller"
+	"github.com/rancher/shepherd/extensions/defaults"
 	"github.com/rancher/shepherd/pkg/session"
+	shepherdwait "github.com/rancher/shepherd/pkg/wait"
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -301,9 +304,18 @@ func (c *Controller[T, TList]) Create(obj T) (T, error) {
 		if namespace != "" {
 			displayName = namespace + "/" + name
 		}
-		gvk := obj.GetObjectKind().GroupVersionKind()
 
-		return fmt.Errorf("unable to delete (%v) %v: %w", gvk, displayName, err)
+		if err != nil {
+			return fmt.Errorf("unable to delete (%v) %v: %w", c.gvk, displayName, err)
+		}
+
+		if err := shepherdwait.ForDeletion(func(ctx context.Context) error {
+			return c.embeddedClient.Get(ctx, namespace, name, reflect.New(c.objType).Interface().(T), metav1.GetOptions{})
+		}, defaults.FiveSecondTimeout); err != nil {
+			logrus.Warnf("(%v) %v was deleted but %v", c.gvk, displayName, err)
+		}
+
+		return nil
 	})
 
 	return result, nil
