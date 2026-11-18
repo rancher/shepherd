@@ -6,7 +6,9 @@ import (
 
 	"k8s.io/client-go/rest"
 
+	"github.com/rancher/shepherd/extensions/defaults"
 	"github.com/rancher/shepherd/pkg/session"
+	shepherdwait "github.com/rancher/shepherd/pkg/wait"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -117,7 +119,18 @@ func (c *ResourceClient) Create(ctx context.Context, obj *unstructured.Unstructu
 			}
 			gvk := unstructuredObj.GetObjectKind().GroupVersionKind()
 
-			return fmt.Errorf("unable to delete (%v) %v: %w", gvk, name, err)
+			if err != nil {
+				return fmt.Errorf("unable to delete (%v) %v: %w", gvk, name, err)
+			}
+
+			if err := shepherdwait.ForDeletion(func(ctx context.Context) error {
+				_, getErr := c.Get(ctx, unstructuredObj.GetName(), metav1.GetOptions{}, subresources...)
+				return getErr
+			}, defaults.FiveSecondTimeout); err != nil {
+				logrus.Warnf("(%v) %v was deleted but %v", gvk, name, err)
+			}
+
+			return nil
 		})
 	}
 

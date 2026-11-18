@@ -1,11 +1,17 @@
 package scim
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
 	scimclient "github.com/rancher/shepherd/clients/rancher/auth/scim"
+	"github.com/rancher/shepherd/extensions/defaults"
 	"github.com/rancher/shepherd/pkg/session"
+	shepherdwait "github.com/rancher/shepherd/pkg/wait"
+	"github.com/sirupsen/logrus"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // CreateUserWithTemplate creates a SCIM User from the given template and, on success,
@@ -26,8 +32,34 @@ func CreateUserWithTemplate(scimClient *scimclient.Client, ts *session.Session, 
 			return resp, fmt.Errorf("create user: could not parse id for cleanup: %w", idErr)
 		}
 		ts.RegisterCleanupFunc(func() error {
-			_, delErr := scimClient.Users().Delete(id)
-			return delErr
+			delResp, delErr := scimClient.Users().Delete(id)
+			if delErr != nil {
+				return delErr
+			}
+
+			if delResp.StatusCode == http.StatusNotFound {
+				return nil
+			}
+
+			if err := shepherdwait.ForDeletion(func(context.Context) error {
+				getResp, getErr := scimClient.Users().ByID(id)
+				if getErr != nil {
+					return getErr
+				}
+
+				switch getResp.StatusCode {
+				case http.StatusNotFound:
+					return apierrors.NewNotFound(schema.GroupResource{Resource: "users"}, id)
+				case http.StatusOK:
+					return nil
+				default:
+					return fmt.Errorf("GET /Users/%s answered %d", id, getResp.StatusCode)
+				}
+			}, defaults.OneMinuteTimeout); err != nil {
+				logrus.Warnf("SCIM user %s was deleted but %v", id, err)
+			}
+
+			return nil
 		})
 	}
 
