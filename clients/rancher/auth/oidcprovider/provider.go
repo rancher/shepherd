@@ -250,6 +250,25 @@ func (p *ProviderClient) UpdateGroupsClaim(groupsClaim string) error {
 	return nil
 }
 
+// UpdateLogoutAll sets whether the provider offers single logout and whether it refuses a plain logout
+func (p *ProviderClient) UpdateLogoutAll(logoutAllEnabled, logoutAllForced bool) error {
+	input, err := p.newConfigInput()
+	if err != nil {
+		return err
+	}
+
+	input["enabled"] = true
+	input["logoutAllEnabled"] = logoutAllEnabled
+	input["logoutAllForced"] = logoutAllForced
+
+	if err := p.writeConfig(input); err != nil {
+		return fmt.Errorf("setting logoutAllEnabled to %v and logoutAllForced to %v on %s: %w",
+			logoutAllEnabled, logoutAllForced, p.provider.Name, err)
+	}
+
+	return nil
+}
+
 // authorizationURL builds the request that asks the identity provider for an authorization code
 func (p *ProviderClient) authorizationURL() (string, error) {
 	if p.Config.PKCEMethod != "" {

@@ -22,6 +22,13 @@ var KeycloakOIDC = Provider{
 	ConfigKey:  "keycloakoidc",
 }
 
+var Cognito = Provider{
+	Name:       "cognito",
+	ConfigType: "cognitoConfig",
+	PublicType: "cognitoProvider",
+	ConfigKey:  "cognito",
+}
+
 // Config represents the OpenID Connect authentication configuration structure
 type Config struct {
 	AccessMode                string   `json:"accessMode" yaml:"accessMode" default:"unrestricted"`

@@ -295,12 +295,12 @@ func (c *Client) AsSAMLUser(user *management.User, provider saml.Provider) (*Cli
 
 // AsOIDCUser signs a user in through an OpenID Connect provider and returns a Client bound to that session
 func (c *Client) AsOIDCUser(user *management.User, provider oidcprovider.Provider) (*Client, error) {
-	if provider.Name != c.Auth.KeycloakOIDC.Provider().Name {
-		return nil, fmt.Errorf("this client drives the %s OpenID Connect provider, not %s",
-			c.Auth.KeycloakOIDC.Provider().Name, provider.Name)
+	providerClient, err := c.Auth.OIDCProviderFor(provider)
+	if err != nil {
+		return nil, err
 	}
 
-	token, err := c.Auth.KeycloakOIDC.LoginAsUser(user.Username, user.Password)
+	token, err := providerClient.LoginAsUser(user.Username, user.Password)
 	if err != nil {
 		return nil, err
 	}
