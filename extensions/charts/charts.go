@@ -114,7 +114,7 @@ func WatchAndWaitDeployments(client *rancher.Client, clusterID, namespace string
 			return err
 		}
 
-		wait.WatchWait(watchAppInterface, func(event watch.Event) (ready bool, err error) {
+		err = wait.WatchWait(watchAppInterface, func(event watch.Event) (ready bool, err error) {
 			deploymentsUnstructured := event.Object.(*unstructured.Unstructured)
 			deployment := &appv1.Deployment{}
 
@@ -128,6 +128,9 @@ func WatchAndWaitDeployments(client *rancher.Client, clusterID, namespace string
 			}
 			return false, nil
 		})
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -220,7 +223,7 @@ func WatchAndWaitDaemonSets(client *rancher.Client, clusterID, namespace string,
 			return err
 		}
 
-		wait.WatchWait(watchAppInterface, func(event watch.Event) (ready bool, err error) {
+		err = wait.WatchWait(watchAppInterface, func(event watch.Event) (ready bool, err error) {
 			daemonsetsUnstructured := event.Object.(*unstructured.Unstructured)
 			daemonset := &appv1.DaemonSet{}
 
@@ -234,6 +237,9 @@ func WatchAndWaitDaemonSets(client *rancher.Client, clusterID, namespace string,
 			}
 			return false, nil
 		})
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -278,7 +284,7 @@ func WatchAndWaitStatefulSets(client *rancher.Client, clusterID, namespace strin
 			return err
 		}
 
-		wait.WatchWait(watchAppInterface, func(event watch.Event) (ready bool, err error) {
+		err = wait.WatchWait(watchAppInterface, func(event watch.Event) (ready bool, err error) {
 			statefulSetsUnstructured := event.Object.(*unstructured.Unstructured)
 			statefulSet := &appv1.StatefulSet{}
 
@@ -292,6 +298,9 @@ func WatchAndWaitStatefulSets(client *rancher.Client, clusterID, namespace strin
 			}
 			return false, nil
 		})
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
