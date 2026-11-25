@@ -6,22 +6,17 @@ import (
 	namegen "github.com/rancher/shepherd/pkg/namegenerator"
 
 	"github.com/rancher/shepherd/clients/rancher"
-	"github.com/rancher/shepherd/extensions/kubeconfig"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/rancher/shepherd/clients/dynamic"
 	"github.com/rancher/shepherd/extensions/unstructured"
 	"github.com/rancher/shepherd/pkg/wait"
 	rbacv1 "k8s.io/api/rbac/v1"
 	v1Unstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/watch"
-	k8Scheme "k8s.io/client-go/kubernetes/scheme"
-	restclient "k8s.io/client-go/rest"
 )
 
 const (
@@ -38,20 +33,9 @@ var importTimeout = int64(60 * 2)
 func CreateJobAndRunKubectlCommands(clusterID, jobname string, job *batchv1.Job, client *rancher.Client) error {
 	job.ObjectMeta.Name = jobname
 	job.Spec.Template.ObjectMeta.Name = jobname
-	var restConfig *restclient.Config
-
-	kubeConfig, err := kubeconfig.GetKubeconfig(client, clusterID)
-	if err != nil {
-		return err
-	}
-
-	restConfig, err = (*kubeConfig).ClientConfig()
-	if err != nil {
-		return err
-	}
-	restConfig.ContentConfig.NegotiatedSerializer = serializer.NewCodecFactory(k8Scheme.Scheme)
-
-	downClient, err := dynamic.NewForConfig(client.Session, restConfig)
+	// Provision through the Steve proxy on the host the rancher.Client is configured
+	// with; the generated kubeconfig may point at an unreachable internal host.
+	downClient, err := client.GetDownStreamClusterClient(clusterID)
 	if err != nil {
 		return err
 	}
